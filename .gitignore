@@ -6,3 +6,4 @@ app/src-tauri/gen/
 *.db-wal
 *.db-shm
 .env
+Veil for Windows/
