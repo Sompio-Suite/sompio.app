@@ -19,6 +19,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 anyhow = "1"
 veil-core = { path = "../../core" }
+veil-connect = { path = "../../connect" }
+tokio = { version = "1", features = ["sync"] }
 
 [profile.release]
 lto = true

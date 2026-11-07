@@ -168,7 +168,25 @@ const reset = () => {
 };
 const discordSource = (): SourceView => ({ platform: "discord", label: "Discord", origin: "C:\\Users\\you\\Downloads\\package.zip", imported_at: Date.now(), channels: baseChannels.length, messages: baseMessages.length });
 
+let tg = { has_app_key: false, connected: false, name: null as string | null, waiting_for: null as null | "code" | "password" };
 const handlers: Record<string, (a: any) => unknown> = {
+  tg_status: () => ({ ...tg }),
+  tg_set_app_key: ({ apiId }) => { if (!/^\d+$/.test(apiId)) throw "The api_id is a number, like 1234567."; tg.has_app_key = true; },
+  tg_start_login: async () => { await wait(400); tg.waiting_for = "code"; },
+  tg_submit_code: async ({ code }) => {
+    await wait(300);
+    if (code !== "12345") throw "That code isn't right. Check the newest message from Telegram and try again. (In the preview, use 12345.)";
+    tg.waiting_for = "password";
+    return { step: "need_password", hint: "the usual" };
+  },
+  tg_submit_password: async () => { await wait(300); tg = { ...tg, connected: true, name: "Sam Rivers", waiting_for: null }; return { step: "done", name: "Sam Rivers" }; },
+  tg_disconnect: () => { tg = { ...tg, connected: false, name: null, waiting_for: null }; },
+  tg_sync: async () => {
+    for (let i = 0; i <= 12; i++) { emit("tg-progress", { chats_done: i, chats_total: 12, messages: i * 31 }); await wait(80); }
+    sources = [...sources.filter((x) => x.platform !== "telegram"), { platform: "telegram", label: "Telegram", origin: "Connected Telegram account", imported_at: Date.now(), channels: 12, messages: 372 }];
+    return { platform: "telegram", channels: 12, messages: 372, servers: 0, warnings: [] };
+  },
+  tg_delete: ({ id }) => { const f = findings.find((x) => x.id === id)!; findings.filter((x) => x.msg === f.msg).forEach((x) => statuses.set(x.id, "deleted")); return summary(); },
   has_data: () => loaded,
   is_demo: () => demo,
   load_demo: async () => { reset(); await wait(300); loaded = true; demo = true; sources = [discordSource()]; },

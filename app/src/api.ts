@@ -61,6 +61,10 @@ export interface FindingView {
   status: Status | null; link: string | null; file_path: string | null;
 }
 
+export interface TgStatus { has_app_key: boolean; connected: boolean; name: string | null; waiting_for: "code" | "password" | null }
+export type TgStep = { step: "done"; name: string } | { step: "need_password"; hint: string | null };
+export interface TgProgress { chats_done: number; chats_total: number; messages: number }
+
 export const inDesktopApp = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 type Invoke = <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
@@ -78,6 +82,14 @@ export const listen = async <T,>(event: string, cb: (payload: T) => void) => (aw
 
 export const api = {
   hasData: () => call<boolean>("has_data"),
+  tgStatus: () => call<TgStatus>("tg_status"),
+  tgSetAppKey: (apiId: string, apiHash: string) => call<void>("tg_set_app_key", { apiId, apiHash }),
+  tgStartLogin: (phone: string) => call<void>("tg_start_login", { phone }),
+  tgSubmitCode: (code: string) => call<TgStep>("tg_submit_code", { code }),
+  tgSubmitPassword: (password: string) => call<TgStep>("tg_submit_password", { password }),
+  tgDisconnect: () => call<void>("tg_disconnect"),
+  tgSync: () => call<ImportSummary>("tg_sync"),
+  tgDelete: (id: number) => call<ScanSummary>("tg_delete", { id }),
   isDemo: () => call<boolean>("is_demo"),
   loadDemo: () => call<void>("load_demo"),
   importPackage: (path: string) => call<ImportSummary>("import_package", { path }),

@@ -17,9 +17,14 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: swatinem/rust-cache@v2
         with:
-          workspaces: core -> target
-      - name: Run tests
+          workspaces: |
+            core -> target
+            connect -> target
+      - name: Run engine tests
         working-directory: core
+        run: cargo test
+      - name: Run connector tests
+        working-directory: connect
         run: cargo test
 
   windows:
@@ -43,6 +48,10 @@ jobs:
       - name: Build installer and app
         working-directory: app
         run: npx tauri build
+        env:
+          # Veil's own Telegram app key, from the repository's secrets (Settings > Secrets > Actions).
+          VEIL_TG_API_ID: ${{ secrets.VEIL_TG_API_ID }}
+          VEIL_TG_API_HASH: ${{ secrets.VEIL_TG_API_HASH }}
       - name: Collect files
         shell: pwsh
         run: |

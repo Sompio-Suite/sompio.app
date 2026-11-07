@@ -432,3 +432,13 @@ button.redact:hover { outline: 2px solid color-mix(in srgb, var(--accent) 45%, t
 .step-text span.risk-3 { color: var(--risk-high); }
 .step-text span.risk-2 { color: var(--risk-mid); }
 .step-text span.risk-1 { color: var(--risk-low); }
+
+/* ---------- Connected accounts ---------- */
+.connect { padding: 1.1rem 1.25rem; display: grid; gap: 1rem; }
+.connect-head { display: grid; grid-template-columns: auto 1fr auto; gap: 1rem; align-items: center; }
+.connect-head .text { display: grid; gap: 0.1rem; }
+.connect-form { display: grid; gap: 0.75rem; max-width: 560px; padding-left: calc(36px + 1rem); }
+.connect-form label { display: grid; gap: 0.35rem; font-size: var(--t-s); font-weight: 600; color: var(--ink-2); }
+.field-row { display: flex; gap: 0.75rem; }
+.field-row label:first-child { width: 9rem; }
+.field-row .grow { flex: 1; }

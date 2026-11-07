@@ -34,6 +34,22 @@ L later, U move back to review, O open in Discord, C copy link.
 > "Veil" is a working name. Rename it before you publish (`productName` and `identifier` in
 > `app/src-tauri/tauri.conf.json`, and the `name` fields in the `package.json`/`Cargo.toml` files).
 
+## Connected accounts (Telegram)
+
+On the Sources screen you can connect a Telegram account instead of importing an export. Veil then
+downloads only the messages you sent (Telegram filters them server-side) and can delete a flagged
+message for everyone with one click.
+
+- Only `connect/` talks to the network, and only when the person logs in, syncs or deletes.
+  The status check is offline. `core/` stays network-free.
+- The login session is kept in Windows Credential Manager (service "Veil"), never in a file or the database.
+  Phone numbers and cloud passwords are sent to Telegram only and never stored.
+- Telegram requires an app key (api_id + api_hash, free at my.telegram.org > API development tools).
+  Without one built in, each person is asked for their own once.
+  To build Veil's own key into the app, set the environment variables `VEIL_TG_API_ID` and
+  `VEIL_TG_API_HASH` before building (on GitHub: add them as repository secrets; the workflows pass them on).
+  Keep the hash out of the repository.
+
 ## Getting the Windows program (no setup needed)
 
 GitHub builds Veil for you. You don't need Node or Rust on your computer for this.
@@ -88,6 +104,7 @@ cargo run --release --bin veil-cli -- demo          # load the sample data
 
 ```
 core/              Rust library, all the real work. No UI, no network.
+connect/           Live account connections (Telegram). The only code that goes online.
   src/import/        one reader per platform; mod.rs detects which export it is
   src/pcscan.rs      the PC folder scan and Recycle Bin
   src/db.rs          the local SQLite database

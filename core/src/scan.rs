@@ -783,6 +783,28 @@ impl Store {
         Ok(path)
     }
 
+    /// What a finding points at, for deleting it on its platform: (platform, message uid).
+    pub fn delete_target(&self, finding_id: i64) -> Result<(String, String)> {
+        Ok(self.conn.query_row(
+            "SELECT c.platform, m.uid FROM findings f
+             JOIN messages m ON m.id = f.message_id JOIN channels c ON c.id = m.channel_id WHERE f.id = ?1",
+            [finding_id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )?)
+    }
+
+    /// After a message was deleted on its platform: marks everything found in it as deleted.
+    pub fn mark_deleted(&self, finding_id: i64) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO reviews(uid, kind, start_byte, status)
+             SELECT m.uid, f.kind, f.start_byte, 'deleted' FROM findings f JOIN messages m ON m.id = f.message_id
+             WHERE f.message_id = (SELECT message_id FROM findings WHERE id = ?1)
+             ON CONFLICT(uid, kind, start_byte) DO UPDATE SET status = 'deleted'",
+            [finding_id],
+        )?;
+        Ok(())
+    }
+
     /// The full path of a PC-scan file a finding is in, for "Show in folder".
     pub fn file_path_for(&self, finding_id: i64) -> Result<Option<String>> {
         Ok(self.conn.query_row(

@@ -31,6 +31,8 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VEIL_TG_API_ID: ${{ secrets.VEIL_TG_API_ID }}
+          VEIL_TG_API_HASH: ${{ secrets.VEIL_TG_API_HASH }}
         with:
           projectPath: app
           tagName: v__VERSION__

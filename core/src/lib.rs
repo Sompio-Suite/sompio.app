@@ -17,7 +17,7 @@ mod time;
 
 pub use db::Store;
 pub use demo::load_demo;
-pub use import::{import_package, platform_label, ImportProgress, ImportSummary};
+pub use import::{import_live, import_package, platform_label, ImportProgress, ImportSummary, LiveChannel, LiveMessage};
 pub use pcscan::scan_folders;
 pub use query::{ChannelView, MessageView, MessagesPage, SearchPage, Segment, SourceView, Stats, YearCount};
 pub use scan::{

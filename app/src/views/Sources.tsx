@@ -5,6 +5,7 @@ import {
 } from "../api";
 import { dateTime, n, plural } from "../format";
 import Icon from "../Icon";
+import TelegramConnect from "./TelegramConnect";
 
 interface Props {
   demo: boolean;
@@ -84,8 +85,8 @@ export default function Sources({ demo, onScan, onChanged }: Props) {
         <div>
           <h1>Sources</h1>
           <p className="muted">
-            Add the export from each platform you use, and the folders on this PC you want checked. Everything is read
-            here, offline, and lands in one Review list.
+            Add the export from each platform you use, connect accounts where that's possible, and choose folders on this
+            PC to check. It all lands in one Review list.
           </p>
         </div>
       </div>
@@ -138,6 +139,23 @@ export default function Sources({ demo, onScan, onChanged }: Props) {
         {sources.length > 0 && (
           <p className="small faint">Removing a source deletes Veil's copy of it. Your decisions are kept in case you add it again.</p>
         )}
+      </section>
+
+      <section className="section">
+        <h2 className="section-title">Connected accounts</h2>
+        <TelegramConnect
+          onStatus={() => onChanged()}
+          onSynced={async (count) => {
+            onScan(await api.runScan(await api.watchTerms()));
+            setNote(`Synced ${plural(count, "message", "messages")} you sent on Telegram.`);
+            await refresh();
+            onChanged();
+          }}
+        />
+        <p className="small faint">
+          Connected accounts are the only time Veil goes online, and then only to that platform, when you sync or delete.
+          Email and Reddit come next.
+        </p>
       </section>
 
       <section className="section">

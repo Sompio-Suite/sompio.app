@@ -20,6 +20,8 @@ export default function App() {
   const [reviewKind, setReviewKind] = useState<KindKey | null>(null);
   const [scan, setScan] = useState<ScanSummary | null>(null);
   const [version, setVersion] = useState(0); // bumps after data changes so views reload
+  const [tgConnected, setTgConnected] = useState(false);
+  const checkConnections = useCallback(() => api.tgStatus().then((t) => setTgConnected(t.connected)).catch(() => {}), []);
 
   const refresh = useCallback(async () => {
     const has = await api.hasData();
@@ -32,7 +34,8 @@ export default function App() {
 
   useEffect(() => {
     refresh();
-  }, [refresh]);
+    checkConnections();
+  }, [refresh, checkConnections]);
 
   const openChannel = (j: Jump) => {
     setJump(j);
@@ -98,10 +101,17 @@ export default function App() {
         ))}
         <div className="rail-foot">
           <Icon name="lock" size={16} />
-          <div>
-            <strong>Offline</strong>
-            Nothing you add here leaves this PC.
-          </div>
+          {tgConnected ? (
+            <div>
+              <strong>Telegram connected</strong>
+              Veil goes online only to sync or delete on Telegram. Nothing is uploaded.
+            </div>
+          ) : (
+            <div>
+              <strong>Offline</strong>
+              Nothing you add here leaves this PC.
+            </div>
+          )}
         </div>
       </nav>
       <main>
@@ -122,6 +132,7 @@ export default function App() {
             onScan={setScan}
             onChanged={async () => {
               setVersion((v) => v + 1);
+              checkConnections();
               const has = await api.hasData();
               if (!has) return leave();
               setDemo(await api.isDemo());

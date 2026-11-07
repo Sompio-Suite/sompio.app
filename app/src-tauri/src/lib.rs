@@ -10,6 +10,8 @@ use veil_core::{
 
 struct AppState {
     db_path: PathBuf,
+    /// The Telegram connection. Only does anything after the person connects an account.
+    telegram: tokio::sync::Mutex<veil_connect::telegram::Telegram>,
 }
 
 type CmdResult<T> = Result<T, String>;
@@ -81,6 +83,75 @@ async fn show_in_folder(state: State<'_, AppState>, id: i64) -> CmdResult<()> {
     let path = with_store(state.db_path.clone(), move |s| s.file_path_for(id)).await?;
     let path = path.ok_or_else(|| "This item isn't a file on this PC.".to_string())?;
     tauri_plugin_opener::reveal_item_in_dir(&path).map_err(|e| format!("Couldn't open the folder: {e}"))
+}
+
+// ---------------------------------------------------------------------------------
+// Telegram (live connection)
+
+use veil_connect::telegram::{LoginStep, Status as TgStatus, SyncProgress};
+
+fn text_err(e: anyhow::Error) -> String {
+    format!("{e:#}")
+}
+
+#[tauri::command]
+async fn tg_status(state: State<'_, AppState>) -> CmdResult<TgStatus> {
+    state.telegram.lock().await.status().await.map_err(text_err)
+}
+
+#[tauri::command]
+async fn tg_set_app_key(state: State<'_, AppState>, api_id: String, api_hash: String) -> CmdResult<()> {
+    state.telegram.lock().await.set_app_key(&api_id, &api_hash).map_err(text_err)
+}
+
+#[tauri::command]
+async fn tg_start_login(state: State<'_, AppState>, phone: String) -> CmdResult<()> {
+    state.telegram.lock().await.start_login(&phone).await.map_err(text_err)
+}
+
+#[tauri::command]
+async fn tg_submit_code(state: State<'_, AppState>, code: String) -> CmdResult<LoginStep> {
+    state.telegram.lock().await.submit_code(&code).await.map_err(text_err)
+}
+
+#[tauri::command]
+async fn tg_submit_password(state: State<'_, AppState>, password: String) -> CmdResult<LoginStep> {
+    state.telegram.lock().await.submit_password(&password).await.map_err(text_err)
+}
+
+#[tauri::command]
+async fn tg_disconnect(state: State<'_, AppState>) -> CmdResult<()> {
+    state.telegram.lock().await.disconnect().await.map_err(text_err)
+}
+
+/// Downloads your own Telegram messages and replaces the Telegram data in Veil with them.
+#[tauri::command]
+async fn tg_sync(app: AppHandle, state: State<'_, AppState>) -> CmdResult<ImportSummary> {
+    let channels = {
+        let mut tg = state.telegram.lock().await;
+        let app2 = app.clone();
+        tg.fetch_own_messages(&mut move |p: SyncProgress| {
+            let _ = app2.emit("tg-progress", &p);
+        })
+        .await
+        .map_err(text_err)?
+    };
+    with_store(state.db_path.clone(), move |s| veil_core::import_live(s, "telegram", "Connected Telegram account", channels)).await
+}
+
+/// Deletes the message a finding is in, on Telegram, for everyone.
+#[tauri::command]
+async fn tg_delete(state: State<'_, AppState>, id: i64) -> CmdResult<ScanSummary> {
+    let (platform, uid) = with_store(state.db_path.clone(), move |s| s.delete_target(id)).await?;
+    if platform != "telegram" {
+        return Err("This item isn't a Telegram message.".into());
+    }
+    state.telegram.lock().await.delete_message(&uid).await.map_err(text_err)?;
+    with_store(state.db_path.clone(), move |s| {
+        s.mark_deleted(id)?;
+        s.scan_summary()
+    })
+    .await
 }
 
 #[tauri::command]
@@ -217,7 +288,11 @@ pub fn run() {
             // Local app data (not roaming): the database never syncs to other machines.
             let dir = app.path().app_local_data_dir()?;
             std::fs::create_dir_all(&dir)?;
-            app.manage(AppState { db_path: dir.join("veil.db") });
+            let secrets = std::sync::Arc::new(veil_connect::KeyringStore::new("Veil"));
+            app.manage(AppState {
+                db_path: dir.join("veil.db"),
+                telegram: tokio::sync::Mutex::new(veil_connect::telegram::Telegram::new(secrets)),
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -228,6 +303,14 @@ pub fn run() {
             remove_source,
             recycle_file,
             show_in_folder,
+            tg_status,
+            tg_set_app_key,
+            tg_start_login,
+            tg_submit_code,
+            tg_submit_password,
+            tg_disconnect,
+            tg_sync,
+            tg_delete,
             stats,
             channels,
             messages,

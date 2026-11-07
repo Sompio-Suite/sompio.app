@@ -346,3 +346,47 @@ pub fn import_package(
     progress(ImportProgress { phase: "Done", done: 1, total: 1 });
     Ok(summary)
 }
+
+// ---------------------------------------------------------------------------------
+// Data fetched live from a connected account (see the veil-connect crate)
+
+#[derive(Debug, Clone)]
+pub struct LiveMessage {
+    /// The platform's own ID for the message, in the same form the export importer uses,
+    /// so decisions carry over between an export and a live sync.
+    pub ext_id: String,
+    pub ts: i64,
+    pub content: String,
+    pub link: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct LiveChannel {
+    pub ext_id: String,
+    pub name: String,
+    pub kind: String,
+    pub messages: Vec<LiveMessage>,
+}
+
+/// Stores messages fetched from a connected account, replacing that platform's previous data.
+pub fn import_live(store: &mut Store, platform: &'static str, origin: &str, channels: Vec<LiveChannel>) -> Result<ImportSummary> {
+    let mut w = Writer::new(store, platform)?;
+    for c in &channels {
+        if c.messages.is_empty() {
+            continue;
+        }
+        let cid = w.channel(&c.ext_id, &c.name, &c.kind, None, None)?;
+        for m in &c.messages {
+            w.message(&m.ext_id, cid, m.ts, &m.content, "", m.link.as_deref())?;
+        }
+    }
+    let summary = ImportSummary {
+        platform: platform.to_string(),
+        channels: w.channel_count(),
+        messages: w.messages,
+        ..Default::default()
+    };
+    w.finish(origin)?;
+    after_import(store)?;
+    Ok(summary)
+}
