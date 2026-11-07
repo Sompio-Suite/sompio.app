@@ -1,0 +1,26 @@
+[package]
+name = "veil"
+version = "0.1.0"
+description = "Find and clean up personal information in your Discord history. Offline."
+edition = "2021"
+
+[lib]
+name = "veil_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+veil-core = { path = "../../core" }
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+strip = true

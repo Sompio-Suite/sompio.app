@@ -1,0 +1,8 @@
+node_modules/
+dist/
+target/
+app/src-tauri/gen/
+*.db
+*.db-wal
+*.db-shm
+.env
