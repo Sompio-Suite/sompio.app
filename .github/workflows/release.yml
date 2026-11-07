@@ -1,0 +1,42 @@
+# Publishing a version: push a tag like v0.1.0 (or run this from the Actions tab).
+# GitHub builds the Windows installer and creates a draft release with it attached.
+# Review the draft on the Releases page, then press Publish.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri -> target
+      - name: Install interface packages
+        working-directory: app
+        run: npm ci
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: app
+          tagName: v__VERSION__
+          releaseName: Veil v__VERSION__
+          releaseDraft: true
+          releaseBody: |
+            Download the file ending in **x64-setup.exe** below and run it. No account, no internet connection needed after install.
+
+            Windows may show "Windows protected your PC" because the app isn't code-signed yet. Click **More info**, then **Run anyway**.

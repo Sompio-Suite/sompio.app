@@ -24,7 +24,23 @@ L later, U move back to review, O open in Discord, C copy link.
 > "Veil" is a working name. Rename it before you publish (`productName` and `identifier` in
 > `app/src-tauri/tauri.conf.json`, and the `name` fields in the `package.json`/`Cargo.toml` files).
 
-## Run it on Windows
+## Getting the Windows program (no setup needed)
+
+GitHub builds Veil for you. You don't need Node or Rust on your computer for this.
+
+1. Put this folder on GitHub as a repository (GitHub Desktop: File › Add local repository, then Publish).
+2. Every push starts the **Build** workflow. Open the repository's **Actions** tab, click the latest run,
+   and download **Veil-windows** under Artifacts. It contains:
+   - `Veil_<version>_x64-setup.exe`: the installer. No admin rights needed.
+   - `Veil_<version>_x64_en-US.msi`: the same, for IT departments.
+   - `Veil-portable.exe`: runs without installing.
+3. To publish a version for others: push a tag like `v0.1.0`, or run the **Release** workflow from the
+   Actions tab. It creates a draft on the Releases page with the installer attached. Check it, then publish.
+
+Until the app is code-signed, Windows shows "Windows protected your PC" on first run.
+Users click **More info**, then **Run anyway**.
+
+## Developing on Windows
 
 One-time setup:
 
