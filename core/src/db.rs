@@ -47,6 +47,22 @@ CREATE TABLE IF NOT EXISTS findings (
 );
 CREATE INDEX IF NOT EXISTS findings_kind ON findings(kind, message_id);
 CREATE INDEX IF NOT EXISTS findings_message ON findings(message_id);
+
+-- What the user decided about a finding. Keyed by position, so it survives a rescan.
+CREATE TABLE IF NOT EXISTS reviews (
+    message_id  INTEGER NOT NULL,
+    kind        TEXT NOT NULL,
+    start_byte  INTEGER NOT NULL,
+    status      TEXT NOT NULL,            -- deleted | ok | later
+    PRIMARY KEY (message_id, kind, start_byte)
+);
+
+-- "Not a problem anywhere" rules. Stores a SHA-256 fingerprint, never the text itself.
+CREATE TABLE IF NOT EXISTS ignored (
+    kind        TEXT NOT NULL,
+    fingerprint TEXT NOT NULL,
+    PRIMARY KEY (kind, fingerprint)
+);
 "#;
 
 /// The local database. One file, owned by the user.
@@ -106,6 +122,8 @@ impl Store {
     pub fn wipe(&mut self) -> Result<()> {
         self.conn.execute_batch(
             "DELETE FROM findings;
+             DELETE FROM reviews;
+             DELETE FROM ignored;
              DELETE FROM messages;
              DELETE FROM channels;
              DELETE FROM meta;

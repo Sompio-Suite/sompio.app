@@ -12,46 +12,61 @@ export interface Jump { channelId: string; messageId?: string }
 
 export default function App() {
   const [ready, setReady] = useState<boolean | null>(null);
+  const [demo, setDemo] = useState(false);
   const [view, setView] = useState<View>("overview");
   const [jump, setJump] = useState<Jump | null>(null);
   const [scan, setScan] = useState<ScanSummary | null>(null);
   const [version, setVersion] = useState(0); // bumps after an import so views reload
 
-  const refreshScan = useCallback(() => api.scanSummary().then(setScan), []);
+  const refresh = useCallback(async () => {
+    const has = await api.hasData();
+    setReady(has);
+    if (has) {
+      setScan(await api.scanSummary());
+      setDemo(await api.isDemo());
+    }
+  }, []);
 
   useEffect(() => {
-    api.hasData().then((has) => {
-      setReady(has);
-      if (has) refreshScan();
-    });
-  }, [refreshScan]);
+    refresh();
+  }, [refresh]);
 
   const openChannel = (j: Jump) => {
     setJump(j);
     setView("messages");
   };
 
+  const leave = async () => {
+    await api.wipeData();
+    setReady(false);
+    setDemo(false);
+    setScan(null);
+    setVersion((v) => v + 1);
+  };
+
   if (ready === null) return null;
   if (!ready) {
     return (
       <Welcome
-        onImported={() => {
+        onReady={async (summary) => {
+          setScan(summary);
+          setDemo(await api.isDemo());
           setReady(true);
           setVersion((v) => v + 1);
-          setView("overview");
-          refreshScan();
+          // Land where the work is.
+          setView(summary.open > 0 ? "exposure" : "overview");
         }}
       />
     );
   }
 
   const nav: [View, string][] = [
+    ["exposure", "Review"],
     ["overview", "Overview"],
-    ["exposure", "Exposure report"],
     ["messages", "Messages"],
     ["settings", "Settings"],
   ];
-  const scanned = scan?.scanned_at_ms != null;
+  const toReview = scan ? scan.open : 0;
 
   return (
     <div className="shell">
@@ -62,9 +77,7 @@ export default function App() {
         {nav.map(([id, label]) => (
           <button key={id} className="nav" aria-current={view === id ? "page" : undefined} onClick={() => setView(id)}>
             {label}
-            {id === "exposure" && scanned && scan!.flagged_messages > 0 && (
-              <span className="badge high">{n(scan!.flagged_messages)}</span>
-            )}
+            {id === "exposure" && toReview > 0 && <span className="badge high" aria-label={`${toReview} to review`}>{n(toReview)}</span>}
           </button>
         ))}
         <div className="rail-foot">
@@ -73,18 +86,16 @@ export default function App() {
         </div>
       </nav>
       <main>
-        {view === "overview" && <Overview key={version} scan={scan} onOpen={openChannel} onGo={setView} />}
-        {view === "exposure" && <Exposure key={version} scan={scan} onScanned={setScan} onOpen={openChannel} />}
-        {view === "messages" && <Messages key={version} jump={jump} onJumpHandled={() => setJump(null)} />}
-        {view === "settings" && (
-          <Settings
-            onWiped={() => {
-              setReady(false);
-              setScan(null);
-              setVersion((v) => v + 1);
-            }}
-          />
+        {demo && (
+          <div className="demo-bar" role="status">
+            <span>You're looking at sample data. Nothing here is yours.</span>
+            <button onClick={leave}>Open my own package</button>
+          </div>
         )}
+        {view === "overview" && <Overview key={version} scan={scan} onOpen={openChannel} onGo={setView} />}
+        {view === "exposure" && <Exposure key={version} scan={scan} demo={demo} onScan={setScan} onOpen={openChannel} />}
+        {view === "messages" && <Messages key={version} jump={jump} onJumpHandled={() => setJump(null)} />}
+        {view === "settings" && <Settings scan={scan} demo={demo} onScan={setScan} onLeave={leave} />}
       </main>
     </div>
   );

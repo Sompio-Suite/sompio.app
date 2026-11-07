@@ -1,6 +1,7 @@
 //! Read-only views for the UI. IDs are sent as strings because Discord IDs are
 //! bigger than JavaScript numbers can hold exactly.
 
+use crate::scan::{discord_url, mask_text, merge_spans};
 use crate::Store;
 use anyhow::Result;
 use rusqlite::{params, Row};
@@ -17,14 +18,25 @@ pub struct ChannelView {
     pub last_ts: Option<i64>,
 }
 
+/// A piece of a message. Sensitive pieces arrive masked unless revealed.
+#[derive(Debug, Clone, Serialize)]
+pub struct Segment {
+    pub text: String,
+    pub sensitive: bool,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct MessageView {
     pub id: String,
     pub channel_id: String,
     pub channel_name: String,
     pub ts: i64,
+    /// Full text, with sensitive parts masked unless revealed.
     pub content: String,
+    pub segments: Vec<Segment>,
+    pub has_sensitive: bool,
     pub attachments: Vec<String>,
+    pub discord_url: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -77,17 +89,27 @@ fn channel_row(r: &Row) -> rusqlite::Result<ChannelView> {
 }
 
 const MESSAGE_COLS: &str =
-    "m.id, m.channel_id, COALESCE(c.name, ''), m.ts, m.content, m.attachments";
+    "m.id, m.channel_id, COALESCE(c.name, ''), m.ts, m.content, m.attachments, c.guild_id";
 
-fn message_row(r: &Row) -> rusqlite::Result<MessageView> {
-    let att: String = r.get(5)?;
-    Ok(MessageView {
-        id: r.get::<_, i64>(0)?.to_string(),
-        channel_id: r.get::<_, i64>(1)?.to_string(),
+struct RawMessage {
+    id: i64,
+    channel_id: i64,
+    channel_name: String,
+    ts: i64,
+    content: String,
+    attachments: String,
+    guild_id: Option<i64>,
+}
+
+fn message_row(r: &Row) -> rusqlite::Result<RawMessage> {
+    Ok(RawMessage {
+        id: r.get(0)?,
+        channel_id: r.get(1)?,
         channel_name: r.get(2)?,
         ts: r.get(3)?,
         content: r.get(4)?,
-        attachments: att.split_whitespace().map(str::to_string).collect(),
+        attachments: r.get(5)?,
+        guild_id: r.get(6)?,
     })
 }
 
@@ -169,10 +191,53 @@ impl Store {
             "SELECT {MESSAGE_COLS} FROM messages m LEFT JOIN channels c ON c.id = m.channel_id
              WHERE m.channel_id = ?1 ORDER BY m.ts, m.id LIMIT ?2 OFFSET ?3"
         ))?;
-        let items = stmt
+        let raw = stmt
             .query_map(params![cid, limit.clamp(1, 2000), offset.max(0)], message_row)?
             .collect::<rusqlite::Result<Vec<_>>>()?;
-        Ok(MessagesPage { total, offset, items })
+        Ok(MessagesPage { total, offset, items: self.finish(raw, false)? })
+    }
+
+    /// One message with its sensitive parts shown in full.
+    pub fn reveal_message(&self, message_id: &str) -> Result<Option<MessageView>> {
+        let mid = parse_id(message_id)?;
+        let mut stmt = self.conn.prepare_cached(&format!(
+            "SELECT {MESSAGE_COLS} FROM messages m LEFT JOIN channels c ON c.id = m.channel_id WHERE m.id = ?1"
+        ))?;
+        let raw = stmt.query_map([mid], message_row)?.collect::<rusqlite::Result<Vec<_>>>()?;
+        Ok(self.finish(raw, true)?.pop())
+    }
+
+    /// Splits each message into plain and sensitive pieces, masking the sensitive ones.
+    fn finish(&self, raw: Vec<RawMessage>, reveal: bool) -> Result<Vec<MessageView>> {
+        raw.into_iter()
+            .map(|m| {
+                let spans = merge_spans(&m.content, self.spans_for(m.id)?);
+                let mut segments = Vec::new();
+                let mut pos = 0;
+                for (s, e) in &spans {
+                    if *s > pos {
+                        segments.push(Segment { text: m.content[pos..*s].to_string(), sensitive: false });
+                    }
+                    let part = &m.content[*s..*e];
+                    segments.push(Segment { text: if reveal { part.to_string() } else { mask_text(part) }, sensitive: true });
+                    pos = *e;
+                }
+                if pos < m.content.len() || segments.is_empty() {
+                    segments.push(Segment { text: m.content[pos..].to_string(), sensitive: false });
+                }
+                Ok(MessageView {
+                    id: m.id.to_string(),
+                    channel_id: m.channel_id.to_string(),
+                    channel_name: m.channel_name,
+                    ts: m.ts,
+                    content: segments.iter().map(|s| s.text.as_str()).collect(),
+                    has_sensitive: !spans.is_empty(),
+                    segments,
+                    attachments: m.attachments.split_whitespace().map(str::to_string).collect(),
+                    discord_url: discord_url(m.guild_id, m.channel_id, m.id),
+                })
+            })
+            .collect()
     }
 
     /// Position of a message within its channel (same order as `messages`), for jumping to it.
@@ -205,9 +270,9 @@ impl Store {
              WHERE messages_fts MATCH ?1 AND (?2 IS NULL OR m.channel_id = ?2)
              ORDER BY m.ts DESC LIMIT ?3 OFFSET ?4"
         ))?;
-        let items = stmt
+        let raw = stmt
             .query_map(params![q, cid, limit.clamp(1, 2000), offset.max(0)], message_row)?
             .collect::<rusqlite::Result<Vec<_>>>()?;
-        Ok(SearchPage { total, offset, items })
+        Ok(SearchPage { total, offset, items: self.finish(raw, false)? })
     }
 }

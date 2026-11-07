@@ -1,6 +1,6 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { api, type ChannelView, type MessageView } from "../api";
+import { api, openInDiscord, type ChannelView, type MessageView } from "../api";
 import type { Jump } from "../App";
 import { channelKind, dateTime, fileName, n } from "../format";
 import { usePaged } from "../usePaged";
@@ -27,6 +27,16 @@ export default function Messages({ jump, onJumpHandled }: Props) {
   const [query, setQuery] = useState("");
   const [everywhere, setEverywhere] = useState(false);
   const [highlight, setHighlight] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState<Map<string, MessageView>>(new Map());
+  const toggleReveal = async (m: MessageView) => {
+    if (revealed.has(m.id)) {
+      const next = new Map(revealed);
+      next.delete(m.id);
+      return setRevealed(next);
+    }
+    const full = await api.revealMessage(m.id);
+    if (full) setRevealed(new Map(revealed).set(m.id, full));
+  };
   const debouncedFilter = useDebounced(filter, 120);
   const debouncedQuery = useDebounced(query.trim(), 200);
 
@@ -143,7 +153,9 @@ export default function Messages({ jump, onJumpHandled }: Props) {
           )}
           <div style={{ height: v.getTotalSize(), position: "relative" }}>
             {virtualItems.map((row) => {
-              const m = items[row.index];
+              const base = items[row.index];
+              const m = base && (revealed.get(base.id) ?? base);
+              const isRevealed = !!base && revealed.has(base.id);
               return (
                 <div
                   key={row.key}
@@ -157,10 +169,33 @@ export default function Messages({ jump, onJumpHandled }: Props) {
                       <time>{dateTime(m.ts)}</time>
                       <div>
                         {searching && everywhere && <div className="msg-chan">{m.channel_name}</div>}
-                        <div className="message-text">{searching ? mark(m.content, words) : m.content || <span className="muted">(no text)</span>}</div>
+                        <div className="message-text">
+                          {m.content === "" ? (
+                            <span className="muted">(no text)</span>
+                          ) : (
+                            m.segments.map((seg, i) =>
+                              seg.sensitive ? (
+                                <button
+                                  key={i}
+                                  className={`redact${isRevealed ? " shown" : ""}`}
+                                  onClick={() => toggleReveal(base!)}
+                                  title={isRevealed ? "Click to hide" : "Click to show"}
+                                  aria-label={isRevealed ? "Hide again" : "Show hidden text"}
+                                >
+                                  {seg.text}
+                                </button>
+                              ) : (
+                                <span key={i}>{searching ? mark(seg.text, words) : seg.text}</span>
+                              ),
+                            )
+                          )}
+                        </div>
                         {m.attachments.map((a) => (
                           <div className="attach" key={a}>Attached file: {fileName(a)}</div>
                         ))}
+                        <button className="link small msg-open" onClick={() => openInDiscord(m.discord_url)}>
+                          Open in Discord
+                        </button>
                       </div>
                     </>
                   ) : (

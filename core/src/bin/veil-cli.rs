@@ -5,6 +5,7 @@
 //!   veil-cli scan    [watch term, another term]
 //!   veil-cli report  [kind] [--reveal]
 //!   veil-cli search  <text>
+//!   veil-cli demo       (load sample data)
 //!   veil-cli wipe
 //!
 //! Uses ./veil.db unless VEIL_DB is set.
@@ -12,7 +13,7 @@
 use anyhow::{bail, Result};
 use std::path::PathBuf;
 use std::time::Instant;
-use veil_core::{import_package, run_scan, ScanOptions, Store};
+use veil_core::{import_package, load_demo, run_scan, ScanOptions, StatusFilter, Store};
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -39,13 +40,13 @@ fn main() -> Result<()> {
             let s = run_scan(&mut store, &ScanOptions { watch_terms: terms }, &mut |_, _| {})?;
             println!("Scanned {} messages in {:.1?}. {} need attention.\n", s.scanned, t.elapsed(), s.flagged_messages);
             for k in s.by_kind.iter().filter(|k| k.count > 0) {
-                println!("  {:<28} {:>6} in {} messages", k.label, k.count, k.messages);
+                println!("  {:<28} {:>6}  ({} to review)", k.label, k.count, k.open);
             }
         }
         Some("report") => {
             let reveal = args.iter().any(|a| a == "--reveal");
             let kind = args.get(1).filter(|a| !a.starts_with("--")).map(String::as_str);
-            let page = store.findings(kind, 0, 50, reveal)?;
+            let page = store.findings(kind, StatusFilter::All, 0, 50, reveal)?;
             println!("{} findings (showing up to 50)\n", page.total);
             for f in page.items {
                 println!("[{}] {} — {}\n    {}[{}]{}\n", f.label, f.channel_name, f.message_id, f.before, f.matched, f.after);
@@ -58,11 +59,15 @@ fn main() -> Result<()> {
                 println!("{} | {}\n    {}\n", m.channel_name, m.id, m.content.replace('\n', " "));
             }
         }
+        Some("demo") => {
+            load_demo(&mut store)?;
+            println!("Loaded sample data into {}", db.display());
+        }
         Some("wipe") => {
             store.wipe()?;
             println!("All imported data removed from {}", db.display());
         }
-        _ => println!("usage: veil-cli <import|scan|report|search|wipe> ..."),
+        _ => println!("usage: veil-cli <import|demo|scan|report|search|wipe> ..."),
     }
     Ok(())
 }

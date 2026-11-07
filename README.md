@@ -4,7 +4,22 @@ Find personal information in your Discord history, offline.
 
 Veil reads the data package Discord gives you (User Settings › Data & Privacy › Request all of my data)
 and shows you every message where you shared something like a phone number, home address, bank details,
-a password or an access token. Nothing leaves your computer.
+a password or an access token, then walks you through cleaning them up. Nothing leaves your computer.
+
+## What using it looks like
+
+1. Open your package, or try the built-in sample data while Discord prepares yours.
+2. Veil imports and scans straight away, then lands on **Review** with everything it found.
+3. Each item says how urgent it is (Fix now, Worth a look, Low risk) and what to do about it.
+4. **Open in Discord** jumps to the exact message in your browser so you can delete it by hand.
+5. Mark each one **I deleted it**, **Not a problem** or **Later**. Progress is saved and survives rescans.
+   **Never flag this again** stops a harmless value (a public work email, say) from coming back.
+6. Add watch terms (your real name, street, school) and scan again to catch what patterns can't.
+
+Sensitive text is hidden everywhere, including in conversations, until you click it.
+
+Keyboard on the Review screen: J/K or arrows to move, Space to show or hide, D deleted, N not a problem,
+L later, U move back to review, O open in Discord, C copy link.
 
 > "Veil" is a working name. Rename it before you publish (`productName` and `identifier` in
 > `app/src-tauri/tauri.conf.json`, and the `name` fields in the `package.json`/`Cargo.toml` files).
@@ -38,6 +53,7 @@ cargo run --release --bin veil-cli -- import "C:\path\to\package.zip"
 cargo run --release --bin veil-cli -- scan "Your Name, Your Street"
 cargo run --release --bin veil-cli -- report        # masked
 cargo run --release --bin veil-cli -- report email --reveal
+cargo run --release --bin veil-cli -- demo          # load the sample data
 ```
 
 ## How it's put together
@@ -47,7 +63,8 @@ core/              Rust library, all the real work. No UI, no network.
   src/import.rs      reads the package (.zip or folder, old CSV and new JSON layouts)
   src/db.rs          the local SQLite database
   src/query.rs       stats, conversations, paged messages, full-text search
-  src/scan.rs        the exposure scanner and the masked results
+  src/scan.rs        the exposure scanner, masked results, review decisions, never-flag rules
+  src/demo.rs        made-up sample data for trying the app
   src/bin/veil-cli.rs  command-line access to the same engine
   tests/             tests with fake packages in both layouts
 app/
@@ -72,15 +89,17 @@ Tested with a 1 million message package: import takes about 6 seconds, a full sc
 
 - **No network.** `core` has no HTTP library. The window's content security policy blocks every remote
   connection, and attachments are listed by file name instead of being loaded from Discord's servers.
-- **Smallest possible permissions.** The window can only call Veil's own commands and open file pickers
-  (`app/src-tauri/capabilities/default.json`). No shell, no file system access, no HTTP.
+- **Smallest possible permissions.** The window can only call Veil's own commands, open file pickers, and hand
+  `https://discord.com/channels/…` links to your browser (`app/src-tauri/capabilities/default.json`).
+  No shell, no file system access, no HTTP, and no other links.
 - **No login.** Veil never asks for a Discord token or password.
 - **One file, deletable.** Data lives in `veil.db` in the local (non-roaming) app data folder. "Delete everything"
   removes it with SQLite's secure delete and compacts the file so old content isn't left on disk.
 - **Masked by default.** Findings are shown as redaction bars until you choose to show them. Every sensitive part
   of a preview is masked, not just the match being listed.
-- **No duplicates of your secrets.** Findings store positions in the message, not copies of the text.
-- **Exports hold IDs only.** The flagged-messages CSV has channel IDs, message IDs and dates, no message text.
+- **No duplicates of your secrets.** Findings and review decisions store positions in the message, not copies
+  of the text. "Never flag this again" stores a SHA-256 fingerprint, not the value.
+- **Exports hold IDs only.** The flagged-messages CSV has IDs, dates, status and Discord links, no message text.
 
 ## What the scanner looks for
 
@@ -100,7 +119,7 @@ and a test in `core/tests/scanner.rs` that it catches the real thing and ignores
 
 ## Roadmap
 
-1. **Now:** offline import, exposure scan, search, browsing.
+1. **Now:** offline import, exposure scan, guided review with links into Discord, search, browsing.
 2. **Next:** exports (HTML, JSON, CSV) of conversations; encrypt the database with a passphrase (SQLCipher).
 3. **Later:** optional clean-up mode that deletes flagged messages through Discord. This needs your token and
    automates your user account, which Discord's terms prohibit. Make it opt-in, slow and very clearly explained.

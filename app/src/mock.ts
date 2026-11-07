@@ -1,118 +1,209 @@
 // Fake backend for working on the UI in a plain browser. Never used inside the desktop app.
-import type { ChannelView, FindingView, KindCount, KindKey, MessageView, Page, ScanSummary, Stats } from "./api";
+// It mimics the Rust side closely enough to click through every screen.
+import type { ChannelView, FindingView, KindKey, MessageView, Page, ScanSummary, Segment, Stats, Status } from "./api";
 
 const words = "anyone up for raid tonight the boss was rough need a healer brb dinner that patch broke my ui see you later nice drop gg honestly no idea what happened lol".split(" ");
 let seed = 7;
-const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 const pick = <T,>(a: T[]) => a[Math.floor(rand() * a.length)];
 
-const channelNames: [string, ChannelView["kind"], string | null][] = [
-  ["general", "server", "HOOLIGANS"], ["raid-planning", "server", "HOOLIGANS"], ["loot", "server", "HOOLIGANS"],
-  ["off-topic", "server", "Retro CS 1.6"], ["scrims", "server", "Retro CS 1.6"], ["Direct message with mara", "dm", null],
-  ["Direct message with tobi", "dm", null], ["Weekend crew", "group_dm", null], ["help-desk", "server", "Tauri Builders"],
-];
-const leaks: [KindKey, string][] = [
-  ["email", "mail me at skip.private@example.org"], ["phone", "bel me op 06-12345678"],
-  ["address", "I live at Prinsengracht 263, 1016 GV"], ["iban", "IBAN NL91 ABNA 0417 1643 00"],
-  ["credential", "password: hunter2-for-real"], ["ip_address", "server ip 81.204.12.7"],
+const KINDS: Record<KindKey, [string, number, string]> = {
+  credential: ["Passwords, tokens & keys", 3, "Change this password or revoke this token now. Deleting the message doesn't undo the leak, because others may already have seen it."],
+  card: ["Payment cards", 3, "Contact your bank to block or replace this card, then delete the message."],
+  iban: ["Bank accounts (IBAN)", 3, "An IBAN alone can't empty your account, but scammers use it to sound convincing. Delete the message unless you share this account number publicly anyway."],
+  watch_term: ["Your watch terms", 3, "You told Veil this is sensitive. Decide whether this message needs to go."],
+  address: ["Street addresses", 3, "Delete the message unless you're fine with everyone in this chat knowing this address."],
+  phone: ["Phone numbers", 2, "Delete the message if you don't want this number linked to your Discord account."],
+  email: ["Email addresses", 2, "Check whether you want this address linked to your Discord account. If it's a public work address, mark it as not a problem everywhere."],
+  ip_address: ["IP addresses", 2, "An IP address can show roughly where you are. Delete the message if this was your home connection."],
+  postcode: ["Postcodes", 1, "A postcode narrows down where you live. Low risk on its own, more so next to a street name."],
+  crypto_wallet: ["Crypto wallets", 1, "Wallet addresses are public, but tying one to your account reveals its balance and history."],
+};
+const LEAKS: [string, KindKey, string][] = [
+  ["my email is ", "email", "sam.rivers.private@example.org"],
+  ["text me on ", "phone", "06-12345678"],
+  ["send it to ", "address", "Keizersgracht 123"],
+  ["IBAN is ", "iban", "NL91 ABNA 0417 1643 00"],
+  ["login is sammy and ", "credential", "password: Winter2024!"],
+  ["my home server is at ", "ip_address", "81.204.37.12"],
+  ["card is ", "card", "4111 1111 1111 1111"],
 ];
 
+const channelDefs: [string, ChannelView["kind"], string | null][] = [
+  ["general", "server", "Night Owls Gaming"], ["raid-planning", "server", "Night Owls Gaming"], ["trading", "server", "Night Owls Gaming"],
+  ["help", "server", "Home Lab Builders"], ["Direct message with sam", "dm", null], ["Direct message with noor", "dm", null], ["Weekend crew", "group_dm", null],
+];
+
+interface Msg { id: string; channel_id: string; channel_name: string; guild: string | null; ts: number; content: string; attachments: string[] }
 const channels: ChannelView[] = [];
-const messages: MessageView[] = [];
-const findings: (FindingView & { raw: string })[] = [];
-let id = 1;
-const start = Date.UTC(2019, 0, 1);
-channelNames.forEach(([name, kind, guild], ci) => {
-  const n = 400 + Math.floor(rand() * 4000);
+const messages: Msg[] = [];
+let nextId = 1;
+channelDefs.forEach(([name, kind, guild], ci) => {
   const cid = String(1000 + ci);
   const label = guild ? `${name} in ${guild}` : name;
-  let t = start + rand() * 3e10;
+  const n = 300 + Math.floor(rand() * 1600);
+  let t = Date.UTC(2018, 4, 1) + rand() * 3e10;
   for (let i = 0; i < n; i++) {
-    t += rand() * 9e6;
-    let content = Array.from({ length: 3 + Math.floor(rand() * 22) }, () => pick(words)).join(" ");
-    if (rand() < 0.01) {
-      const [k, leak] = pick(leaks);
-      const before = content + " ";
-      content = before + leak;
-      findings.push({
-        id: findings.length + 1, message_id: String(id), channel_id: cid, channel_name: label, ts: t, kind: k,
-        label: k, severity: ["credential", "iban", "address"].includes(k) ? 3 : 2,
-        before: "…" + before.slice(-40), matched: leak, after: "", masked: true, raw: leak,
-      });
+    t += rand() * 9e7;
+    let content = Array.from({ length: 3 + Math.floor(rand() * 20) }, () => pick(words)).join(" ");
+    if (rand() < 0.015) {
+      const [pre, , value] = pick(LEAKS);
+      content = pre + value + (rand() < 0.5 ? " if you need it" : "");
     }
-    messages.push({ id: String(id++), channel_id: cid, channel_name: label, ts: t, content, attachments: rand() < 0.04 ? ["https://cdn.discordapp.com/attachments/1/2/screenshot.png"] : [] });
+    messages.push({ id: String(nextId++), channel_id: cid, channel_name: label, guild: guild ? "9" + ci : null, ts: t, content, attachments: rand() < 0.04 ? ["https://cdn.discordapp.com/attachments/1/2/screenshot.png"] : [] });
   }
   channels.push({ id: cid, name: label, kind, guild_name: guild, message_count: n, first_ts: null, last_ts: t });
 });
 channels.sort((a, b) => b.message_count - a.message_count);
 
-const labels: Record<KindKey, [string, number]> = {
-  credential: ["Passwords, tokens & keys", 3], card: ["Payment cards", 3], iban: ["Bank accounts (IBAN)", 3],
-  watch_term: ["Your watch terms", 3], address: ["Street addresses", 3], phone: ["Phone numbers", 2],
-  email: ["Email addresses", 2], ip_address: ["IP addresses", 2], postcode: ["Postcodes", 1], crypto_wallet: ["Crypto wallets", 1],
-};
-findings.forEach((f) => (f.label = labels[f.kind][0]));
-const mask = (s: string) => s.replace(/(\p{L}|\d)([\p{L}\d]*)/gu, (_, a, b) => a + "•".repeat(b.length));
-
+interface Finding { id: number; msg: Msg; kind: KindKey; start: number; end: number }
+let findings: Finding[] = [];
+const statuses = new Map<number, Status>();
+const ignored = new Set<string>();
 let loaded = false;
+let demo = false;
 let scanned = false;
-const page = <T,>(all: T[], offset: number, limit: number): Page<T> => ({ total: all.length, offset, items: all.slice(offset, offset + limit) });
+let terms: string[] = [];
+
+const url = (m: Msg) => `https://discord.com/channels/${m.guild ?? "@me"}/${m.channel_id}/${m.id}`;
+const mask = (s: string) => s.replace(/(\p{L}|\d)([\p{L}\d]*)/gu, (_, a, b) => a + "•".repeat(b.length));
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const page = <T,>(all: T[], offset: number, limit: number): Page<T> => ({ total: all.length, offset, items: all.slice(offset, offset + limit) });
 const listeners: Record<string, ((p: unknown) => void)[]> = {};
 const emit = (e: string, p: unknown) => (listeners[e] || []).forEach((cb) => cb(p));
 
-function summary(): ScanSummary {
-  const by_kind: KindCount[] = (Object.keys(labels) as KindKey[]).map((k) => {
-    const fs = scanned ? findings.filter((f) => f.kind === k) : [];
-    return { kind: k, label: labels[k][0], severity: labels[k][1], count: fs.length, messages: fs.length };
-  });
-  return { scanned: scanned ? messages.length : 0, flagged_messages: scanned ? findings.length : 0, total_findings: scanned ? findings.length : 0, scanned_at_ms: scanned ? Date.now() : null, by_kind };
+function scan() {
+  findings = [];
+  let id = 1;
+  for (const m of messages) {
+    for (const [, kind, value] of LEAKS) {
+      const at = m.content.indexOf(value);
+      if (at >= 0 && !ignored.has(kind + value)) findings.push({ id: id++, msg: m, kind, start: at, end: at + value.length });
+    }
+    for (const t of terms) {
+      const at = m.content.toLowerCase().indexOf(t.toLowerCase());
+      if (at >= 0) findings.push({ id: id++, msg: m, kind: "watch_term", start: at, end: at + t.length });
+    }
+  }
+  scanned = true;
 }
+
+function view(f: Finding, reveal: boolean): FindingView {
+  const [label, severity, advice] = KINDS[f.kind];
+  const c = f.msg.content;
+  const v = c.slice(f.start, f.end);
+  return {
+    id: f.id, message_id: f.msg.id, channel_id: f.msg.channel_id, channel_name: f.msg.channel_name, ts: f.msg.ts,
+    kind: f.kind, label, severity, advice, before: c.slice(0, f.start), matched: reveal ? v : mask(v), after: c.slice(f.end),
+    masked: !reveal, status: statuses.get(f.id) ?? null, discord_url: url(f.msg),
+  };
+}
+
+function messageView(m: Msg, reveal: boolean): MessageView {
+  const spans = findings.filter((f) => f.msg === m).sort((a, b) => a.start - b.start);
+  const segments: Segment[] = [];
+  let pos = 0;
+  for (const f of spans) {
+    if (f.start < pos) continue;
+    if (f.start > pos) segments.push({ text: m.content.slice(pos, f.start), sensitive: false });
+    const v = m.content.slice(f.start, f.end);
+    segments.push({ text: reveal ? v : mask(v), sensitive: true });
+    pos = f.end;
+  }
+  if (pos < m.content.length || !segments.length) segments.push({ text: m.content.slice(pos), sensitive: false });
+  return { ...m, content: segments.map((s) => s.text).join(""), segments, has_sensitive: spans.length > 0, discord_url: url(m) };
+}
+
+function summary(): ScanSummary {
+  const st = (f: Finding) => statuses.get(f.id);
+  return {
+    scanned: scanned ? messages.length : 0,
+    flagged_messages: new Set(findings.map((f) => f.msg.id)).size,
+    total_findings: findings.length,
+    open: findings.filter((f) => !st(f)).length,
+    later: findings.filter((f) => st(f) === "later").length,
+    done: findings.filter((f) => st(f) === "deleted" || st(f) === "ok").length,
+    ignored_rules: ignored.size,
+    scanned_at_ms: scanned ? Date.now() : null,
+    by_kind: (Object.keys(KINDS) as KindKey[]).map((k) => {
+      const fs = findings.filter((f) => f.kind === k);
+      return { kind: k, label: KINDS[k][0], severity: KINDS[k][1], advice: KINDS[k][2], count: fs.length, open: fs.filter((f) => !st(f) || st(f) === "later").length };
+    }),
+  };
+}
+
+const matchesTab = (f: Finding, tab: string) => {
+  const s = statuses.get(f.id);
+  return tab === "open" ? !s : tab === "later" ? s === "later" : tab === "done" ? s === "deleted" || s === "ok" : true;
+};
+
+const reset = () => { loaded = false; demo = false; scanned = false; findings = []; statuses.clear(); ignored.clear(); };
 
 const handlers: Record<string, (a: any) => unknown> = {
   has_data: () => loaded,
+  is_demo: () => demo,
+  load_demo: async () => { reset(); await wait(300); loaded = true; demo = true; },
   import_package: async () => {
-    for (let i = 0; i <= channels.length; i++) { emit("import-progress", { phase: "Importing messages", done: i, total: channels.length }); await wait(120); }
+    reset();
+    for (let i = 0; i <= channels.length; i++) { emit("import-progress", { phase: "Importing messages", done: i, total: channels.length }); await wait(80); }
     loaded = true;
-    return { channels: channels.length, messages: messages.length, servers: 3, warnings: [] };
+    return { channels: channels.length, messages: messages.length, servers: 2, warnings: [] };
   },
   stats: (): Stats => {
     const years = new Map<number, number>();
-    messages.forEach((m) => years.set(new Date(m.ts).getUTCFullYear(), (years.get(new Date(m.ts).getUTCFullYear()) || 0) + 1));
+    messages.forEach((m) => { const y = new Date(m.ts).getUTCFullYear(); years.set(y, (years.get(y) || 0) + 1); });
     return {
-      messages: messages.length, channels: channels.length, servers: 3, dms: 2, group_dms: 1,
+      messages: messages.length, channels: channels.length, servers: 2, dms: 2, group_dms: 1,
       with_attachments: messages.filter((m) => m.attachments.length).length,
       first_ts: Math.min(...messages.map((m) => m.ts)), last_ts: Math.max(...messages.map((m) => m.ts)),
-      imported_at_ms: Date.now(), per_year: [...years].sort().map(([year, count]) => ({ year, count })), top_channels: channels.slice(0, 8),
+      imported_at_ms: Date.now(), per_year: [...years].sort((a, b) => a[0] - b[0]).map(([year, count]) => ({ year, count })), top_channels: channels.slice(0, 8),
     };
   },
   channels: ({ filter }) => channels.filter((c) => !filter || c.name.toLowerCase().includes(filter.toLowerCase())),
-  messages: ({ channelId, offset, limit }) => page(messages.filter((m) => m.channel_id === channelId), offset, limit),
+  messages: ({ channelId, offset, limit }) => {
+    const p = page(messages.filter((m) => m.channel_id === channelId), offset, limit);
+    return { ...p, items: p.items.map((m) => messageView(m, false)) };
+  },
   message_index: ({ channelId, messageId }) => messages.filter((m) => m.channel_id === channelId).findIndex((m) => m.id === messageId),
+  reveal_message: ({ messageId }) => { const m = messages.find((x) => x.id === messageId); return m ? messageView(m, true) : null; },
   search: ({ text, channelId, offset, limit }) => {
     const q = text.toLowerCase();
-    return page(messages.filter((m) => (!channelId || m.channel_id === channelId) && m.content.toLowerCase().includes(q)).reverse(), offset, limit);
+    const p = page(messages.filter((m) => (!channelId || m.channel_id === channelId) && m.content.toLowerCase().includes(q)).reverse(), offset, limit);
+    return { ...p, items: p.items.map((m) => messageView(m, false)) };
   },
-  run_scan: async () => {
-    for (let i = 0; i <= 10; i++) { emit("scan-progress", [i * messages.length / 10, messages.length]); await wait(90); }
-    scanned = true;
+  run_scan: async ({ watchTerms }) => {
+    terms = watchTerms;
+    for (let i = 0; i <= 10; i++) { emit("scan-progress", [(i * messages.length) / 10, messages.length]); await wait(60); }
+    scan();
     return summary();
   },
   scan_summary: () => summary(),
-  findings: ({ kind, offset, limit, reveal }) => {
-    const all = (scanned ? findings : []).filter((f) => !kind || f.kind === kind).sort((a, b) => b.severity - a.severity || b.ts - a.ts);
+  findings: ({ kind, status, offset, limit, reveal }) => {
+    const all = findings.filter((f) => (!kind || f.kind === kind) && matchesTab(f, status))
+      .sort((a, b) => KINDS[b.kind][1] - KINDS[a.kind][1] || b.msg.ts - a.msg.ts);
     const p = page(all, offset, limit);
-    return { ...p, items: p.items.map((f) => ({ ...f, matched: reveal ? f.raw : mask(f.raw), masked: !reveal })) };
+    return { ...p, items: p.items.map((f) => view(f, reveal)) };
   },
-  watch_terms: () => [],
-  export_flagged: () => findings.length,
-  wipe_data: () => { loaded = false; scanned = false; },
+  reveal_finding: ({ id }) => { const f = findings.find((x) => x.id === id); return f ? view(f, true) : null; },
+  set_status: ({ id, status }) => { if (status) statuses.set(id, status); else statuses.delete(id); return summary(); },
+  ignore_everywhere: ({ id }) => {
+    const f = findings.find((x) => x.id === id)!;
+    const value = f.msg.content.slice(f.start, f.end);
+    ignored.add(f.kind + value);
+    const before = findings.length;
+    findings = findings.filter((x) => !(x.kind === f.kind && x.msg.content.slice(x.start, x.end) === value));
+    return [before - findings.length, summary()];
+  },
+  clear_ignored: () => { const n = ignored.size; ignored.clear(); return n; },
+  watch_terms: () => terms,
+  export_flagged: () => new Set(findings.map((f) => f.msg.id)).size,
+  wipe_data: () => reset(),
   data_location: () => "C:\\Users\\you\\AppData\\Local\\app.veil.desktop\\veil.db",
 };
 
 export const mockBackend = {
   invoke: async <T,>(cmd: string, args?: Record<string, unknown>): Promise<T> => {
-    await wait(15);
+    await wait(10);
     return (await handlers[cmd](args || {})) as T;
   },
   listen: async <T,>(event: string, cb: (p: T) => void) => {

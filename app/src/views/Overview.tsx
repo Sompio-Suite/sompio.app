@@ -41,18 +41,18 @@ export default function Overview({ scan, onOpen, onGo }: Props) {
           </div>
           <button className="primary" onClick={() => onGo("exposure")}>Start a scan</button>
         </div>
-      ) : scan!.flagged_messages > 0 ? (
+      ) : scan!.open > 0 ? (
         <div className="callout alert">
           <div>
-            <h3>{plural(scan!.flagged_messages, "message needs", "messages need")} a look</h3>
-            <p className="muted">They contain things like phone numbers, addresses or passwords.</p>
+            <h3>{plural(scan!.open, "thing", "things")} to review</h3>
+            <p className="muted">Messages with things like phone numbers, addresses or passwords in them.</p>
           </div>
-          <button className="primary" onClick={() => onGo("exposure")}>Review them</button>
+          <button className="primary" onClick={() => onGo("exposure")}>Start reviewing</button>
         </div>
       ) : (
         <div className="callout">
           <div>
-            <h3>Nothing obvious turned up</h3>
+            <h3>{scan!.total_findings > 0 ? "Everything has been reviewed" : "Nothing obvious turned up"}</h3>
             <p className="muted">Add your real name or street as watch terms to check for those too.</p>
           </div>
           <button onClick={() => onGo("exposure")}>Add watch terms</button>

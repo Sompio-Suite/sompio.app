@@ -7,17 +7,20 @@
 //! - Anything shown on screen is masked unless the user explicitly reveals it.
 
 mod db;
+mod demo;
 mod import;
 mod query;
 mod scan;
 
 pub use db::Store;
+pub use demo::load_demo;
 pub use import::{import_package, ImportProgress, ImportSummary};
 pub use query::{
-    ChannelView, MessageView, MessagesPage, SearchPage, Stats, YearCount,
+    ChannelView, MessageView, MessagesPage, SearchPage, Segment, Stats, YearCount,
 };
 pub use scan::{
     run_scan, Detection, FindingView, FindingsPage, Kind, KindCount, ScanOptions, ScanSummary,
+    StatusFilter,
     Scanner,
 };
 

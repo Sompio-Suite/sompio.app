@@ -3,7 +3,7 @@
 
 use std::io::Write;
 use std::path::Path;
-use veil_core::{import_package, run_scan, ScanOptions, Store};
+use veil_core::{import_package, load_demo, run_scan, ScanOptions, StatusFilter, Store};
 
 // Snowflakes from 2021 and 2023.
 const M1: &str = "800000000000000000";
@@ -102,13 +102,13 @@ fn imports_new_zip_format_and_scans() {
     assert_eq!(count("address") + count("watch_term"), 1, "address and watch term overlap; one is kept");
 
     // Masked by default: no raw card number or email reaches the UI
-    let masked = store.findings(None, 0, 100, false).unwrap();
+    let masked = store.findings(None, StatusFilter::All, 0, 100, false).unwrap();
     for f in &masked.items {
         let shown = format!("{}{}{}", f.before, f.matched, f.after);
         assert!(!shown.contains("4111 1111"), "card leaked: {shown}");
         assert!(!shown.contains("someone@example"), "email leaked: {shown}");
     }
-    let revealed = store.findings(Some("card"), 0, 10, true).unwrap();
+    let revealed = store.findings(Some("card"), StatusFilter::All, 0, 10, true).unwrap();
     assert_eq!(revealed.items[0].matched, "4111 1111 1111 1111");
 
     // Export holds IDs only
@@ -155,4 +155,77 @@ fn rejects_files_that_are_not_packages() {
     let mut store = Store::open_in_memory().unwrap();
     let err = import_package(&mut store, &p, &mut |_| {}).unwrap_err();
     assert!(err.to_string().contains("No messages found"));
+}
+
+#[test]
+fn review_ignore_links_and_masking() {
+    let dir = tempfile::tempdir().unwrap();
+    let zip_path = dir.path().join("package.zip");
+    new_format_package(&zip_path);
+    let mut store = Store::open_in_memory().unwrap();
+    import_package(&mut store, &zip_path, &mut |_| {}).unwrap();
+    let opts = ScanOptions::default();
+    run_scan(&mut store, &opts, &mut |_, _| {}).unwrap();
+
+    // Links point at the exact message; DMs use @me
+    let all = store.findings(None, StatusFilter::All, 0, 100, false).unwrap();
+    let card = all.items.iter().find(|f| f.kind.key() == "card").unwrap();
+    assert_eq!(card.discord_url, format!("https://discord.com/channels/@me/222/{M3}"));
+    let email = all.items.iter().find(|f| f.kind.key() == "email").unwrap();
+    assert_eq!(email.discord_url, format!("https://discord.com/channels/999/111/{M1}"));
+    assert!(!card.advice.is_empty());
+
+    // Reveal one item
+    let shown = store.reveal_finding(card.id).unwrap().unwrap();
+    assert_eq!(shown.matched, "4111 1111 1111 1111");
+
+    // Decisions survive a rescan
+    store.set_status(card.id, Some("deleted")).unwrap();
+    let s = run_scan(&mut store, &opts, &mut |_, _| {}).unwrap();
+    assert_eq!(s.done, 1);
+    assert_eq!(store.findings(None, StatusFilter::Done, 0, 10, false).unwrap().items[0].status.as_deref(), Some("deleted"));
+    assert!(store.findings(None, StatusFilter::Open, 0, 10, false).unwrap().items.iter().all(|f| f.kind.key() != "card"));
+    let card_id = store.findings(Some("card"), StatusFilter::All, 0, 1, false).unwrap().items[0].id;
+    store.set_status(card_id, None).unwrap();
+    assert_eq!(store.scan_summary().unwrap().done, 0);
+    assert!(store.set_status(card_id, Some("bogus")).is_err());
+
+    // "Not a problem anywhere" clears it now and in later scans, storing only a fingerprint
+    let email_id = store.findings(Some("email"), StatusFilter::All, 0, 1, false).unwrap().items[0].id;
+    assert_eq!(store.ignore_everywhere(email_id).unwrap(), 1);
+    let s = run_scan(&mut store, &opts, &mut |_, _| {}).unwrap();
+    assert_eq!(s.by_kind.iter().find(|k| k.kind.key() == "email").unwrap().count, 0);
+    assert_eq!(s.ignored_rules, 1);
+    store.clear_ignored().unwrap();
+    let s = run_scan(&mut store, &opts, &mut |_, _| {}).unwrap();
+    assert_eq!(s.by_kind.iter().find(|k| k.kind.key() == "email").unwrap().count, 1);
+
+    // The conversation view masks sensitive parts too, unless revealed
+    let page = store.messages("222", 0, 10).unwrap();
+    let m = &page.items[0];
+    assert!(m.has_sensitive && !m.content.contains("4111 1111"));
+    assert!(m.segments.iter().any(|s| s.sensitive));
+    let full = store.reveal_message(&m.id).unwrap().unwrap();
+    assert!(full.content.contains("4111 1111 1111 1111"));
+    let plain = &store.messages("111", 0, 10).unwrap().items[1];
+    assert!(!plain.has_sensitive && plain.content == "cat pic");
+}
+
+#[test]
+fn sample_data_loads_and_has_findings() {
+    let mut store = Store::open_in_memory().unwrap();
+    load_demo(&mut store).unwrap();
+    assert!(store.is_demo().unwrap());
+    let stats = store.stats().unwrap();
+    assert!(stats.messages > 2000 && stats.servers == 2 && stats.dms == 2);
+    let s = run_scan(&mut store, &ScanOptions::default(), &mut |_, _| {}).unwrap();
+    for k in ["email", "phone", "address", "iban", "card", "credential", "ip_address"] {
+        assert!(s.by_kind.iter().find(|c| c.kind.key() == k).unwrap().count > 0, "sample data should show {k}");
+    }
+    // A real import replaces the sample
+    let dir = tempfile::tempdir().unwrap();
+    let zip_path = dir.path().join("package.zip");
+    new_format_package(&zip_path);
+    import_package(&mut store, &zip_path, &mut |_| {}).unwrap();
+    assert!(!store.is_demo().unwrap());
 }

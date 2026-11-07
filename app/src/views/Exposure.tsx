@@ -1,27 +1,40 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useEffect, useRef, useState } from "react";
-import { api, listen, pickSavePath, type FindingView, type KindKey, type ScanSummary } from "../api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  api, copyText, listen, openInDiscord, pickSavePath, severityLabel,
+  type FindingView, type KindKey, type ScanSummary, type Status, type StatusTab,
+} from "../api";
 import type { Jump } from "../App";
 import { dateTime, n, plural } from "../format";
 import { usePaged } from "../usePaged";
 
 interface Props {
   scan: ScanSummary | null;
-  onScanned: (s: ScanSummary) => void;
+  demo: boolean;
+  onScan: (s: ScanSummary) => void;
   onOpen: (j: Jump) => void;
 }
 
-export default function Exposure({ scan, onScanned, onOpen }: Props) {
-  const [kind, setKind] = useState<KindKey | null>(null);
-  const [reveal, setReveal] = useState(false);
-  const [terms, setTerms] = useState<string[]>([]);
-  const [draft, setDraft] = useState("");
-  const [scanning, setScanning] = useState<[number, number] | null>(null);
-  const [note, setNote] = useState<string | null>(null);
-  const [scanVersion, setScanVersion] = useState(0);
+interface Toast { text: string; undo?: () => void }
 
-  // The saved terms are the ones the last scan used.
+const STATUS_DONE_TEXT: Record<Status, string> = {
+  deleted: "Marked as deleted",
+  ok: "Marked as not a problem",
+  later: "Saved for later",
+};
+
+export default function Exposure({ scan, demo, onScan, onOpen }: Props) {
+  const [tab, setTab] = useState<StatusTab>("open");
+  const [kind, setKind] = useState<KindKey | null>(null);
+  const [revealAll, setRevealAll] = useState(false);
+  const [revealed, setRevealed] = useState<Map<number, FindingView>>(new Map());
+  const [focus, setFocus] = useState(0);
+  const [listVersion, setListVersion] = useState(0);
+  const [toast, setToast] = useState<Toast | null>(null);
+  const [scanning, setScanning] = useState<[number, number] | null>(null);
+  const [terms, setTerms] = useState<string[]>([]);
   const [scannedTerms, setScannedTerms] = useState<string[]>([]);
+  const [draft, setDraft] = useState("");
 
   useEffect(() => {
     api.watchTerms().then((t) => {
@@ -32,19 +45,131 @@ export default function Exposure({ scan, onScanned, onOpen }: Props) {
     return () => void un.then((f) => f());
   }, []);
 
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 6000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const scanned = scan?.scanned_at_ms != null;
-  const listKey = scanned ? `${kind}|${reveal}|${scanVersion}` : null;
-  const { total, items, ensure } = usePaged<FindingView>(listKey, (o, l) => api.findings(kind, o, l, reveal));
+  const listKey = scanned ? `${tab}|${kind}|${revealAll}|${listVersion}` : null;
+  const { total, items, ensure } = usePaged<FindingView>(listKey, (o, l) => api.findings(kind, tab, o, l, revealAll));
+
+  // If the selected type has nothing left (say, after "never flag this again"), go back to everything.
+  useEffect(() => {
+    if (kind && scan && !scan.by_kind.some((k) => k.kind === kind && k.count > 0)) setKind(null);
+  }, [scan, kind]);
+
+  // Keep focus inside the list as it shrinks
+  useEffect(() => {
+    if (total != null) setFocus((f) => Math.max(0, Math.min(f, total - 1)));
+  }, [total]);
+
+  const parentRef = useRef<HTMLDivElement>(null);
+  const v = useVirtualizer({
+    count: total ?? 0,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 120,
+    overscan: 6,
+  });
+  const virtualItems = v.getVirtualItems();
+  useEffect(() => {
+    virtualItems.forEach((r) => !items[r.index] && ensure(r.index));
+  }, [virtualItems, items, ensure]);
+
+  const reload = () => setListVersion((x) => x + 1);
+
+  const decide = useCallback(
+    async (f: FindingView, status: Status | null) => {
+      const previous = f.status;
+      onScan(await api.setStatus(f.id, status));
+      reload();
+      if (status) {
+        setToast({
+          text: STATUS_DONE_TEXT[status],
+          undo: async () => {
+            onScan(await api.setStatus(f.id, previous));
+            reload();
+            setToast(null);
+          },
+        });
+      } else {
+        setToast({ text: "Moved back to To review" });
+      }
+    },
+    [onScan],
+  );
+
+  const ignoreEverywhere = async (f: FindingView) => {
+    const [count, summary] = await api.ignoreEverywhere(f.id);
+    onScan(summary);
+    reload();
+    setToast({ text: `Won't flag this again. Cleared ${plural(count, "place", "places")}. You can undo this in Settings.` });
+  };
+
+  const toggleReveal = useCallback(async (f: FindingView) => {
+    if (revealed.has(f.id)) {
+      const next = new Map(revealed);
+      next.delete(f.id);
+      setRevealed(next);
+      return;
+    }
+    const full = await api.revealFinding(f.id);
+    if (full) setRevealed(new Map(revealed).set(f.id, full));
+  }, [revealed]);
+
+  const openLink = async (f: FindingView) => {
+    await openInDiscord(f.discord_url);
+    setToast({ text: "Opened in your browser. Delete the message there, then mark it as deleted here." });
+  };
+  const copyLink = async (f: FindingView) => {
+    await copyText(f.discord_url);
+    setToast({ text: "Link copied. Paste it into Discord's search bar or a browser to jump to the message." });
+  };
+
+  // Keyboard: works anywhere on the page except while typing in a field.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (!total) return;
+      const f = items[focus];
+      const move = (d: number) => {
+        e.preventDefault();
+        const next = Math.max(0, Math.min(total - 1, focus + d));
+        setFocus(next);
+        v.scrollToIndex(next, { align: "auto" });
+      };
+      switch (e.key) {
+        case "j": case "ArrowDown": return move(1);
+        case "k": case "ArrowUp": return move(-1);
+      }
+      if (!f) return;
+      const act = (fn: () => void) => { e.preventDefault(); fn(); };
+      switch (e.key.toLowerCase()) {
+        case " ": return act(() => toggleReveal(f));
+        case "d": return act(() => decide(f, "deleted"));
+        case "n": return act(() => decide(f, "ok"));
+        case "l": return act(() => decide(f, "later"));
+        case "u": return f.status ? act(() => decide(f, null)) : undefined;
+        case "o": return act(() => openLink(f));
+        case "c": return act(() => copyLink(f));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [total, items, focus, decide, toggleReveal]);
 
   const runScan = async (list = terms) => {
     setScanning([0, 1]);
-    setNote(null);
     try {
-      onScanned(await api.runScan(list));
+      onScan(await api.runScan(list));
       setScannedTerms(list);
-      setScanVersion((v) => v + 1);
+      setRevealed(new Map());
+      reload();
     } catch (e) {
-      setNote(`The scan stopped: ${e}`);
+      setToast({ text: `The scan stopped: ${e}` });
     } finally {
       setScanning(null);
     }
@@ -57,119 +182,103 @@ export default function Exposure({ scan, onScanned, onOpen }: Props) {
     setDraft("");
   };
 
-  const termsChanged = scanned && JSON.stringify(terms) !== JSON.stringify(scannedTerms);
-
   const exportList = async () => {
     const path = await pickSavePath("veil-flagged-messages.csv");
     if (!path) return;
     const count = await api.exportFlagged(path);
-    setNote(`Saved ${plural(count, "message ID", "message IDs")}. The file holds IDs and dates only, no message text.`);
+    setToast({ text: `Saved ${plural(count, "message", "messages")} with links. The file has no message text in it.` });
   };
 
-  const parentRef = useRef<HTMLDivElement>(null);
-  const v = useVirtualizer({
-    count: total ?? 0,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 92,
-    overscan: 8,
-  });
-  const virtualItems = v.getVirtualItems();
-  useEffect(() => {
-    virtualItems.forEach((r) => !items[r.index] && ensure(r.index));
-  }, [virtualItems, items, ensure]);
-
+  const termsChanged = scanned && JSON.stringify(terms) !== JSON.stringify(scannedTerms);
   const pct = scanning && scanning[1] > 0 ? (scanning[0] / scanning[1]) * 100 : 0;
+  const reviewed = scan ? scan.done : 0;
+  const all = scan ? scan.total_findings : 0;
+  const selectedKind = scan?.by_kind.find((k) => k.kind === kind);
 
   return (
-    <div className="page full" style={{ display: "flex" }}>
+    <div className="page full review-page">
       <div className="lede">
         {!scanned ? (
           <h1>Find personal information you've posted.</h1>
-        ) : scan!.flagged_messages > 0 ? (
-          <h1>{plural(scan!.flagged_messages, "message contains", "messages contain")} something personal.</h1>
-        ) : (
+        ) : all === 0 ? (
           <h1>No personal information found.</h1>
+        ) : scan!.open > 0 ? (
+          <h1>{plural(scan!.open, "thing", "things")} to review.</h1>
+        ) : scan!.later > 0 ? (
+          <h1>Only the ones you saved for later are left.</h1>
+        ) : (
+          <h1>All reviewed. Nice work.</h1>
         )}
-        <p className="muted">
-          Veil looks for email addresses, phone numbers, street addresses, bank and card numbers, passwords and access
-          tokens, plus anything you add below. Matches are hidden until you choose to show them.
-        </p>
-      </div>
-
-      <div className="watch">
-        <h3>Watch terms</h3>
-        <p className="muted small">
-          Things only you know are sensitive: your real name, street, school or employer. They stay on this computer.
-        </p>
-        {terms.length > 0 && (
-          <div className="chips">
-            {terms.map((t) => (
-              <span className="chip" key={t}>
-                {t}
-                <button aria-label={`Remove ${t}`} onClick={() => setTerms(terms.filter((x) => x !== t))}>×</button>
-              </span>
-            ))}
+        {scanned && all > 0 && (
+          <div className="review-progress">
+            <div className="bar" aria-hidden><span style={{ width: `${(reviewed / all) * 100}%` }} /></div>
+            <span className="small muted num">{n(reviewed)} of {n(all)} reviewed</span>
           </div>
         )}
-        <div className="watch-row">
-          <input
-            type="text"
-            value={draft}
-            placeholder="Add a term, then press Enter"
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addTerm()}
-            aria-label="New watch term"
-          />
-          <button onClick={addTerm} disabled={draft.trim().length < 2}>Add</button>
-          <button className="primary" onClick={() => runScan()} disabled={!!scanning}>
-            {scanned ? "Scan again" : "Start scan"}
-          </button>
+      </div>
+
+      <WatchTerms
+        terms={terms}
+        draft={draft}
+        demo={demo}
+        scanned={scanned}
+        changed={termsChanged}
+        scanning={!!scanning}
+        onDraft={setDraft}
+        onAdd={addTerm}
+        onRemove={(t) => setTerms(terms.filter((x) => x !== t))}
+        onScan={() => runScan()}
+      />
+      {scanning && (
+        <div className="progress" role="status" aria-live="polite">
+          <span className="small">Checking {n(Math.round(scanning[0]))} of {n(scanning[1])} messages</span>
+          <div className="bar"><span style={{ width: `${pct}%` }} /></div>
         </div>
-        {termsChanged && !scanning && <p className="small muted">Your watch terms changed. Scan again to include them.</p>}
-        {scanning && (
-          <div className="progress" role="status" aria-live="polite">
-            <span className="small">Scanning {n(Math.round(scanning[0]))} of {n(scanning[1])} messages</span>
-            <div className="bar"><span style={{ width: `${pct}%` }} /></div>
-          </div>
-        )}
-      </div>
+      )}
 
-      {scanned && (
+      {scanned && all > 0 && (
         <div className="exposure">
           <div className="kinds" role="group" aria-label="Filter by type">
             <button className="kind" aria-pressed={kind === null} onClick={() => setKind(null)}>
               <span />
-              All findings
-              <span className="num">{n(scan!.total_findings)}</span>
+              Everything
+              <span className="num">{n(scan!.open + scan!.later)}</span>
             </button>
-            {scan!.by_kind.map((k) => (
-              <button
-                key={k.kind}
-                className="kind"
-                aria-pressed={kind === k.kind}
-                disabled={k.count === 0}
-                onClick={() => setKind(k.kind)}
-              >
+            {scan!.by_kind.filter((k) => k.count > 0).map((k) => (
+              <button key={k.kind} className="kind" aria-pressed={kind === k.kind} onClick={() => { setKind(k.kind); setFocus(0); }}>
                 <span className={`sev sev-${k.severity}`} aria-hidden />
                 {k.label}
-                <span className="num">{n(k.count)}</span>
+                <span className="num">{n(k.open)}</span>
               </button>
             ))}
+            <p className="small muted kinds-note">Numbers show what's still to review.</p>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", minHeight: 0, gap: "0.75rem" }}>
+          <div className="review-col">
             <div className="toolbar">
-              <label className="switch">
-                <input type="checkbox" checked={reveal} onChange={(e) => setReveal(e.target.checked)} />
-                Show hidden text
-              </label>
+              <div className="tabs" role="tablist" aria-label="Review status">
+                {([["open", "To review", scan!.open], ["later", "Later", scan!.later], ["done", "Done", scan!.done]] as const).map(([id, label, count]) => (
+                  <button key={id} role="tab" aria-selected={tab === id} onClick={() => { setTab(id); setFocus(0); }}>
+                    {label} <span className="num muted">{n(count)}</span>
+                  </button>
+                ))}
+              </div>
               <span className="grow" />
-              <button onClick={exportList} disabled={!scan!.flagged_messages}>Save list of flagged messages</button>
+              <label className="switch small">
+                <input type="checkbox" checked={revealAll} onChange={(e) => setRevealAll(e.target.checked)} />
+                Show all hidden text
+              </label>
+              <button className="small-btn" onClick={exportList}>Save list</button>
             </div>
-            {note && <p className="small muted">{note}</p>}
 
-            <div className="list" ref={parentRef}>
-              {total === 0 && <div className="empty">Nothing of this type was found.</div>}
+            {selectedKind && <p className="advice-box">{selectedKind.advice}</p>}
+
+            <div className="list" ref={parentRef} role="listbox" aria-label="Findings" aria-activedescendant={items[focus] ? `f-${items[focus]!.id}` : undefined}>
+              {total === 0 && (
+                <div className="empty">
+                  {tab === "open" ? "Nothing left to review here." : tab === "later" ? "Nothing saved for later." : "Nothing marked as done yet."}
+                </div>
+              )}
               <div style={{ height: v.getTotalSize(), position: "relative" }}>
                 {virtualItems.map((row) => {
                   const f = items[row.index];
@@ -180,37 +289,196 @@ export default function Exposure({ scan, onScanned, onOpen }: Props) {
                       ref={v.measureElement}
                       style={{ position: "absolute", top: 0, left: 0, right: 0, transform: `translateY(${row.start}px)` }}
                     >
-                      {f ? <FindingRow f={f} onOpen={onOpen} /> : <div className="finding"><div className="placeholder" /></div>}
+                      {f ? (
+                        <FindingRow
+                          f={revealed.get(f.id) ? { ...f, ...pickText(revealed.get(f.id)!) } : f}
+                          focused={row.index === focus}
+                          onFocus={() => setFocus(row.index)}
+                          onReveal={() => toggleReveal(f)}
+                          onDecide={(s) => decide(f, s)}
+                          onIgnore={() => ignoreEverywhere(f)}
+                          onOpenLink={() => openLink(f)}
+                          onCopyLink={() => copyLink(f)}
+                          onOpenHere={() => onOpen({ channelId: f.channel_id, messageId: f.message_id })}
+                        />
+                      ) : (
+                        <div className="finding"><div className="placeholder" /></div>
+                      )}
                     </div>
                   );
                 })}
               </div>
             </div>
+            <KeyHints />
           </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className="toast" role="status" aria-live="polite">
+          <span>{toast.text}</span>
+          {toast.undo && <button className="link" onClick={toast.undo}>Undo</button>}
+          <button className="toast-close" aria-label="Dismiss" onClick={() => setToast(null)}>×</button>
         </div>
       )}
     </div>
   );
 }
 
-function FindingRow({ f, onOpen }: { f: FindingView; onOpen: (j: Jump) => void }) {
+const NOUN: Record<KindKey, string> = {
+  credential: "password or token",
+  card: "card number",
+  iban: "account number",
+  watch_term: "term",
+  address: "address",
+  phone: "phone number",
+  email: "email address",
+  ip_address: "IP address",
+  postcode: "postcode",
+  crypto_wallet: "wallet",
+};
+
+const pickText = (f: FindingView) => ({ before: f.before, matched: f.matched, after: f.after, masked: false });
+
+interface RowProps {
+  f: FindingView;
+  focused: boolean;
+  onFocus: () => void;
+  onReveal: () => void;
+  onDecide: (s: Status | null) => void;
+  onIgnore: () => void;
+  onOpenLink: () => void;
+  onCopyLink: () => void;
+  onOpenHere: () => void;
+}
+
+function FindingRow({ f, focused, onFocus, onReveal, onDecide, onIgnore, onOpenLink, onCopyLink, onOpenHere }: RowProps) {
   return (
-    <article className="finding">
+    <article id={`f-${f.id}`} role="option" aria-selected={focused} className={`finding${focused ? " focused" : ""}`} onClick={onFocus}>
       <div className="finding-meta">
-        <span className={`sev sev-${f.severity}`} aria-label={["", "Low", "Medium", "High"][f.severity] + " risk"} />
+        <span className={`sev-pill sev-pill-${f.severity}`}>{severityLabel(f.severity)}</span>
+        <span>{f.label}</span>
         <span className="where" title={f.channel_name}>{f.channel_name}</span>
         <time>{dateTime(f.ts)}</time>
-        <span>{f.label}</span>
-        <span className="grow" style={{ flex: 1 }} />
-        <button className="link small" onClick={() => onOpen({ channelId: f.channel_id, messageId: f.message_id })}>
-          Open in conversation
-        </button>
+        {f.status && <span className="status-chip">{f.status === "deleted" ? "Deleted" : f.status === "ok" ? "Not a problem" : "Later"}</span>}
       </div>
       <p className="snippet">
         {f.before}
-        <span className={`redact${f.masked ? "" : " shown"}`}>{f.matched}</span>
+        <button
+          className={`redact${f.masked ? "" : " shown"}`}
+          onClick={(e) => { e.stopPropagation(); onReveal(); }}
+          aria-label={f.masked ? `Show hidden ${f.label.toLowerCase()}` : "Hide again"}
+          title={f.masked ? "Click to show" : "Click to hide"}
+        >
+          {f.matched}
+        </button>
         {f.after}
       </p>
+      {focused && <p className="advice">{f.advice}</p>}
+      <div className="actions" onClick={(e) => e.stopPropagation()}>
+        <button className="small-btn primary-soft" onClick={onOpenLink}>Open in Discord</button>
+        <button className="small-btn" onClick={onCopyLink}>Copy link</button>
+        <button className="small-btn ghost" onClick={onOpenHere}>Show conversation</button>
+        <span className="grow" />
+        {f.status ? (
+          <button className="small-btn" onClick={() => onDecide(null)}>Move back to review</button>
+        ) : (
+          <>
+            <button className="small-btn" onClick={() => onDecide("deleted")}>I deleted it</button>
+            <button className="small-btn" onClick={() => onDecide("ok")}>Not a problem</button>
+            <button className="small-btn" onClick={() => onDecide("later")}>Later</button>
+          </>
+        )}
+      </div>
+      {focused && !f.status && (
+        <button className="link small never" onClick={(e) => { e.stopPropagation(); onIgnore(); }}>
+          Never flag this {NOUN[f.kind]} again
+        </button>
+      )}
     </article>
+  );
+}
+
+function WatchTerms(props: {
+  terms: string[]; draft: string; demo: boolean; scanned: boolean; changed: boolean; scanning: boolean;
+  onDraft: (s: string) => void; onAdd: () => void; onRemove: (t: string) => void; onScan: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const open = editing || props.terms.length === 0 || props.changed || !props.scanned;
+  if (!open) {
+    return (
+      <div className="watch-compact">
+        <span className="muted">Watch terms</span>
+        <span className="chips">
+          {props.terms.map((t) => <span className="chip plain" key={t}>{t}</span>)}
+        </span>
+        <button className="small-btn" onClick={() => setEditing(true)}>Edit</button>
+      </div>
+    );
+  }
+  return <WatchTermsEditor {...props} onDone={props.terms.length > 0 && !props.changed ? () => setEditing(false) : undefined} />;
+}
+
+function WatchTermsEditor(p: {
+  terms: string[]; draft: string; demo: boolean; scanned: boolean; changed: boolean; scanning: boolean;
+  onDraft: (s: string) => void; onAdd: () => void; onRemove: (t: string) => void; onScan: () => void;
+  onDone?: () => void;
+}) {
+  const empty = p.terms.length === 0;
+  return (
+    <div className={`watch${empty && p.scanned ? " prompt" : ""}`}>
+      <div>
+        <h3>{empty && p.scanned ? "Now add what only you know is sensitive" : "Watch terms"}</h3>
+        <p className="muted small">
+          Veil can't guess your real name or street. Add them, plus anything else you'd rather not have online, like
+          your school, employer or a nickname people know offline. They never leave this computer.
+          {p.demo && " In the sample data, try adding Sam Rivers."}
+        </p>
+      </div>
+      {!empty && (
+        <div className="chips">
+          {p.terms.map((t) => (
+            <span className="chip" key={t}>
+              {t}
+              <button aria-label={`Remove ${t}`} onClick={() => p.onRemove(t)}>×</button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="watch-row">
+        <input
+          type="text"
+          value={p.draft}
+          placeholder="Your full name, street, school…"
+          onChange={(e) => p.onDraft(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && p.onAdd()}
+          aria-label="New watch term"
+        />
+        <button onClick={p.onAdd} disabled={p.draft.trim().length < 2}>Add</button>
+        <button className={p.changed || !p.scanned ? "primary" : undefined} onClick={p.onScan} disabled={p.scanning}>
+          {p.scanned ? "Scan again" : "Start scan"}
+        </button>
+        {p.onDone && <button className="ghost-btn" onClick={p.onDone}>Done</button>}
+      </div>
+      {p.changed && !p.scanning && <p className="small note">Your watch terms changed. Scan again to include them. Your decisions are kept.</p>}
+    </div>
+  );
+}
+
+function KeyHints() {
+  const keys: [string, string][] = [
+    ["J / K", "next, previous"],
+    ["Space", "show or hide"],
+    ["D", "deleted"],
+    ["N", "not a problem"],
+    ["L", "later"],
+    ["O", "open in Discord"],
+  ];
+  return (
+    <div className="key-hints" aria-label="Keyboard shortcuts">
+      {keys.map(([k, what]) => (
+        <span key={k}><kbd>{k}</kbd> {what}</span>
+      ))}
+    </div>
   );
 }

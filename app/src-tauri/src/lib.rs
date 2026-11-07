@@ -4,8 +4,8 @@
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter, Manager, State};
 use veil_core::{
-    ChannelView, FindingsPage, ImportSummary, MessagesPage, ScanOptions, ScanSummary, SearchPage,
-    Stats, Store,
+    ChannelView, FindingView, FindingsPage, ImportSummary, MessageView, MessagesPage, ScanOptions,
+    ScanSummary, SearchPage, Stats, StatusFilter, Store,
 };
 
 struct AppState {
@@ -94,11 +94,58 @@ async fn scan_summary(state: State<'_, AppState>) -> CmdResult<ScanSummary> {
 async fn findings(
     state: State<'_, AppState>,
     kind: Option<String>,
+    status: String,
     offset: i64,
     limit: i64,
     reveal: bool,
 ) -> CmdResult<FindingsPage> {
-    with_store(state.db_path.clone(), move |s| s.findings(kind.as_deref(), offset, limit, reveal)).await
+    with_store(state.db_path.clone(), move |s| {
+        s.findings(kind.as_deref(), StatusFilter::parse(&status), offset, limit, reveal)
+    })
+    .await
+}
+
+#[tauri::command]
+async fn reveal_finding(state: State<'_, AppState>, id: i64) -> CmdResult<Option<FindingView>> {
+    with_store(state.db_path.clone(), move |s| s.reveal_finding(id)).await
+}
+
+#[tauri::command]
+async fn reveal_message(state: State<'_, AppState>, message_id: String) -> CmdResult<Option<MessageView>> {
+    with_store(state.db_path.clone(), move |s| s.reveal_message(&message_id)).await
+}
+
+#[tauri::command]
+async fn set_status(state: State<'_, AppState>, id: i64, status: Option<String>) -> CmdResult<ScanSummary> {
+    with_store(state.db_path.clone(), move |s| {
+        s.set_status(id, status.as_deref())?;
+        s.scan_summary()
+    })
+    .await
+}
+
+#[tauri::command]
+async fn ignore_everywhere(state: State<'_, AppState>, id: i64) -> CmdResult<(usize, ScanSummary)> {
+    with_store(state.db_path.clone(), move |s| {
+        let n = s.ignore_everywhere(id)?;
+        Ok((n, s.scan_summary()?))
+    })
+    .await
+}
+
+#[tauri::command]
+async fn clear_ignored(state: State<'_, AppState>) -> CmdResult<usize> {
+    with_store(state.db_path.clone(), |s| s.clear_ignored()).await
+}
+
+#[tauri::command]
+async fn load_demo(state: State<'_, AppState>) -> CmdResult<()> {
+    with_store(state.db_path.clone(), |s| veil_core::load_demo(s)).await
+}
+
+#[tauri::command]
+async fn is_demo(state: State<'_, AppState>) -> CmdResult<bool> {
+    with_store(state.db_path.clone(), |s| s.is_demo()).await
 }
 
 #[tauri::command]
@@ -125,6 +172,7 @@ fn data_location(state: State<'_, AppState>) -> String {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             // Local app data (not roaming): the database never syncs to other machines.
             let dir = app.path().app_local_data_dir()?;
@@ -143,6 +191,13 @@ pub fn run() {
             run_scan,
             scan_summary,
             findings,
+            reveal_finding,
+            reveal_message,
+            set_status,
+            ignore_everywhere,
+            clear_ignored,
+            load_demo,
+            is_demo,
             watch_terms,
             export_flagged,
             wipe_data,
