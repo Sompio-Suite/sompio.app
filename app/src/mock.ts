@@ -168,6 +168,8 @@ const reset = () => {
 };
 const discordSource = (): SourceView => ({ platform: "discord", label: "Discord", origin: "C:\\Users\\you\\Downloads\\package.zip", imported_at: Date.now(), channels: baseChannels.length, messages: baseMessages.length });
 
+let mail = { connected: false, address: null as string | null, provider: null as string | null };
+let myNames: string[] = [];
 let tg = { has_app_key: false, connected: false, name: null as string | null, waiting_for: null as null | "code" | "password" };
 const handlers: Record<string, (a: any) => unknown> = {
   tg_status: () => ({ ...tg }),
@@ -187,6 +189,30 @@ const handlers: Record<string, (a: any) => unknown> = {
     return { platform: "telegram", channels: 12, messages: 372, servers: 0, warnings: [] };
   },
   tg_delete: ({ id }) => { const f = findings.find((x) => x.id === id)!; findings.filter((x) => x.msg === f.msg).forEach((x) => statuses.set(x.id, "deleted")); return summary(); },
+  email_providers: () => [
+    { id: "gmail", name: "Gmail", host: "imap.gmail.com", help_url: "https://myaccount.google.com/apppasswords" },
+    { id: "yahoo", name: "Yahoo Mail", host: "imap.mail.yahoo.com", help_url: "https://login.yahoo.com/account/security" },
+    { id: "icloud", name: "iCloud Mail", host: "imap.mail.me.com", help_url: "https://account.apple.com" },
+    { id: "gmx", name: "GMX", host: "imap.gmx.net", help_url: "https://www.gmx.net" },
+    { id: "fastmail", name: "Fastmail", host: "imap.fastmail.com", help_url: "https://app.fastmail.com/settings/security/apps" },
+    { id: "other", name: "Other (IMAP)", host: "", help_url: "" },
+  ],
+  email_status: () => ({ ...mail }),
+  email_connect: async ({ provider, address }) => {
+    await wait(500);
+    if (!String(address).includes("@")) throw "Enter your full email address.";
+    mail = { connected: true, address, provider };
+    return { ...mail };
+  },
+  email_disconnect: () => { mail = { connected: false, address: null, provider: null }; },
+  email_sync: async () => {
+    for (let i = 0; i <= 1840; i += 100) { emit("email-progress", { done: Math.min(i, 1840), total: 1840 }); await wait(60); }
+    sources = [...sources.filter((x) => x.platform !== "email"), { platform: "email", label: "Email", origin: "Connected email account", imported_at: Date.now(), channels: 1, messages: 1840 }];
+    return { platform: "email", channels: 1, messages: 1840, servers: 0, warnings: [] };
+  },
+  email_delete: ({ id }) => { statuses.set(id, "deleted"); return summary(); },
+  my_names: () => [...myNames],
+  set_my_names: ({ names }) => { myNames = names; },
   has_data: () => loaded,
   is_demo: () => demo,
   load_demo: async () => { reset(); await wait(300); loaded = true; demo = true; sources = [discordSource()]; },

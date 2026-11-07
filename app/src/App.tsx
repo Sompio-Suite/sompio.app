@@ -20,8 +20,11 @@ export default function App() {
   const [reviewKind, setReviewKind] = useState<KindKey | null>(null);
   const [scan, setScan] = useState<ScanSummary | null>(null);
   const [version, setVersion] = useState(0); // bumps after data changes so views reload
-  const [tgConnected, setTgConnected] = useState(false);
-  const checkConnections = useCallback(() => api.tgStatus().then((t) => setTgConnected(t.connected)).catch(() => {}), []);
+  const [connected, setConnected] = useState<string[]>([]);
+  const checkConnections = useCallback(async () => {
+    const [tg, mail] = await Promise.all([api.tgStatus().catch(() => null), api.emailStatus().catch(() => null)]);
+    setConnected([...(tg?.connected ? ["Telegram"] : []), ...(mail?.connected ? ["email"] : [])]);
+  }, []);
 
   const refresh = useCallback(async () => {
     const has = await api.hasData();
@@ -101,10 +104,10 @@ export default function App() {
         ))}
         <div className="rail-foot">
           <Icon name="lock" size={16} />
-          {tgConnected ? (
+          {connected.length > 0 ? (
             <div>
-              <strong>Telegram connected</strong>
-              Veil goes online only to sync or delete on Telegram. Nothing is uploaded.
+              <strong>{connected.length > 1 ? "2 accounts connected" : connected[0] === "email" ? "Email connected" : "Telegram connected"}</strong>
+              Veil goes online only to sync or delete on {connected.join(" and ")}. Nothing is uploaded.
             </div>
           ) : (
             <div>

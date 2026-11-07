@@ -1,8 +1,9 @@
 # Veil
 
-Find personal information in your Discord history, offline.
+Find personal information in your chats, posts, sent mail and files, offline.
 
-Veil reads the data exports from Discord, Reddit, Telegram and X, plus folders you choose on your PC,
+Veil reads the data exports from Discord, WhatsApp, Instagram, Facebook, TikTok, Snapchat, Reddit, Telegram,
+X, LinkedIn and Gmail, plus folders you choose on your PC,
 and shows you everywhere you shared something like a phone number, home address, bank details,
 a password or an access token, then walks you through cleaning it up. Nothing leaves your computer.
 
@@ -12,6 +13,13 @@ a password or an access token, then walks you through cleaning it up. Nothing le
 | Reddit | Data request export (CSV files) | Posts and comments are yours; private messages are filtered to the ones you sent |
 | Telegram | Telegram Desktop › Export Telegram data, JSON format | Filtered to messages from your account |
 | X | "Download an archive of your data" | Your posts (not reposts) and DMs you sent |
+| WhatsApp | Export chat (without media), the .txt or .zip, one chat at a time | Your lines only; you're recognised from the chat name or "Your names" |
+| Instagram | Download your information, JSON | Messages you sent, your post captions and comments |
+| Facebook | Download your information, JSON (includes Messenger) | Messages you sent, your posts and comments |
+| TikTok | Download your data, JSON | Your comments, bio and DMs you sent |
+| Snapchat | My Data with JSON files | Saved chat messages you sent |
+| LinkedIn | Get a copy of your data | Messages you sent, your posts and comments |
+| Gmail / email | Google Takeout (.mbox), or connect any IMAP account | Mail you sent only, without quoted replies |
 | This PC | Folders you choose | Text files, Word documents, and every file's name (passport scans, key files…) |
 
 ## What using it looks like
@@ -34,7 +42,15 @@ L later, U move back to review, O open in Discord, C copy link.
 > "Veil" is a working name. Rename it before you publish (`productName` and `identifier` in
 > `app/src-tauri/tauri.conf.json`, and the `name` fields in the `package.json`/`Cargo.toml` files).
 
-## Connected accounts (Telegram)
+## Connected accounts (Telegram and email)
+
+**Email** works with Gmail, Yahoo, iCloud, GMX, Fastmail or any IMAP server, using an app password
+(never the real password). Veil reads the Sent folder read-only and can move a flagged email to Trash.
+Records use the Message-ID, the same ID a Takeout import uses, so decisions carry over between the two.
+Outlook.com needs Microsoft OAuth sign-in, which isn't built yet. The account details live in Windows
+Credential Manager (`email.account`).
+
+**Telegram:**
 
 On the Sources screen you can connect a Telegram account instead of importing an export. Veil then
 downloads only the messages you sent (Telegram filters them server-side) and can delete a flagged
@@ -104,7 +120,7 @@ cargo run --release --bin veil-cli -- demo          # load the sample data
 
 ```
 core/              Rust library, all the real work. No UI, no network.
-connect/           Live account connections (Telegram). The only code that goes online.
+connect/           Live account connections (Telegram, email over IMAP). The only code that goes online.
   src/import/        one reader per platform; mod.rs detects which export it is
   src/pcscan.rs      the PC folder scan and Recycle Bin
   src/db.rs          the local SQLite database
@@ -136,7 +152,7 @@ Tested with a 1 million message package: import takes about 6 seconds, a full sc
 - **No network.** `core` has no HTTP library. The window's content security policy blocks every remote
   connection, and attachments are listed by file name instead of being loaded from Discord's servers.
 - **Smallest possible permissions.** The window can only call Veil's own commands, open file pickers, and hand
-  links to Discord, Reddit, X and Telegram messages to your browser (`app/src-tauri/capabilities/default.json`).
+  links to messages on the platforms Veil reads (plus the app-password pages of email providers) to your browser (`app/src-tauri/capabilities/default.json`).
   No shell, no file system access, no HTTP, and no other links.
 - **No login.** Veil never asks for a Discord token or password.
 - **One file, deletable.** Data lives in `veil.db` in the local (non-roaming) app data folder. "Delete everything"
@@ -169,4 +185,4 @@ and a test in `core/tests/scanner.rs` that it catches the real thing and ignores
 2. **Next:** exports (HTML, JSON, CSV) of conversations; encrypt the database with a passphrase (SQLCipher).
 3. **Later:** optional clean-up mode that deletes flagged messages through Discord. This needs your token and
    automates your user account, which Discord's terms prohibit. Make it opt-in, slow and very clearly explained.
-4. **Then:** other platforms (Telegram and Reddit exports use the same idea).
+4. **Then:** Outlook.com (Microsoft sign-in), Reddit live (needs Reddit's API approval), Routines.

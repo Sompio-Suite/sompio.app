@@ -16,6 +16,8 @@ const PATHS: Record<string, string> = {
   plus: "M12 5v14M5 12h14",
   arrow: "M5 12h14M13 6l6 6-6 6",
   search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zm9 3-4.5-4.5",
+  mail: "M3 6h18v12H3zM3 7l9 6 9-6",
+  user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6",
 };
 
 export type IconName = keyof typeof PATHS;

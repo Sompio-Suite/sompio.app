@@ -8,6 +8,12 @@ mod discord;
 mod reddit;
 mod telegram;
 mod x;
+mod whatsapp;
+mod meta;
+mod tiktok;
+mod snapchat;
+mod linkedin;
+mod mbox;
 
 use crate::Store;
 use anyhow::{anyhow, Context, Result};
@@ -40,6 +46,13 @@ pub fn platform_label(platform: &str) -> &'static str {
         "reddit" => "Reddit",
         "telegram" => "Telegram",
         "x" => "X (Twitter)",
+        "whatsapp" => "WhatsApp",
+        "facebook" => "Facebook",
+        "instagram" => "Instagram",
+        "tiktok" => "TikTok",
+        "snapchat" => "Snapchat",
+        "linkedin" => "LinkedIn",
+        "email" => "Email",
         "pc" => "This PC",
         _ => "Other",
     }
@@ -52,6 +65,8 @@ pub fn platform_label(platform: &str) -> &'static str {
 pub(crate) enum Source {
     Zip { archive: zip::ZipArchive<BufReader<File>>, names: HashMap<String, String> },
     Dir { names: HashMap<String, PathBuf> },
+    /// A single file that isn't a zip: a WhatsApp .txt, a Gmail .mbox, a TikTok .json.
+    File { name: String, path: PathBuf },
 }
 
 /// Folders that are huge and hold nothing we need.
@@ -70,8 +85,13 @@ impl Source {
             Ok(Source::Dir { names })
         } else {
             let file = File::open(path).with_context(|| format!("cannot open {}", path.display()))?;
-            let archive = zip::ZipArchive::new(BufReader::new(file))
-                .context("this file is not a readable zip archive")?;
+            let archive = match zip::ZipArchive::new(BufReader::new(file)) {
+                Ok(a) => a,
+                Err(_) => {
+                    let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+                    return Ok(Source::File { name, path: path.to_path_buf() });
+                }
+            };
             let names = archive
                 .file_names()
                 .filter_map(|n| n.ok().map(|n| n.to_string()))
@@ -87,6 +107,7 @@ impl Source {
         let mut v: Vec<String> = match self {
             Source::Zip { names, .. } => names.keys().cloned().collect(),
             Source::Dir { names } => names.keys().cloned().collect(),
+            Source::File { name, .. } => vec![name.clone()],
         };
         v.sort();
         v
@@ -103,8 +124,27 @@ impl Source {
                 let p = names.get(name).ok_or_else(|| anyhow!("missing {name}"))?;
                 File::open(p)?.read_to_end(&mut buf)?;
             }
+            Source::File { path, .. } => {
+                File::open(path)?.read_to_end(&mut buf)?;
+            }
         }
         Ok(buf)
+    }
+
+    /// Streams one file instead of loading it whole (a Gmail mailbox can be gigabytes).
+    pub(crate) fn with_reader<T>(&mut self, name: &str, f: impl FnOnce(&mut dyn Read) -> Result<T>) -> Result<T> {
+        match self {
+            Source::Zip { archive, names } => {
+                let real = names.get(name).ok_or_else(|| anyhow!("missing {name}"))?.clone();
+                let mut entry = archive.by_name(&real)?;
+                f(&mut entry)
+            }
+            Source::Dir { names } => {
+                let p = names.get(name).ok_or_else(|| anyhow!("missing {name}"))?;
+                f(&mut BufReader::new(File::open(p)?))
+            }
+            Source::File { path, .. } => f(&mut BufReader::new(File::open(path)?)),
+        }
     }
 }
 
@@ -293,6 +333,7 @@ pub(crate) fn after_import(store: &Store) -> Result<()> {
 pub(crate) fn detect(names: &[String]) -> Option<&'static str> {
     let lower: Vec<String> = names.iter().map(|n| n.to_ascii_lowercase()).collect();
     let has_file = |f: &str| lower.iter().any(|n| file_name_lower(n) == f);
+    let has_path = |p: &str| lower.iter().any(|n| n.contains(p));
     if lower.iter().any(|n| n.ends_with("data/account.js") || x::is_tweets_file(n)) {
         return Some("x");
     }
@@ -302,10 +343,70 @@ pub(crate) fn detect(names: &[String]) -> Option<&'static str> {
     if has_file("channel.json") && (has_file("messages.json") || has_file("messages.csv")) {
         return Some("discord");
     }
+    if has_path("your_instagram_activity") || has_path("personal_information/personal_information.json") {
+        return Some("instagram");
+    }
+    if has_path("your_facebook_activity") || has_path("messages/inbox/") || has_file("profile_information.json") {
+        return Some("facebook");
+    }
+    if has_file("chat_history.json") {
+        return Some("snapchat");
+    }
+    if has_file("user_data_tiktok.json") || has_file("user_data.json") {
+        return Some("tiktok");
+    }
+    if has_file("profile.csv") && (has_file("messages.csv") || has_file("shares.csv") || has_file("connections.csv")) {
+        return Some("linkedin");
+    }
     if has_file("comments.csv") || has_file("posts.csv") {
         return Some("reddit");
     }
+    if lower.iter().any(|n| n.ends_with(".mbox")) {
+        return Some("email");
+    }
+    if lower.iter().any(|n| whatsapp::is_chat_file(n)) {
+        return Some("whatsapp");
+    }
     None
+}
+
+pub use mbox::Mail as SentMail;
+
+/// Reads one raw email (RFC 822) the way the mailbox importer does: recipients, subject and
+/// your own words, without quoted replies. Live email sync uses this so both give the same records.
+pub fn parse_sent_mail(raw: &[u8]) -> Option<SentMail> {
+    mbox::parse_mail(raw).map(|mut m| {
+        m.id = m.id.trim_matches(['<', '>']).to_string();
+        m
+    })
+}
+
+/// A Gmail search link that opens one message by its Message-ID.
+pub fn gmail_link(message_id: &str) -> String {
+    format!("https://mail.google.com/mail/u/0/#search/rfc822msgid%3A{}", message_id.replace('@', "%40"))
+}
+
+/// What importers may need to know beyond the export itself.
+pub(crate) struct Ctx {
+    /// The names the person goes by in chats (Settings), for exports that don't say which messages are theirs.
+    pub my_names: Vec<String>,
+}
+
+impl Ctx {
+    pub(crate) fn is_me(&self, name: &str) -> bool {
+        let n = name.trim();
+        !n.is_empty() && self.my_names.iter().any(|m| m.trim().eq_ignore_ascii_case(n))
+    }
+}
+
+impl Store {
+    pub fn my_names(&self) -> Result<Vec<String>> {
+        Ok(self.get_meta("my_names")?.and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default())
+    }
+    pub fn set_my_names(&self, names: &[String]) -> Result<()> {
+        let clean: Vec<String> = names.iter().map(|n| n.trim().to_string()).filter(|n| !n.is_empty()).collect();
+        self.set_meta("my_names", &serde_json::to_string(&clean)?)
+    }
 }
 
 /// Imports an export, replacing whatever was imported before from the same platform.
@@ -319,16 +420,24 @@ pub fn import_package(
     let names = src.names();
     let platform = detect(&names).ok_or_else(|| {
         anyhow!(
-            "Veil doesn't recognise this file. It reads the data exports from Discord, Reddit, Telegram (JSON format) and X. Open the .zip they sent you, or the folder you extracted it to."
+            "Veil doesn't recognise this file. It reads the data exports from Discord, Reddit, Telegram (JSON), X, WhatsApp, Instagram and Facebook (JSON), TikTok (JSON), Snapchat, LinkedIn and Gmail (Google Takeout). Open the file they sent you, or the folder you extracted it to."
         )
     })?;
 
+    let ctx = Ctx { my_names: store.my_names()? };
     let mut w = Writer::new(store, platform)?;
     let mut summary = match platform {
         "discord" => discord::import(&mut src, &names, &mut w, progress)?,
         "reddit" => reddit::import(&mut src, &names, &mut w, progress)?,
         "telegram" => telegram::import(&mut src, &names, &mut w, progress)?,
         "x" => x::import(&mut src, &names, &mut w, progress)?,
+        "whatsapp" => whatsapp::import(&mut src, &names, &mut w, &ctx, progress)?,
+        "facebook" => meta::import(&mut src, &names, &mut w, &ctx, progress, meta::Which::Facebook)?,
+        "instagram" => meta::import(&mut src, &names, &mut w, &ctx, progress, meta::Which::Instagram)?,
+        "tiktok" => tiktok::import(&mut src, &names, &mut w, progress)?,
+        "snapchat" => snapchat::import(&mut src, &names, &mut w, progress)?,
+        "linkedin" => linkedin::import(&mut src, &names, &mut w, progress)?,
+        "email" => mbox::import(&mut src, &names, &mut w, progress)?,
         _ => unreachable!(),
     };
     summary.platform = platform.to_string();

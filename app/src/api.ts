@@ -9,7 +9,9 @@ export type KindKey =
   | "credential" | "card" | "iban" | "watch_term" | "address"
   | "phone" | "email" | "ip_address" | "postcode" | "crypto_wallet" | "sensitive_file";
 export type Status = "deleted" | "ok" | "later";
-export type Platform = "discord" | "reddit" | "telegram" | "x" | "pc";
+export type Platform =
+  | "discord" | "reddit" | "telegram" | "x" | "whatsapp" | "facebook" | "instagram"
+  | "tiktok" | "snapchat" | "linkedin" | "email" | "pc";
 export type StatusTab = "open" | "later" | "done";
 
 export interface ChannelView {
@@ -65,6 +67,10 @@ export interface TgStatus { has_app_key: boolean; connected: boolean; name: stri
 export type TgStep = { step: "done"; name: string } | { step: "need_password"; hint: string | null };
 export interface TgProgress { chats_done: number; chats_total: number; messages: number }
 
+export interface EmailProvider { id: string; name: string; host: string; help_url: string }
+export interface EmailStatus { connected: boolean; address: string | null; provider: string | null }
+export interface EmailProgress { done: number; total: number }
+
 export const inDesktopApp = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 type Invoke = <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
@@ -90,6 +96,15 @@ export const api = {
   tgDisconnect: () => call<void>("tg_disconnect"),
   tgSync: () => call<ImportSummary>("tg_sync"),
   tgDelete: (id: number) => call<ScanSummary>("tg_delete", { id }),
+  emailProviders: () => call<EmailProvider[]>("email_providers"),
+  emailStatus: () => call<EmailStatus>("email_status"),
+  emailConnect: (provider: string, host: string, address: string, password: string) =>
+    call<EmailStatus>("email_connect", { provider, host, address, password }),
+  emailDisconnect: () => call<void>("email_disconnect"),
+  emailSync: () => call<ImportSummary>("email_sync"),
+  emailDelete: (id: number) => call<ScanSummary>("email_delete", { id }),
+  myNames: () => call<string[]>("my_names"),
+  setMyNames: (names: string[]) => call<void>("set_my_names", { names }),
   isDemo: () => call<boolean>("is_demo"),
   loadDemo: () => call<void>("load_demo"),
   importPackage: (path: string) => call<ImportSummary>("import_package", { path }),
@@ -126,7 +141,13 @@ export async function pickPackage(folder: boolean): Promise<string | null> {
   const picked = await open(
     folder
       ? { directory: true, title: "Choose your extracted data package folder" }
-      : { title: "Choose your Discord data package", filters: [{ name: "Discord data package", extensions: ["zip"] }] },
+      : {
+          title: "Choose your data export",
+          filters: [
+            { name: "Data exports", extensions: ["zip", "json", "txt", "mbox"] },
+            { name: "All files", extensions: ["*"] },
+          ],
+        },
   );
   return typeof picked === "string" ? picked : null;
 }
@@ -144,7 +165,13 @@ export async function pickSavePath(defaultName: string): Promise<string | null> 
   return save({ defaultPath: defaultName, filters: [{ name: "CSV", extensions: ["csv"] }] });
 }
 
-const ALLOWED_LINKS = ["https://discord.com/channels/", "https://www.reddit.com/", "https://x.com/", "https://t.me/c/"];
+const ALLOWED_LINKS = [
+  "https://discord.com/channels/", "https://www.reddit.com/", "https://x.com/", "https://t.me/c/",
+  "https://www.linkedin.com/", "https://mail.google.com/mail/",
+  // Where email providers hand out app passwords
+  "https://myaccount.google.com/apppasswords", "https://login.yahoo.com/account/security", "https://account.apple.com",
+  "https://www.gmx.net", "https://app.fastmail.com/settings/security/apps",
+];
 
 /** Opens a message on its platform, in the browser where the person is signed in. Only known sites are allowed. */
 export async function openLink(url: string | null) {
@@ -190,10 +217,18 @@ export const platformName: Record<Platform, string> = {
   reddit: "Reddit",
   telegram: "Telegram",
   x: "X",
+  whatsapp: "WhatsApp",
+  facebook: "Facebook",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  snapchat: "Snapchat",
+  linkedin: "LinkedIn",
+  email: "Email",
   pc: "This PC",
 };
 
-/** "Open in Discord", "Open on Reddit", … */
-export const openLabel = (p: Platform) => (p === "discord" || p === "telegram" ? `Open in ${platformName[p]}` : `Open on ${platformName[p]}`);
+/** "Open in Discord", "Open on Reddit", "Open in Gmail", … */
+export const openLabel = (p: Platform) =>
+  p === "email" ? "Open in Gmail" : p === "discord" || p === "telegram" ? `Open in ${platformName[p]}` : `Open on ${platformName[p]}`;
 
 export const severityLabel = (s: number) => (s >= 3 ? "Fix now" : s === 2 ? "Worth a look" : "Low risk");

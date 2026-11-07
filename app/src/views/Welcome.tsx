@@ -58,7 +58,8 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
             See what your chats and files say about <span className="redact">y••</span>.
           </h1>
           <p className="muted">
-            Veil reads your data exports from Discord, Reddit, Telegram and X, and the folders on this PC you choose. It
+            Veil reads your data exports from Discord, WhatsApp, Instagram, Facebook, TikTok, Snapchat, Reddit, Telegram, X,
+            LinkedIn and Gmail, and the folders on this PC you choose. It
             shows you where you've shared things like your phone number, address or a password, and helps you clean up.
           </p>
         </div>
@@ -81,7 +82,7 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
               <span className="step-icon"><Icon name="sources" /></span>
               <span className="step-text">
                 <strong>Open a data export</strong>
-                <span className="muted small">The .zip from Discord, Reddit, Telegram or X. You can also drop it here.</span>
+                <span className="muted small">The file a platform sent you, from Discord to Gmail. You can also drop it here.</span>
               </span>
               <span className="step-go"><Icon name="arrow" /></span>
             </button>

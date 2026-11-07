@@ -13,3 +13,6 @@ serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "sync", "time"] }
 veil-core = { version = "0.1.0", path = "../core" }
+imap = "3.0.0-alpha.15"
+native-tls = "0.2.18"
+imap-proto = "0.16"

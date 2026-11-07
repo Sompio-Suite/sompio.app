@@ -7,6 +7,7 @@
 //! Secrets (login sessions, app keys) live in the operating system's credential store
 //! (Windows Credential Manager), never in Veil's database or in plain files.
 
+pub mod email;
 pub mod telegram;
 
 use anyhow::Result;

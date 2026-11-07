@@ -55,6 +55,7 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
   const [draft, setDraft] = useState("");
   const [confirmRecycle, setConfirmRecycle] = useState(false);
   const [tgConnected, setTgConnected] = useState(false);
+  const [emailConnected, setEmailConnected] = useState(false);
 
   useEffect(() => {
     api.watchTerms().then((t) => {
@@ -65,6 +66,7 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
       setPlatforms(s.map((x) => x.platform));
       // Only ask about the Telegram connection when there is Telegram data to act on.
       if (s.some((x) => x.platform === "telegram")) api.tgStatus().then((t) => setTgConnected(t.connected)).catch(() => {});
+      if (s.some((x) => x.platform === "email")) api.emailStatus().then((t) => setEmailConnected(t.connected)).catch(() => {});
     });
     const un = listen<[number, number]>("scan-progress", setScanning);
     return () => void un.then((f) => f());
@@ -153,7 +155,7 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
         await openUrl(f.link);
         setToast({ text: "Opened in your browser. Delete it there, then mark it as deleted here." });
       } else {
-        setToast({ text: `${platformName[f.platform]} has no web link for private chats. Open the chat in the app and find it by its date.` });
+        setToast({ text: `There's no web link for this one. Open ${platformName[f.platform]} and find it by its date.` });
       }
     } catch (e) {
       setToast({ text: String(e) });
@@ -165,11 +167,22 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
     await copyText(value);
     setToast({ text: f.link ? "Link copied." : "File path copied." });
   }, []);
-  const deleteOnTelegram = async (f: FindingView) => {
+  /** Deleting on the platform itself, for connected accounts. */
+  const liveDelete = (f: FindingView) =>
+    f.status
+      ? null
+      : f.platform === "telegram" && tgConnected
+        ? { ask: "Delete from Telegram…", confirm: "Yes, delete it for everyone", run: api.tgDelete, done: "Deleted from Telegram for everyone in that chat." }
+        : f.platform === "email" && emailConnected
+          ? { ask: "Move to Trash…", confirm: "Yes, move it to Trash", run: api.emailDelete, done: "Moved to your mailbox's Trash. You can restore it from there." }
+          : null;
+  const deleteLive = async (f: FindingView) => {
+    const how = liveDelete(f);
+    if (!how) return;
     try {
-      onScan(await api.tgDelete(f.id));
+      onScan(await how.run(f.id));
       reload();
-      setToast({ text: "Deleted from Telegram for everyone in that chat." });
+      setToast({ text: how.done });
     } catch (e) {
       setToast({ text: String(e) });
     }
@@ -409,17 +422,19 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
                       </>
                     ) : (
                       <>
-                        {current.platform === "telegram" && tgConnected && !current.status && (
+                        {liveDelete(current) && (
                           confirmRecycle ? (
                             <>
-                              <button className="danger" onClick={() => deleteOnTelegram(current)}><Icon name="trash" size={16} />Yes, delete it for everyone</button>
+                              <button className="danger" onClick={() => deleteLive(current)}><Icon name="trash" size={16} />{liveDelete(current)!.confirm}</button>
                               <button className="quiet" onClick={() => setConfirmRecycle(false)}>Cancel</button>
                             </>
                           ) : (
-                            <button className="primary" onClick={() => setConfirmRecycle(true)}><Icon name="trash" size={16} />Delete from Telegram…</button>
+                            <button className="primary" onClick={() => setConfirmRecycle(true)}><Icon name="trash" size={16} />{liveDelete(current)!.ask}</button>
                           )
                         )}
-                        <button className={current.platform === "telegram" && tgConnected ? undefined : "primary"} onClick={() => goTo(current)}><Icon name="external" size={16} />{openLabel(current.platform)}</button>
+                        {(current.link || !liveDelete(current)) && (
+                          <button className={liveDelete(current) ? undefined : "primary"} onClick={() => goTo(current)}><Icon name="external" size={16} />{openLabel(current.platform)}</button>
+                        )}
                         {current.link && <button onClick={() => copyLink(current)}><Icon name="copy" size={16} />Copy link</button>}
                         <button className="quiet" onClick={() => onOpen({ channelId: current.channel_id, messageId: current.message_id })}>
                           <Icon name="messages" size={16} />Show conversation

@@ -5,6 +5,7 @@ import {
 } from "../api";
 import { dateTime, n, plural } from "../format";
 import Icon from "../Icon";
+import EmailConnect from "./EmailConnect";
 import TelegramConnect from "./TelegramConnect";
 
 interface Props {
@@ -21,7 +22,55 @@ const HOW_TO: [string, string][] = [
   ["Reddit", "Settings, then Privacy, then Request your data. Reddit emails you when it's ready."],
   ["Telegram", "In Telegram Desktop: Settings, Advanced, Export Telegram data. Tick Personal information and your chats, choose JSON. It saves straight to your PC."],
   ["X", "Settings, then Your account, then Download an archive of your data. X emails you when it's ready."],
+  ["WhatsApp", "Open a chat, tap the contact or group name, then Export chat, Without media. Save the .txt (or .zip) and add it here. One chat at a time."],
+  ["Instagram", "Settings, Accounts Center, Your information and permissions, Download your information. Choose All available information and format JSON."],
+  ["Facebook", "Settings, Accounts Center, Your information and permissions, Download your information. Choose format JSON. Covers Messenger too."],
+  ["TikTok", "Settings and privacy, Account, Download your data. Choose JSON, then download it from the same page when it's ready."],
+  ["Snapchat", "Settings, My Data. Tick Export JSON files, submit, and download the zip from the email Snapchat sends."],
+  ["LinkedIn", "Settings, Data privacy, Get a copy of your data. Choose the larger archive so messages are included."],
+  ["Gmail", "Or connect your account above. Without connecting: takeout.google.com, deselect all, tick Mail. Add the .zip or .mbox here. Only mail you sent is read."],
 ];
+
+/** The names you go by, for exports that don't say which messages are yours (WhatsApp, Facebook, Instagram). */
+function YourNames() {
+  const [value, setValue] = useState("");
+  const [saved, setSaved] = useState("");
+  useEffect(() => {
+    api.myNames().then((n) => {
+      setValue(n.join(", "));
+      setSaved(n.join(", "));
+    }).catch(() => {});
+  }, []);
+  const save = async () => {
+    const names = value.split(",").map((x) => x.trim()).filter(Boolean);
+    await api.setMyNames(names);
+    setValue(names.join(", "));
+    setSaved(names.join(", "));
+  };
+  return (
+    <div className="panel connect">
+      <div className="connect-head">
+        <span className="step-icon"><Icon name="user" /></span>
+        <div className="text">
+          <strong>Your names</strong>
+          <span className="small muted">
+            WhatsApp, Facebook and Instagram exports include everyone's messages. Veil only keeps yours, so it needs to
+            know the names you appear under. Usually it works this out itself; add names here if an import says it couldn't.
+          </span>
+        </div>
+      </div>
+      <form className="connect-form" onSubmit={(e) => { e.preventDefault(); save(); }}>
+        <label>Names, separated by commas
+          <input type="text" value={value} onChange={(e) => setValue(e.target.value)} placeholder="Alex de Vries, alexdv" />
+        </label>
+        <div className="toolbar">
+          <button disabled={value === saved}>Save</button>
+          {value === saved && saved && <span className="small faint">Saved. Import again to apply.</span>}
+        </div>
+      </form>
+    </div>
+  );
+}
 
 export default function Sources({ demo, onScan, onChanged }: Props) {
   const [sources, setSources] = useState<SourceView[]>([]);
@@ -114,11 +163,11 @@ export default function Sources({ demo, onScan, onChanged }: Props) {
           <div className="source-list">
             {sources.map((s) => (
               <div key={s.platform} className="source-row">
-                <span className="step-icon"><Icon name={s.platform === "pc" ? "folder" : "messages"} /></span>
+                <span className="step-icon"><Icon name={s.platform === "pc" ? "folder" : s.platform === "email" ? "mail" : "messages"} /></span>
                 <div className="text">
                   <strong>{platformName[s.platform]}</strong>
                   <span className="small muted">
-                    {s.platform === "pc" ? plural(s.messages, "file", "files") : plural(s.messages, "message", "messages")}
+                    {s.platform === "pc" ? plural(s.messages, "file", "files") : s.platform === "email" ? plural(s.messages, "email", "emails") : plural(s.messages, "message", "messages")}
                     {", added "}
                     {dateTime(s.imported_at)}
                   </span>
@@ -152,9 +201,18 @@ export default function Sources({ demo, onScan, onChanged }: Props) {
             onChanged();
           }}
         />
+        <EmailConnect
+          onStatus={() => onChanged()}
+          onSynced={async (count) => {
+            onScan(await api.runScan(await api.watchTerms()));
+            setNote(`Synced ${plural(count, "email", "emails")} you sent.`);
+            await refresh();
+            onChanged();
+          }}
+        />
         <p className="small faint">
-          Connected accounts are the only time Veil goes online, and then only to that platform, when you sync or delete.
-          Email and Reddit come next.
+          Connected accounts are the only time Veil goes online, and then only to that platform or mail server, when you
+          sync or delete.
         </p>
       </section>
 
@@ -165,11 +223,11 @@ export default function Sources({ demo, onScan, onChanged }: Props) {
             <span className="step-icon"><Icon name="sources" /></span>
             <h3>A data export</h3>
             <p className="muted small">
-              Discord, Reddit, Telegram or X. Drop the .zip here or choose it. A newer export replaces the older one from
-              the same platform.
+              Discord, Reddit, Telegram, X, WhatsApp, Instagram, Facebook, TikTok, Snapchat, LinkedIn or Gmail. Drop the
+              file here or choose it. A newer export replaces the older one from the same platform.
             </p>
             <div className="drop-actions">
-              <button className="primary" disabled={!!busy} onClick={async () => addExport(await pickPackage(false))}>Choose .zip file</button>
+              <button className="primary" disabled={!!busy} onClick={async () => addExport(await pickPackage(false))}>Choose file</button>
               <button className="quiet" disabled={!!busy} onClick={async () => addExport(await pickPackage(true))}>Choose a folder</button>
             </div>
           </div>
@@ -186,6 +244,11 @@ export default function Sources({ demo, onScan, onChanged }: Props) {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="section">
+        <h2 className="section-title">Which messages are yours</h2>
+        <YourNames />
       </section>
 
       <section className="section">

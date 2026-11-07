@@ -12,6 +12,8 @@ struct AppState {
     db_path: PathBuf,
     /// The Telegram connection. Only does anything after the person connects an account.
     telegram: tokio::sync::Mutex<veil_connect::telegram::Telegram>,
+    /// The email connection (IMAP). Blocking, so it always runs on a background thread.
+    email: std::sync::Arc<veil_connect::email::Email>,
 }
 
 type CmdResult<T> = Result<T, String>;
@@ -154,6 +156,81 @@ async fn tg_delete(state: State<'_, AppState>, id: i64) -> CmdResult<ScanSummary
     .await
 }
 
+// Email
+
+use veil_connect::email::{Email, Provider, Status as EmailStatus, SyncProgress as EmailProgress};
+
+async fn with_email<T, F>(state: &State<'_, AppState>, f: F) -> CmdResult<T>
+where
+    T: Send + 'static,
+    F: FnOnce(&Email) -> anyhow::Result<T> + Send + 'static,
+{
+    let email = state.email.clone();
+    tauri::async_runtime::spawn_blocking(move || f(&email).map_err(text_err))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+fn email_providers() -> Vec<Provider> {
+    veil_connect::email::PROVIDERS.to_vec()
+}
+
+#[tauri::command]
+async fn email_status(state: State<'_, AppState>) -> CmdResult<EmailStatus> {
+    with_email(&state, |e| e.status()).await
+}
+
+#[tauri::command]
+async fn email_connect(state: State<'_, AppState>, provider: String, host: String, address: String, password: String) -> CmdResult<EmailStatus> {
+    with_email(&state, move |e| e.connect(&provider, &host, &address, &password)).await
+}
+
+#[tauri::command]
+async fn email_disconnect(state: State<'_, AppState>) -> CmdResult<()> {
+    with_email(&state, |e| e.disconnect()).await
+}
+
+/// Reads the Sent folder and replaces the email data with it.
+#[tauri::command]
+async fn email_sync(app: AppHandle, state: State<'_, AppState>) -> CmdResult<ImportSummary> {
+    let channels = with_email(&state, move |e| {
+        e.fetch_sent(&mut |p: EmailProgress| {
+            let _ = app.emit("email-progress", &p);
+        })
+    })
+    .await?;
+    with_store(state.db_path.clone(), move |s| veil_core::import_live(s, "email", "Connected email account", channels)).await
+}
+
+/// Moves the sent email a finding is in to the mailbox's Trash.
+#[tauri::command]
+async fn email_delete(state: State<'_, AppState>, id: i64) -> CmdResult<ScanSummary> {
+    let (platform, uid) = with_store(state.db_path.clone(), move |s| s.delete_target(id)).await?;
+    if platform != "email" {
+        return Err("This item isn't an email.".into());
+    }
+    let ext = uid.strip_prefix("email:").unwrap_or(&uid).to_string();
+    with_email(&state, move |e| e.delete_message(&ext)).await?;
+    with_store(state.db_path.clone(), move |s| {
+        s.mark_deleted(id)?;
+        s.scan_summary()
+    })
+    .await
+}
+
+// The names someone goes by in chats, for exports that don't say which messages are theirs.
+
+#[tauri::command]
+async fn my_names(state: State<'_, AppState>) -> CmdResult<Vec<String>> {
+    with_store(state.db_path.clone(), |s| s.my_names()).await
+}
+
+#[tauri::command]
+async fn set_my_names(state: State<'_, AppState>, names: Vec<String>) -> CmdResult<()> {
+    with_store(state.db_path.clone(), move |s| s.set_my_names(&names)).await
+}
+
 #[tauri::command]
 async fn stats(state: State<'_, AppState>) -> CmdResult<Stats> {
     with_store(state.db_path.clone(), |s| s.stats()).await
@@ -291,7 +368,8 @@ pub fn run() {
             let secrets = std::sync::Arc::new(veil_connect::KeyringStore::new("Veil"));
             app.manage(AppState {
                 db_path: dir.join("veil.db"),
-                telegram: tokio::sync::Mutex::new(veil_connect::telegram::Telegram::new(secrets)),
+                telegram: tokio::sync::Mutex::new(veil_connect::telegram::Telegram::new(secrets.clone())),
+                email: std::sync::Arc::new(veil_connect::email::Email::new(secrets)),
             });
             Ok(())
         })
@@ -311,6 +389,14 @@ pub fn run() {
             tg_disconnect,
             tg_sync,
             tg_delete,
+            email_providers,
+            email_status,
+            email_connect,
+            email_disconnect,
+            email_sync,
+            email_delete,
+            my_names,
+            set_my_names,
             stats,
             channels,
             messages,

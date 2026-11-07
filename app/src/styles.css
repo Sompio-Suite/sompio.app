@@ -118,7 +118,7 @@ button.link {
 .small-btn { padding: 0.32rem 0.7rem; font-size: var(--t-xs); }
 .small-btn.primary-soft { background: var(--accent-soft); border-color: transparent; color: var(--accent-text); }
 
-input[type="text"], input[type="search"], select {
+input[type="text"], input[type="search"], input[type="email"], input[type="password"], select {
   font: inherit;
   font-size: var(--t-m);
   color: inherit;
