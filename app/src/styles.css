@@ -442,3 +442,23 @@ button.redact:hover { outline: 2px solid color-mix(in srgb, var(--accent) 45%, t
 .field-row { display: flex; gap: 0.75rem; }
 .field-row label:first-child { width: 9rem; }
 .field-row .grow { flex: 1; }
+
+/* Grouping repeats and acting on many at once */
+.item .pick { margin: 0; width: 14px; height: 14px; accent-color: var(--accent); opacity: 0; transition: opacity 0.1s; }
+.item:hover .pick, .item.picked .pick, .item .pick:focus-visible, .review-list:has(.picked) .pick { opacity: 1; }
+.item.picked { background: color-mix(in srgb, var(--accent-soft) 70%, transparent); }
+.item-top .repeats {
+  font-size: var(--t-xs); font-weight: 700; color: var(--accent-text); background: var(--accent-soft);
+  padding: 0 0.4rem; border-radius: 999px; font-variant-numeric: tabular-nums;
+}
+.group-box {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem;
+  padding: 0.85rem 1rem; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); max-width: 70ch;
+}
+.group-box > div:first-child { display: grid; gap: 0.15rem; }
+.bulk-bar, .banner-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem;
+  padding: 0.6rem 0.9rem; border-radius: 10px; background: var(--accent-soft); color: var(--ink);
+}
+.bulk-bar .grow { flex: 1; }
+.banner-row span { flex: 1; font-size: var(--t-s); }

@@ -61,7 +61,19 @@ export interface FindingView {
   kind: KindKey; label: string; severity: number; advice: string;
   before: string; matched: string; after: string; masked: boolean;
   status: Status | null; link: string | null; file_path: string | null;
+  /** How many findings in this list have the same value */
+  repeats: number;
 }
+
+export interface GroupInfo {
+  ids: number[];
+  message_ids: string[];
+  member_platforms: Platform[];
+  platforms: { platform: Platform; count: number }[];
+  first_ts: number;
+  last_ts: number;
+}
+export type Previous = [number, Status | null][];
 
 export interface TgStatus { has_app_key: boolean; connected: boolean; name: string | null; waiting_for: "code" | "password" | null }
 export type TgStep = { step: "done"; name: string } | { step: "need_password"; hint: string | null };
@@ -123,8 +135,13 @@ export const api = {
     call<Page<MessageView>>("search", { text, channelId, offset, limit }),
   runScan: (watchTerms: string[]) => call<ScanSummary>("run_scan", { watchTerms }),
   scanSummary: () => call<ScanSummary>("scan_summary"),
-  findings: (kind: KindKey | null, platform: Platform | null, status: StatusTab, offset: number, limit: number, reveal: boolean) =>
-    call<Page<FindingView>>("findings", { kind, platform, status, offset, limit, reveal }),
+  findings: (
+    kind: KindKey | null, platform: Platform | null, status: StatusTab, offset: number, limit: number, reveal: boolean,
+    group = false, sameAs: number | null = null,
+  ) => call<Page<FindingView>>("findings", { kind, platform, status, offset, limit, reveal, group, sameAs }),
+  groupInfo: (id: number, status: StatusTab) => call<GroupInfo>("group_info", { id, status }),
+  setStatusMany: (ids: number[], status: Status | null) => call<[Previous, ScanSummary]>("set_status_many", { ids, status }),
+  restoreStatuses: (previous: Previous) => call<ScanSummary>("restore_statuses", { previous }),
   revealFinding: (id: number) => call<FindingView | null>("reveal_finding", { id }),
   setStatus: (id: number, status: Status | null) => call<ScanSummary>("set_status", { id, status }),
   ignoreEverywhere: (id: number) => call<[number, ScanSummary]>("ignore_everywhere", { id }),

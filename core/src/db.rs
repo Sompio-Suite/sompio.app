@@ -59,7 +59,8 @@ CREATE TABLE IF NOT EXISTS findings (
     kind        TEXT NOT NULL,
     severity    INTEGER NOT NULL,
     start_byte  INTEGER NOT NULL,
-    end_byte    INTEGER NOT NULL
+    end_byte    INTEGER NOT NULL,
+    fp          TEXT NOT NULL DEFAULT ''  -- SHA-256 of the normalised value, to group repeats of the same value
 );
 CREATE INDEX IF NOT EXISTS findings_kind ON findings(kind, message_id);
 CREATE INDEX IF NOT EXISTS findings_message ON findings(message_id);
@@ -121,7 +122,15 @@ impl Store {
         }
         conn.execute_batch(SCHEMA)?;
         conn.execute_batch(&format!("PRAGMA user_version = {SCHEMA_VERSION};"))?;
-        Ok(Self { conn })
+        let has_fp: bool = conn.query_row("SELECT COUNT(*) > 0 FROM pragma_table_info('findings') WHERE name = 'fp'", [], |r| r.get(0))?;
+        let mut store = Self { conn };
+        if !has_fp {
+            // Added after the first release: fill it in for findings from earlier scans.
+            store.conn.execute_batch("ALTER TABLE findings ADD COLUMN fp TEXT NOT NULL DEFAULT ''")?;
+            store.backfill_fingerprints()?;
+        }
+        store.conn.execute_batch("CREATE INDEX IF NOT EXISTS findings_fp ON findings(kind, fp)")?;
+        Ok(store)
     }
 
     pub fn has_data(&self) -> Result<bool> {

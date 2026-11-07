@@ -20,7 +20,7 @@ pub use demo::load_demo;
 pub use import::{gmail_link, import_live, parse_sent_mail, SentMail, import_package, platform_label, ImportProgress, ImportSummary, LiveChannel, LiveMessage};
 pub use pcscan::scan_folders;
 pub use query::{ChannelView, MessageView, MessagesPage, SearchPage, Segment, SourceView, Stats, YearCount};
-pub use scan::{
+pub use scan::{FindingsFilter, GroupInfo, GroupPlatform, 
     run_scan, Detection, FindingView, FindingsPage, Kind, KindCount, ScanOptions, ScanSummary, Scanner, StatusFilter,
 };
 

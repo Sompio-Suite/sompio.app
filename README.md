@@ -33,11 +33,14 @@ a password or an access token, then walks you through cleaning it up. Nothing le
 5. Mark each one **I deleted it**, **Not a problem** or **Later**. Progress is saved and survives rescans.
    **Never flag this again** stops a harmless value (a public work email, say) from coming back.
 6. Add watch terms (your real name, street, school) and scan again to catch what patterns can't.
+7. **Group repeats** (on by default) shows each value once with how many places it appears, so one decision
+   covers all of them. **Show each place** splits it out again. Select several items (checkbox, X, Shift-click)
+   to decide on them together, or delete them in one go on a connected account. Everything has Undo.
 
 Sensitive text is hidden everywhere, including in conversations, until you click it.
 
 Keyboard on the Review screen: J/K or arrows to move, Space to show or hide, D deleted, N not a problem,
-L later, U move back to review, O open in Discord, C copy link.
+L later, U move back to review, O open in Discord, C copy link, X select, Esc clear selection.
 
 > "Veil" is a working name. Rename it before you publish (`productName` and `identifier` in
 > `app/src-tauri/tauri.conf.json`, and the `name` fields in the `package.json`/`Cargo.toml` files).

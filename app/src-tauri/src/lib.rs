@@ -286,9 +286,46 @@ async fn findings(
     offset: i64,
     limit: i64,
     reveal: bool,
+    group: Option<bool>,
+    same_as: Option<i64>,
 ) -> CmdResult<FindingsPage> {
     with_store(state.db_path.clone(), move |s| {
-        s.findings_for_platform(kind.as_deref(), platform.as_deref(), StatusFilter::parse(&status), offset, limit, reveal)
+        let filter = veil_core::FindingsFilter {
+            kind: kind.as_deref(),
+            platform: platform.as_deref(),
+            status: StatusFilter::parse(&status),
+            group: group.unwrap_or(false),
+            same_as,
+            only_id: None,
+        };
+        s.findings_filtered(&filter, offset, limit, reveal)
+    })
+    .await
+}
+
+/// Everywhere the value in a finding appears, within one status list.
+#[tauri::command]
+async fn group_info(state: State<'_, AppState>, id: i64, status: String) -> CmdResult<veil_core::GroupInfo> {
+    with_store(state.db_path.clone(), move |s| s.group_info(id, StatusFilter::parse(&status))).await
+}
+
+type Previous = Vec<(i64, Option<String>)>;
+
+/// One decision for many findings. Returns what they were before, for Undo.
+#[tauri::command]
+async fn set_status_many(state: State<'_, AppState>, ids: Vec<i64>, status: Option<String>) -> CmdResult<(Previous, ScanSummary)> {
+    with_store(state.db_path.clone(), move |s| {
+        let before = s.set_status_many(&ids, status.as_deref())?;
+        Ok((before, s.scan_summary()?))
+    })
+    .await
+}
+
+#[tauri::command]
+async fn restore_statuses(state: State<'_, AppState>, previous: Previous) -> CmdResult<ScanSummary> {
+    with_store(state.db_path.clone(), move |s| {
+        s.restore_statuses(&previous)?;
+        s.scan_summary()
     })
     .await
 }
@@ -397,6 +434,9 @@ pub fn run() {
             email_delete,
             my_names,
             set_my_names,
+            group_info,
+            set_status_many,
+            restore_statuses,
             stats,
             channels,
             messages,

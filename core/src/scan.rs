@@ -439,6 +439,27 @@ pub struct FindingView {
     pub link: Option<String>,
     /// For files found on this PC: the full path
     pub file_path: Option<String>,
+    /// How many findings in the same list have this exact value (1 = only here)
+    pub repeats: i64,
+}
+
+/// Every place one value was found, for acting on all of them at once.
+#[derive(Debug, Clone, Serialize)]
+pub struct GroupInfo {
+    pub ids: Vec<i64>,
+    /// The message each finding is in, so a message is only deleted once
+    pub message_ids: Vec<String>,
+    /// The platform of each finding, in the same order as `ids`
+    pub member_platforms: Vec<String>,
+    pub platforms: Vec<GroupPlatform>,
+    pub first_ts: i64,
+    pub last_ts: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct GroupPlatform {
+    pub platform: String,
+    pub count: i64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -471,7 +492,7 @@ pub fn run_scan(
             "SELECT m.id, m.content, c.platform FROM messages m JOIN channels c ON c.id = m.channel_id WHERE m.content <> ''",
         )?;
         let mut write = tx.prepare(
-            "INSERT INTO findings(message_id, kind, severity, start_byte, end_byte) VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO findings(message_id, kind, severity, start_byte, end_byte, fp) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
         )?;
         let mut rows = read.query([])?;
         let mut done = 0i64;
@@ -480,12 +501,11 @@ pub fn run_scan(
             let content: String = row.get(1)?;
             let platform: String = row.get(2)?;
             for d in detect_message(&scanner, &platform, &content) {
-                if !ignored.is_empty()
-                    && ignored.contains(&(d.kind.key().to_string(), fingerprint(d.kind, &content[d.start..d.end])))
-                {
+                let fp = fingerprint(d.kind, &content[d.start..d.end]);
+                if ignored.contains(&(d.kind.key().to_string(), fp.clone())) {
                     continue;
                 }
-                write.execute(params![id, d.kind.key(), d.kind.severity(), d.start as i64, d.end as i64])?;
+                write.execute(params![id, d.kind.key(), d.kind.severity(), d.start as i64, d.end as i64, fp])?;
             }
             done += 1;
             if done % 5000 == 0 {
@@ -540,6 +560,25 @@ fn snippet(content: &str, start: usize, end: usize, spans: &[(usize, usize)], re
         after.push('…');
     }
     (before.replace('\n', " "), render(start, end), after.replace('\n', " "), !reveal)
+}
+
+/// What to list on the Review screen.
+#[derive(Debug, Clone)]
+pub struct FindingsFilter<'a> {
+    pub kind: Option<&'a str>,
+    pub platform: Option<&'a str>,
+    pub status: StatusFilter,
+    /// One row per distinct value (the newest place it appears)
+    pub group: bool,
+    /// Only findings with the same value as this one
+    pub same_as: Option<i64>,
+    pub only_id: Option<i64>,
+}
+
+impl Default for FindingsFilter<'_> {
+    fn default() -> Self {
+        Self { kind: None, platform: None, status: StatusFilter::Open, group: false, same_as: None, only_id: None }
+    }
 }
 
 /// Which findings to list.
@@ -618,17 +657,9 @@ impl Store {
         })
     }
 
-    /// Findings, most serious and newest first. `kind` filters by Kind::key(),
-    /// `platform` by source.
-    pub fn findings(
-        &self,
-        kind: Option<&str>,
-        status: StatusFilter,
-        offset: i64,
-        limit: i64,
-        reveal: bool,
-    ) -> Result<FindingsPage> {
-        self.findings_inner(kind, None, status, None, offset, limit, reveal)
+    /// Findings, most serious and newest first. `kind` filters by Kind::key().
+    pub fn findings(&self, kind: Option<&str>, status: StatusFilter, offset: i64, limit: i64, reveal: bool) -> Result<FindingsPage> {
+        self.findings_filtered(&FindingsFilter { kind, status, ..Default::default() }, offset, limit, reveal)
     }
 
     pub fn findings_for_platform(
@@ -640,46 +671,49 @@ impl Store {
         limit: i64,
         reveal: bool,
     ) -> Result<FindingsPage> {
-        self.findings_inner(kind, platform, status, None, offset, limit, reveal)
+        self.findings_filtered(&FindingsFilter { kind, platform, status, ..Default::default() }, offset, limit, reveal)
     }
 
     /// One finding with its text shown in full (for revealing a single item).
     pub fn reveal_finding(&self, id: i64) -> Result<Option<FindingView>> {
-        Ok(self.findings_inner(None, None, StatusFilter::All, Some(id), 0, 1, true)?.items.pop())
+        let f = FindingsFilter { status: StatusFilter::All, only_id: Some(id), ..Default::default() };
+        Ok(self.findings_filtered(&f, 0, 1, true)?.items.pop())
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn findings_inner(
-        &self,
-        kind: Option<&str>,
-        platform: Option<&str>,
-        status: StatusFilter,
-        only_id: Option<i64>,
-        offset: i64,
-        limit: i64,
-        reveal: bool,
-    ) -> Result<FindingsPage> {
+    pub fn findings_filtered(&self, q: &FindingsFilter, offset: i64, limit: i64, reveal: bool) -> Result<FindingsPage> {
         let c = &self.conn;
-        let filter = format!(
-            "(?1 IS NULL OR f.kind = ?1) AND (?2 IS NULL OR f.id = ?2) AND (?5 IS NULL OR ch.platform = ?5) AND {}",
-            status.sql()
+        // `base` numbers each value's findings, newest first, and counts them, so grouping
+        // can keep one row per value and every row knows how often its value appears.
+        let base = format!(
+            "WITH base AS (
+               SELECT f.id, f.message_id, m.channel_id, ch.name AS cname, ch.platform, m.ts, f.kind, f.severity,
+                      f.start_byte, f.end_byte, m.content, r.status, m.link, m.attachments,
+                      ROW_NUMBER() OVER (PARTITION BY f.kind, f.fp ORDER BY m.ts DESC, f.id) AS rn,
+                      COUNT(*) OVER (PARTITION BY f.kind, f.fp) AS repeats
+               {FINDING_FROM}
+               WHERE (?1 IS NULL OR f.kind = ?1) AND (?5 IS NULL OR ch.platform = ?5) AND {}
+                 AND (?7 IS NULL OR (f.kind, f.fp) = (SELECT kind, fp FROM findings WHERE id = ?7))
+             )",
+            q.status.sql()
         );
+        let keep = "(?2 IS NULL OR id = ?2) AND (?6 = 0 OR rn = 1)";
+        let group = q.group as i64;
+        let (lim, off) = (limit.clamp(1, 1000), offset.max(0));
         let total: i64 = c.query_row(
-            &format!("SELECT COUNT(*) {FINDING_FROM} WHERE {filter}"),
-            params![kind, only_id, 0, 0, platform],
+            &format!("{base} SELECT COUNT(*) FROM base WHERE {keep} AND ?3 = ?3 AND ?4 = ?4"),
+            params![q.kind, q.only_id, 0, 0, q.platform, group, q.same_as],
             |r| r.get(0),
         )?;
         let mut stmt = c.prepare_cached(&format!(
-            "SELECT f.id, f.message_id, m.channel_id, ch.name, ch.platform, m.ts, f.kind,
-                    f.start_byte, f.end_byte, m.content, r.status, m.link, m.attachments
-             {FINDING_FROM}
-             WHERE {filter}
-             ORDER BY f.severity DESC, m.ts DESC, f.start_byte
+            "{base} SELECT id, message_id, channel_id, cname, platform, ts, kind, start_byte, end_byte, content, status, link,
+                           attachments, repeats
+             FROM base WHERE {keep}
+             ORDER BY severity DESC, repeats * (?6) DESC, ts DESC, start_byte
              LIMIT ?3 OFFSET ?4"
         ))?;
-        type Row = (i64, i64, i64, String, String, i64, String, usize, usize, String, Option<String>, Option<String>, String);
+        type Row = (i64, i64, i64, String, String, i64, String, usize, usize, String, Option<String>, Option<String>, String, i64);
         let rows: Vec<Row> = stmt
-            .query_map(params![kind, only_id, limit.clamp(1, 1000), offset.max(0), platform], |r| {
+            .query_map(params![q.kind, q.only_id, lim, off, q.platform, group, q.same_as], |r| {
                 Ok((
                     r.get(0)?,
                     r.get(1)?,
@@ -694,12 +728,13 @@ impl Store {
                     r.get(10)?,
                     r.get(11)?,
                     r.get(12)?,
+                    r.get(13)?,
                 ))
             })?
             .collect::<rusqlite::Result<_>>()?;
 
         let mut items = Vec::with_capacity(rows.len());
-        for (id, mid, cid, cname, platform, ts, k, start, end, content, status, link, attachments) in rows {
+        for (id, mid, cid, cname, platform, ts, k, start, end, content, status, link, attachments, repeats) in rows {
             let Some(kind) = Kind::from_key(&k) else { continue };
             if end > content.len() || !content.is_char_boundary(start) || !content.is_char_boundary(end) {
                 continue;
@@ -725,9 +760,101 @@ impl Store {
                 status,
                 link,
                 file_path,
+                repeats,
             });
         }
         Ok(FindingsPage { total, offset, items })
+    }
+
+    /// Every finding with the same value as `finding_id`, within one status list.
+    pub fn group_info(&self, finding_id: i64, status: StatusFilter) -> Result<GroupInfo> {
+        let mut stmt = self.conn.prepare(&format!(
+            "SELECT f.id, f.message_id, ch.platform, m.ts {FINDING_FROM}
+             WHERE (f.kind, f.fp) = (SELECT kind, fp FROM findings WHERE id = ?1) AND {}
+             ORDER BY m.ts",
+            status.sql()
+        ))?;
+        let rows: Vec<(i64, i64, String, i64)> =
+            stmt.query_map([finding_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))?.collect::<rusqlite::Result<_>>()?;
+        let mut platforms: Vec<GroupPlatform> = Vec::new();
+        for (_, _, p, _) in &rows {
+            match platforms.iter_mut().find(|x| &x.platform == p) {
+                Some(x) => x.count += 1,
+                None => platforms.push(GroupPlatform { platform: p.clone(), count: 1 }),
+            }
+        }
+        platforms.sort_by(|a, b| b.count.cmp(&a.count));
+        Ok(GroupInfo {
+            first_ts: rows.first().map_or(0, |r| r.3),
+            last_ts: rows.last().map_or(0, |r| r.3),
+            ids: rows.iter().map(|r| r.0).collect(),
+            message_ids: rows.iter().map(|r| r.1.to_string()).collect(),
+            member_platforms: rows.iter().map(|r| r.2.clone()).collect(),
+            platforms,
+        })
+    }
+
+    /// Records one decision for many findings at once. Returns what each had before, for undo.
+    pub fn set_status_many(&mut self, ids: &[i64], status: Option<&str>) -> Result<Vec<(i64, Option<String>)>> {
+        if let Some(s) = status {
+            anyhow::ensure!(matches!(s, "deleted" | "ok" | "later"), "unknown status {s}");
+        }
+        let tx = self.conn.transaction()?;
+        let mut before = Vec::with_capacity(ids.len());
+        {
+            let mut get = tx.prepare_cached(
+                "SELECT m.uid, f.kind, f.start_byte, r.status FROM findings f JOIN messages m ON m.id = f.message_id
+                 LEFT JOIN reviews r ON r.uid = m.uid AND r.kind = f.kind AND r.start_byte = f.start_byte WHERE f.id = ?1",
+            )?;
+            let mut set = tx.prepare_cached(
+                "INSERT INTO reviews(uid, kind, start_byte, status) VALUES (?1, ?2, ?3, ?4)
+                 ON CONFLICT(uid, kind, start_byte) DO UPDATE SET status = excluded.status",
+            )?;
+            let mut clear = tx.prepare_cached("DELETE FROM reviews WHERE uid = ?1 AND kind = ?2 AND start_byte = ?3")?;
+            for &id in ids {
+                let row: Option<(String, String, i64, Option<String>)> = get
+                    .query_row([id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))
+                    .map(Some)
+                    .or_else(|e| if e == rusqlite::Error::QueryReturnedNoRows { Ok(None) } else { Err(e) })?;
+                let Some((uid, kind, start, prev)) = row else { continue };
+                match status {
+                    Some(s) => set.execute(params![uid, kind, start, s])?,
+                    None => clear.execute(params![uid, kind, start])?,
+                };
+                before.push((id, prev));
+            }
+        }
+        tx.commit()?;
+        Ok(before)
+    }
+
+    /// Puts decisions back the way `set_status_many` found them.
+    pub fn restore_statuses(&mut self, previous: &[(i64, Option<String>)]) -> Result<()> {
+        for status in [None, Some("deleted"), Some("ok"), Some("later")] {
+            let ids: Vec<i64> = previous.iter().filter(|(_, p)| p.as_deref() == status).map(|(id, _)| *id).collect();
+            if !ids.is_empty() {
+                self.set_status_many(&ids, status)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Fills in value fingerprints for findings stored before they existed.
+    pub(crate) fn backfill_fingerprints(&mut self) -> Result<()> {
+        let tx = self.conn.transaction()?;
+        {
+            let mut read = tx.prepare("SELECT f.id, f.kind, f.start_byte, f.end_byte, m.content FROM findings f JOIN messages m ON m.id = f.message_id")?;
+            let mut write = tx.prepare("UPDATE findings SET fp = ?2 WHERE id = ?1")?;
+            let mut rows = read.query([])?;
+            while let Some(r) = rows.next()? {
+                let (id, k, s, e, content): (i64, String, i64, i64, String) = (r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?);
+                if let (Some(kind), Some(v)) = (Kind::from_key(&k), content.get(s as usize..e as usize)) {
+                    write.execute(params![id, fingerprint(kind, v)])?;
+                }
+            }
+        }
+        tx.commit()?;
+        Ok(())
     }
 
     pub(crate) fn spans_for(&self, message_id: i64) -> Result<Vec<(usize, usize)>> {

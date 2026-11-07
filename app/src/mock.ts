@@ -113,14 +113,17 @@ function scan() {
   scanned = true;
 }
 
-function view(f: Finding, reveal: boolean): FindingView {
+/** Same value, for grouping (the real app uses a hash of the normalised value). */
+const valueKey = (f: Finding) => f.kind + "|" + f.msg.content.slice(f.start, f.end).toLowerCase().replace(/[^\p{L}\d@.]/gu, "");
+
+function view(f: Finding, reveal: boolean, repeats = 1): FindingView {
   const [label, severity, advice] = KINDS[f.kind];
   const c = f.msg.content;
   const v = c.slice(f.start, f.end);
   return {
     id: f.id, message_id: f.msg.id, channel_id: f.msg.channel_id, channel_name: f.msg.channel_name, platform: f.msg.platform, ts: f.msg.ts,
     kind: f.kind, label, severity, advice, before: c.slice(0, f.start), matched: reveal ? v : mask(v), after: c.slice(f.end),
-    masked: !reveal, status: statuses.get(f.id) ?? null, link: url(f.msg), file_path: f.msg.file_path ?? null,
+    masked: !reveal, status: statuses.get(f.id) ?? null, link: url(f.msg), file_path: f.msg.file_path ?? null, repeats,
   };
 }
 
@@ -284,11 +287,41 @@ const handlers: Record<string, (a: any) => unknown> = {
     return summary();
   },
   scan_summary: () => summary(),
-  findings: ({ kind, platform, status, offset, limit, reveal }) => {
-    const all = findings.filter((f) => (!kind || f.kind === kind) && (!platform || f.msg.platform === platform) && matchesTab(f, status))
+  findings: ({ kind, platform, status, offset, limit, reveal, group, sameAs }) => {
+    const same = sameAs ? findings.find((f) => f.id === sameAs) : null;
+    const all = findings.filter((f) => (!kind || f.kind === kind) && (!platform || f.msg.platform === platform) && matchesTab(f, status)
+      && (!same || valueKey(f) === valueKey(same)))
       .sort((a, b) => KINDS[b.kind][1] - KINDS[a.kind][1] || b.msg.ts - a.msg.ts);
-    const p = page(all, offset, limit);
-    return { ...p, items: p.items.map((f) => view(f, reveal)) };
+    const counts = new Map<string, number>();
+    all.forEach((f) => counts.set(valueKey(f), (counts.get(valueKey(f)) ?? 0) + 1));
+    let list = all;
+    if (group) {
+      const seen = new Set<string>();
+      list = all.filter((f) => !seen.has(valueKey(f)) && !!seen.add(valueKey(f)))
+        .sort((a, b) => KINDS[b.kind][1] - KINDS[a.kind][1] || counts.get(valueKey(b))! - counts.get(valueKey(a))! || b.msg.ts - a.msg.ts);
+    }
+    const p = page(list, offset, limit);
+    return { ...p, items: p.items.map((f) => view(f, reveal, counts.get(valueKey(f)))) };
+  },
+  group_info: ({ id, status }) => {
+    const me = findings.find((f) => f.id === id)!;
+    const members = findings.filter((f) => valueKey(f) === valueKey(me) && matchesTab(f, status)).sort((a, b) => a.msg.ts - b.msg.ts);
+    const platforms = new Map<string, number>();
+    members.forEach((f) => platforms.set(f.msg.platform, (platforms.get(f.msg.platform) ?? 0) + 1));
+    return {
+      ids: members.map((f) => f.id), message_ids: members.map((f) => f.msg.id), member_platforms: members.map((f) => f.msg.platform),
+      platforms: [...platforms].map(([platform, count]) => ({ platform, count })).sort((a, b) => b.count - a.count),
+      first_ts: members[0]?.msg.ts ?? 0, last_ts: members[members.length - 1]?.msg.ts ?? 0,
+    };
+  },
+  set_status_many: ({ ids, status }) => {
+    const before = (ids as number[]).map((id) => [id, statuses.get(id) ?? null]);
+    (ids as number[]).forEach((id) => (status ? statuses.set(id, status) : statuses.delete(id)));
+    return [before, summary()];
+  },
+  restore_statuses: ({ previous }) => {
+    (previous as [number, Status | null][]).forEach(([id, st]) => (st ? statuses.set(id, st) : statuses.delete(id)));
+    return summary();
   },
   reveal_finding: ({ id }) => { const f = findings.find((x) => x.id === id); return f ? view(f, true) : null; },
   set_status: ({ id, status }) => { if (status) statuses.set(id, status); else statuses.delete(id); return summary(); },
