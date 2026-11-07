@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, listen, onFileDrop, pickFolders, pickPackage, type ImportProgress, type ScanSummary } from "../api";
 import { n } from "../format";
+import Icon from "../Icon";
 
 interface Busy { label: string; done: number; total: number }
 
@@ -15,7 +16,7 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
     if (busyRef.current) return;
     busyRef.current = true;
     setError(null);
-    setBusy({ label: "Opening package", done: 0, total: 0 });
+    setBusy({ label: "Opening", done: 0, total: 0 });
     try {
       await load();
       setBusy({ label: "Checking for personal information", done: 0, total: 0 });
@@ -49,18 +50,21 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
   return (
     <div className="welcome">
       <div className="welcome-inner">
+        <div className="brand" style={{ padding: 0 }}>
+          <span className="brand-mark" aria-hidden /> Veil
+        </div>
         <div className="lede">
           <h1>
             See what your chats and files say about <span className="redact">y••</span>.
           </h1>
           <p className="muted">
-            Veil reads the data exports from Discord, Reddit, Telegram and X, and the folders on this PC you choose. It
-            points out where you shared things like your phone number, address or a password, then helps you clean up.
+            Veil reads your data exports from Discord, Reddit, Telegram and X, and the folders on this PC you choose. It
+            shows you where you've shared things like your phone number, address or a password, and helps you clean up.
           </p>
         </div>
 
-        <div className={`drop${over ? " over" : ""}`}>
-          {busy ? (
+        {busy ? (
+          <div className="panel" style={{ padding: "1.5rem" }}>
             <div className="progress" role="status" aria-live="polite">
               <span>
                 {busy.label}
@@ -70,61 +74,61 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
                 <span className={busy.total === 0 ? "indeterminate" : undefined} style={busy.total ? { width: `${pct}%` } : undefined} />
               </div>
             </div>
-          ) : (
-            <>
-              <h3>Start with an export or your PC</h3>
-              <p className="muted small">
-                Drop a data export (.zip) from Discord, Reddit, Telegram or X here, or choose one. You can add more sources
-                afterwards.
-              </p>
-              <div className="drop-actions">
-                <button className="primary" onClick={async () => importPath(await pickPackage(false))}>
-                  Choose an export
-                </button>
-                <button onClick={async () => importPath(await pickPackage(true))}>Choose an extracted folder</button>
-                <button
-                  onClick={async () => {
-                    const folders = await pickFolders();
-                    if (folders.length) start(() => api.scanFolders(folders));
-                  }}
-                >
-                  Scan folders on this PC
-                </button>
-              </div>
-            </>
-          )}
-          {error && <div className="error">{error}</div>}
-        </div>
-
-        <div className="split">
-          <div>
-            <h3>Don't have an export yet?</h3>
-            <p className="muted">
-              Each platform has a "request your data" option in its settings and emails you a download. Telegram Desktop
-              exports straight to your PC. The Sources screen has the steps for each.
-            </p>
           </div>
-          <div>
-            <h3>See how it works first</h3>
-            <p className="muted" style={{ marginBottom: "0.75rem" }}>
-              Load a made-up chat history and try the whole review. Opening your own package later replaces it.
-            </p>
-            <button onClick={() => start(api.loadDemo)} disabled={!!busy}>Try it with sample data</button>
+        ) : (
+          <div className={`panel choices${over ? " over" : ""}`}>
+            <button className="choice main" onClick={async () => importPath(await pickPackage(false))}>
+              <span className="step-icon"><Icon name="sources" /></span>
+              <span className="step-text">
+                <strong>Open a data export</strong>
+                <span className="muted small">The .zip from Discord, Reddit, Telegram or X. You can also drop it here.</span>
+              </span>
+              <span className="step-go"><Icon name="arrow" /></span>
+            </button>
+            <button
+              className="choice"
+              onClick={async () => {
+                const folders = await pickFolders();
+                if (folders.length) start(() => api.scanFolders(folders));
+              }}
+            >
+              <span className="step-icon"><Icon name="folder" /></span>
+              <span className="step-text">
+                <strong>Scan folders on this PC</strong>
+                <span className="muted small">Finds passport scans, password lists and files with personal details.</span>
+              </span>
+              <span className="step-go"><Icon name="arrow" /></span>
+            </button>
+            <button className="choice" onClick={() => start(api.loadDemo)}>
+              <span className="step-icon"><Icon name="eye" /></span>
+              <span className="step-text">
+                <strong>Try it with sample data</strong>
+                <span className="muted small">A made-up chat history, while you wait for your own exports.</span>
+              </span>
+              <span className="step-go"><Icon name="arrow" /></span>
+            </button>
           </div>
-        </div>
+        )}
+        {error && <div className="error">{error}</div>}
+        {!busy && (
+          <p className="small muted">
+            Already extracted an export? <button className="link small" onClick={async () => importPath(await pickPackage(true))}>Choose its folder instead</button>.
+            {" "}Don't have one yet? Each platform has a "request your data" option in its settings.
+          </p>
+        )}
 
         <div className="promises">
           <div>
-            <h3>Works offline</h3>
-            <p>Veil never connects to the internet. There is no account, no analytics and no update check.</p>
+            <h3><Icon name="lock" size={16} />Works offline</h3>
+            <p>Veil never connects to the internet. No account, no analytics, no tracking.</p>
           </div>
           <div>
-            <h3>No Discord login</h3>
+            <h3><Icon name="lock" size={16} />No logins</h3>
             <p>Veil doesn't ask for your passwords or tokens. It only reads the files you give it.</p>
           </div>
           <div>
-            <h3>Gone when you say so</h3>
-            <p>Everything Veil stores sits in one file on this computer. Settings has a button that deletes it.</p>
+            <h3><Icon name="lock" size={16} />Gone when you say so</h3>
+            <p>Everything sits in one file on this PC. Settings has a button that deletes it for good.</p>
           </div>
         </div>
       </div>

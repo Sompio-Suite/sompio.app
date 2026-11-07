@@ -112,7 +112,7 @@ export default function Messages({ jump, onJumpHandled }: Props) {
             >
               <span style={{ minWidth: 0 }}>
                 <span className="row-title" style={{ display: "block" }}>{c.name}</span>
-                <span className="chan-kind">{platformName[c.platform]} · {channelKind[c.kind]}</span>
+                <span className="chan-kind">{platformName[c.platform]}, {channelKind[c.kind].toLowerCase()}</span>
               </span>
               <span className="small num">{n(c.message_count)}</span>
             </button>

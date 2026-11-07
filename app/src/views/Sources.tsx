@@ -4,6 +4,7 @@ import {
   type ImportProgress, type ScanSummary, type SourceView,
 } from "../api";
 import { dateTime, n, plural } from "../format";
+import Icon from "../Icon";
 
 interface Props {
   demo: boolean;
@@ -79,85 +80,98 @@ export default function Sources({ demo, onScan, onChanged }: Props) {
 
   return (
     <div className="page">
-      <div className="lede">
-        <h1>Sources</h1>
-        <p className="muted">
-          Add the export from each platform you use, and the folders on this PC you want checked. Everything is read here,
-          offline, and lands in one Review list.
-        </p>
+      <div className="page-head">
+        <div>
+          <h1>Sources</h1>
+          <p className="muted">
+            Add the export from each platform you use, and the folders on this PC you want checked. Everything is read
+            here, offline, and lands in one Review list.
+          </p>
+        </div>
       </div>
 
       {busy && (
-        <div className="progress" role="status" aria-live="polite">
-          <span>
-            {busy.label}
-            {busy.total > 0 && ` (${n(Math.round(busy.done))} of ${n(busy.total)})`}
-          </span>
-          <div className="bar">
-            <span className={busy.total === 0 ? "indeterminate" : undefined} style={busy.total ? { width: `${pct}%` } : undefined} />
+        <div className="panel" style={{ padding: "1.25rem 1.5rem" }}>
+          <div className="progress" role="status" aria-live="polite">
+            <span>
+              {busy.label}
+              {busy.total > 0 && ` (${n(Math.round(busy.done))} of ${n(busy.total)})`}
+            </span>
+            <div className="bar">
+              <span className={busy.total === 0 ? "indeterminate" : undefined} style={busy.total ? { width: `${pct}%` } : undefined} />
+            </div>
           </div>
         </div>
       )}
       {error && <div className="error">{error}</div>}
       {note && <p className="small muted">{note}</p>}
 
-      <section className="setting">
-        <h3>Added so far</h3>
-        {sources.length === 0 && <p className="muted">Nothing yet.</p>}
-        <div className="rows">
-          {sources.map((s) => (
-            <div key={s.platform} className="source-row">
-              <div>
-                <strong>{platformName[s.platform]}</strong>
-                <span className="small muted">
-                  {s.platform === "pc" ? plural(s.messages, "file", "files") : plural(s.messages, "message", "messages")}
-                  {", added "}
-                  {dateTime(s.imported_at)}
-                </span>
-                <span className="small muted origin" title={s.origin}>{demo ? "Sample data" : s.origin.split("\n").join(", ")}</span>
-              </div>
-              {confirm === s.platform ? (
-                <div className="toolbar">
-                  <button className="danger" onClick={() => remove(s)}>Remove</button>
-                  <button onClick={() => setConfirm(null)}>Cancel</button>
+      <section className="section">
+        <h2 className="section-title">Added so far</h2>
+        <div className="panel" style={{ padding: "0 1.25rem" }}>
+          {sources.length === 0 && <p className="muted" style={{ padding: "1rem 0" }}>Nothing yet.</p>}
+          <div className="source-list">
+            {sources.map((s) => (
+              <div key={s.platform} className="source-row">
+                <span className="step-icon"><Icon name={s.platform === "pc" ? "folder" : "messages"} /></span>
+                <div className="text">
+                  <strong>{platformName[s.platform]}</strong>
+                  <span className="small muted">
+                    {s.platform === "pc" ? plural(s.messages, "file", "files") : plural(s.messages, "message", "messages")}
+                    {", added "}
+                    {dateTime(s.imported_at)}
+                  </span>
+                  <span className="small faint origin" title={s.origin}>{demo ? "Sample data" : s.origin.split("\n").join(", ")}</span>
                 </div>
-              ) : (
-                <button onClick={() => setConfirm(s.platform)} disabled={!!busy}>Remove…</button>
-              )}
-            </div>
-          ))}
+                {confirm === s.platform ? (
+                  <div className="toolbar">
+                    <button className="danger" onClick={() => remove(s)}>Remove</button>
+                    <button className="quiet" onClick={() => setConfirm(null)}>Cancel</button>
+                  </div>
+                ) : (
+                  <button className="quiet" onClick={() => setConfirm(s.platform)} disabled={!!busy}>Remove…</button>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
         {sources.length > 0 && (
-          <p className="small muted">Removing a source deletes its copy from Veil. Your decisions are kept in case you add it again.</p>
+          <p className="small faint">Removing a source deletes Veil's copy of it. Your decisions are kept in case you add it again.</p>
         )}
       </section>
 
-      <div className="split">
-        <section className={`drop${over ? " over" : ""}`}>
-          <h3>Add a data export</h3>
-          <p className="muted small">
-            Discord, Reddit, Telegram or X. Drop the .zip here or choose it. Adding a newer export replaces the older one.
-          </p>
-          <div className="drop-actions">
-            <button className="primary" disabled={!!busy} onClick={async () => addExport(await pickPackage(false))}>Choose .zip file</button>
-            <button disabled={!!busy} onClick={async () => addExport(await pickPackage(true))}>Choose folder</button>
+      <section className="section">
+        <h2 className="section-title">Add more</h2>
+        <div className="add-grid">
+          <div className={`panel add-option${over ? " over" : ""}`}>
+            <span className="step-icon"><Icon name="sources" /></span>
+            <h3>A data export</h3>
+            <p className="muted small">
+              Discord, Reddit, Telegram or X. Drop the .zip here or choose it. A newer export replaces the older one from
+              the same platform.
+            </p>
+            <div className="drop-actions">
+              <button className="primary" disabled={!!busy} onClick={async () => addExport(await pickPackage(false))}>Choose .zip file</button>
+              <button className="quiet" disabled={!!busy} onClick={async () => addExport(await pickPackage(true))}>Choose a folder</button>
+            </div>
           </div>
-        </section>
-        <section className="drop">
-          <h3>Scan folders on this PC</h3>
-          <p className="muted small">
-            Finds passport scans, password lists, bank statements and files with personal details in them. Documents,
-            Downloads and Desktop are good places to start.
-            {pcSource && " Scanning again replaces the last folder scan."}
-          </p>
-          <div className="drop-actions">
-            <button disabled={!!busy} onClick={async () => addFolders(await pickFolders())}>Choose folders</button>
+          <div className="panel add-option">
+            <span className="step-icon"><Icon name="folder" /></span>
+            <h3>Folders on this PC</h3>
+            <p className="muted small">
+              Finds passport scans, password lists, bank statements and files with personal details. Documents, Downloads
+              and Desktop are good places to start.
+              {pcSource && " Scanning again replaces the last folder scan."}
+            </p>
+            <div className="drop-actions">
+              <button disabled={!!busy} onClick={async () => addFolders(await pickFolders())}>Choose folders</button>
+            </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
-      <section className="setting">
-        <h3>Getting your exports</h3>
+      <section className="section">
+        <h2 className="section-title">Getting your exports</h2>
         <dl className="howto">
           {HOW_TO.map(([name, how]) => (
             <div key={name}>

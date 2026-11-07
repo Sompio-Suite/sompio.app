@@ -33,7 +33,7 @@ export default function Settings({ scan, demo, onScan, onLeave }: Props) {
 
   return (
     <div className="page">
-      <h1>Settings</h1>
+      <div className="page-head"><div><h1>Settings</h1><p className="muted">Your data, your rules. Nothing here touches your accounts on any platform.</p></div></div>
 
       <section className="setting">
         <h3>Your data on this computer</h3>
