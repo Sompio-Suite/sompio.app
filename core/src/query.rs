@@ -1,7 +1,8 @@
-//! Read-only views for the UI. IDs are sent as strings because Discord IDs are
-//! bigger than JavaScript numbers can hold exactly.
+//! Read-only views for the UI. IDs are sent as strings because some are bigger
+//! than JavaScript numbers can hold exactly.
 
-use crate::scan::{discord_url, mask_text, merge_spans};
+use crate::import::platform_label;
+use crate::scan::{mask_text, merge_spans};
 use crate::Store;
 use anyhow::Result;
 use rusqlite::{params, Row};
@@ -10,6 +11,7 @@ use serde::Serialize;
 #[derive(Debug, Clone, Serialize)]
 pub struct ChannelView {
     pub id: String,
+    pub platform: String,
     pub name: String,
     pub kind: String,
     pub guild_name: Option<String>,
@@ -30,13 +32,15 @@ pub struct MessageView {
     pub id: String,
     pub channel_id: String,
     pub channel_name: String,
+    pub platform: String,
     pub ts: i64,
     /// Full text, with sensitive parts masked unless revealed.
     pub content: String,
     pub segments: Vec<Segment>,
     pub has_sensitive: bool,
     pub attachments: Vec<String>,
-    pub discord_url: String,
+    pub link: Option<String>,
+    pub file_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -60,45 +64,59 @@ pub struct YearCount {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct SourceView {
+    pub platform: String,
+    pub label: &'static str,
+    pub origin: String,
+    pub imported_at: i64,
+    pub channels: i64,
+    pub messages: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct Stats {
     pub messages: i64,
     pub channels: i64,
     pub servers: i64,
     pub dms: i64,
     pub group_dms: i64,
+    pub files: i64,
     pub with_attachments: i64,
     pub first_ts: Option<i64>,
     pub last_ts: Option<i64>,
     pub imported_at_ms: Option<i64>,
     pub per_year: Vec<YearCount>,
     pub top_channels: Vec<ChannelView>,
+    pub sources: Vec<SourceView>,
 }
 
-const CHANNEL_COLS: &str = "id, name, kind, guild_name, message_count, first_ts, last_ts";
+const CHANNEL_COLS: &str = "id, platform, name, kind, guild_name, message_count, first_ts, last_ts";
 
 fn channel_row(r: &Row) -> rusqlite::Result<ChannelView> {
     Ok(ChannelView {
         id: r.get::<_, i64>(0)?.to_string(),
-        name: r.get(1)?,
-        kind: r.get(2)?,
-        guild_name: r.get(3)?,
-        message_count: r.get(4)?,
-        first_ts: r.get(5)?,
-        last_ts: r.get(6)?,
+        platform: r.get(1)?,
+        name: r.get(2)?,
+        kind: r.get(3)?,
+        guild_name: r.get(4)?,
+        message_count: r.get(5)?,
+        first_ts: r.get(6)?,
+        last_ts: r.get(7)?,
     })
 }
 
-const MESSAGE_COLS: &str =
-    "m.id, m.channel_id, COALESCE(c.name, ''), m.ts, m.content, m.attachments, c.guild_id";
+const MESSAGE_COLS: &str = "m.id, m.channel_id, c.name, c.platform, m.ts, m.content, m.attachments, m.link";
+const MESSAGE_FROM: &str = "FROM messages m JOIN channels c ON c.id = m.channel_id";
 
 struct RawMessage {
     id: i64,
     channel_id: i64,
     channel_name: String,
+    platform: String,
     ts: i64,
     content: String,
     attachments: String,
-    guild_id: Option<i64>,
+    link: Option<String>,
 }
 
 fn message_row(r: &Row) -> rusqlite::Result<RawMessage> {
@@ -106,20 +124,18 @@ fn message_row(r: &Row) -> rusqlite::Result<RawMessage> {
         id: r.get(0)?,
         channel_id: r.get(1)?,
         channel_name: r.get(2)?,
-        ts: r.get(3)?,
-        content: r.get(4)?,
-        attachments: r.get(5)?,
-        guild_id: r.get(6)?,
+        platform: r.get(3)?,
+        ts: r.get(4)?,
+        content: r.get(5)?,
+        attachments: r.get(6)?,
+        link: r.get(7)?,
     })
 }
 
 /// Turns what a person types into a safe FTS5 query: every word is quoted
 /// (so symbols can't break the query) and the last word matches as a prefix.
 pub(crate) fn fts_query(input: &str) -> Option<String> {
-    let words: Vec<String> = input
-        .split_whitespace()
-        .map(|w| format!("\"{}\"", w.replace('"', "\"\"")))
-        .collect();
+    let words: Vec<String> = input.split_whitespace().map(|w| format!("\"{}\"", w.replace('"', "\"\""))).collect();
     if words.is_empty() {
         return None;
     }
@@ -133,47 +149,80 @@ fn parse_id(s: &str) -> Result<i64> {
 }
 
 impl Store {
+    pub fn sources(&self) -> Result<Vec<SourceView>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT s.platform, s.origin, s.imported_at,
+                    (SELECT COUNT(*) FROM channels c WHERE c.platform = s.platform),
+                    (SELECT COALESCE(SUM(message_count), 0) FROM channels c WHERE c.platform = s.platform)
+             FROM sources s ORDER BY s.imported_at",
+        )?;
+        let rows = stmt
+            .query_map([], |r| {
+                let platform: String = r.get(0)?;
+                Ok(SourceView {
+                    label: platform_label(&platform),
+                    platform,
+                    origin: r.get(1)?,
+                    imported_at: r.get(2)?,
+                    channels: r.get(3)?,
+                    messages: r.get(4)?,
+                })
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        Ok(rows)
+    }
+
+    pub fn is_demo(&self) -> Result<bool> {
+        Ok(self.get_meta("demo")?.as_deref() == Some("1"))
+    }
+
     pub fn stats(&self) -> Result<Stats> {
         let c = &self.conn;
         let one = |sql: &str| -> Result<i64> { Ok(c.query_row(sql, [], |r| r.get(0))?) };
-        let (first_ts, last_ts): (Option<i64>, Option<i64>) =
-            c.query_row("SELECT MIN(ts), MAX(ts) FROM messages", [], |r| Ok((r.get(0)?, r.get(1)?)))?;
-
-        let mut stmt = c.prepare(
-            "SELECT CAST(strftime('%Y', ts / 1000, 'unixepoch') AS INTEGER) AS y, COUNT(*)
-             FROM messages GROUP BY y ORDER BY y",
+        // Messages only: files from the PC scan would skew dates and counts.
+        let (first_ts, last_ts): (Option<i64>, Option<i64>) = c.query_row(
+            &format!("SELECT MIN(m.ts), MAX(m.ts) {MESSAGE_FROM} WHERE c.platform <> 'pc' AND m.ts > 0"),
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
         )?;
+        let mut stmt = c.prepare(&format!(
+            "SELECT CAST(strftime('%Y', m.ts / 1000, 'unixepoch') AS INTEGER) AS y, COUNT(*)
+             {MESSAGE_FROM} WHERE c.platform <> 'pc' AND m.ts > 0 GROUP BY y ORDER BY y"
+        ))?;
         let per_year = stmt
             .query_map([], |r| Ok(YearCount { year: r.get(0)?, count: r.get(1)? }))?
             .collect::<rusqlite::Result<Vec<_>>>()?;
-
         let mut stmt = c.prepare(&format!(
-            "SELECT {CHANNEL_COLS} FROM channels ORDER BY message_count DESC LIMIT 8"
+            "SELECT {CHANNEL_COLS} FROM channels WHERE platform <> 'pc' ORDER BY message_count DESC LIMIT 8"
         ))?;
         let top_channels = stmt.query_map([], channel_row)?.collect::<rusqlite::Result<Vec<_>>>()?;
 
         Ok(Stats {
-            messages: one("SELECT COUNT(*) FROM messages")?,
-            channels: one("SELECT COUNT(*) FROM channels")?,
-            servers: one("SELECT COUNT(DISTINCT guild_id) FROM channels WHERE guild_id IS NOT NULL")?,
+            messages: one(&format!("SELECT COUNT(*) {MESSAGE_FROM} WHERE c.platform <> 'pc'"))?,
+            channels: one("SELECT COUNT(*) FROM channels WHERE platform <> 'pc'")?,
+            servers: one("SELECT COUNT(DISTINCT platform || guild_id) FROM channels WHERE guild_id IS NOT NULL")?,
             dms: one("SELECT COUNT(*) FROM channels WHERE kind = 'dm'")?,
             group_dms: one("SELECT COUNT(*) FROM channels WHERE kind = 'group_dm'")?,
-            with_attachments: one("SELECT COUNT(*) FROM messages WHERE attachments <> ''")?,
+            files: one(&format!("SELECT COUNT(*) {MESSAGE_FROM} WHERE c.platform = 'pc'"))?,
+            with_attachments: one(&format!(
+                "SELECT COUNT(*) {MESSAGE_FROM} WHERE c.platform <> 'pc' AND m.attachments <> ''"
+            ))?,
             first_ts,
             last_ts,
             imported_at_ms: self.get_meta("imported_at_ms")?.and_then(|s| s.parse().ok()),
             per_year,
             top_channels,
+            sources: self.sources()?,
         })
     }
 
-    /// All channels, busiest first. `filter` matches the name, case-insensitively.
+    /// All channels (and scanned folders), busiest first. `filter` matches the name, case-insensitively.
     pub fn channels(&self, filter: Option<&str>) -> Result<Vec<ChannelView>> {
         let pattern = format!("%{}%", filter.unwrap_or("").trim().replace(['%', '_'], ""));
         let mut stmt = self.conn.prepare_cached(&format!(
             "SELECT {CHANNEL_COLS} FROM channels
              WHERE name LIKE ?1 OR COALESCE(guild_name, '') LIKE ?1
-             ORDER BY message_count DESC, name"
+             ORDER BY platform = 'pc', message_count DESC, name"
         ))?;
         let rows = stmt.query_map([pattern], channel_row)?.collect::<rusqlite::Result<Vec<_>>>()?;
         Ok(rows)
@@ -182,14 +231,10 @@ impl Store {
     /// Messages in one channel, oldest first, a page at a time.
     pub fn messages(&self, channel_id: &str, offset: i64, limit: i64) -> Result<MessagesPage> {
         let cid = parse_id(channel_id)?;
-        let total: i64 = self.conn.query_row(
-            "SELECT COUNT(*) FROM messages WHERE channel_id = ?1",
-            [cid],
-            |r| r.get(0),
-        )?;
+        let total: i64 =
+            self.conn.query_row("SELECT COUNT(*) FROM messages WHERE channel_id = ?1", [cid], |r| r.get(0))?;
         let mut stmt = self.conn.prepare_cached(&format!(
-            "SELECT {MESSAGE_COLS} FROM messages m LEFT JOIN channels c ON c.id = m.channel_id
-             WHERE m.channel_id = ?1 ORDER BY m.ts, m.id LIMIT ?2 OFFSET ?3"
+            "SELECT {MESSAGE_COLS} {MESSAGE_FROM} WHERE m.channel_id = ?1 ORDER BY m.ts, m.id LIMIT ?2 OFFSET ?3"
         ))?;
         let raw = stmt
             .query_map(params![cid, limit.clamp(1, 2000), offset.max(0)], message_row)?
@@ -200,9 +245,7 @@ impl Store {
     /// One message with its sensitive parts shown in full.
     pub fn reveal_message(&self, message_id: &str) -> Result<Option<MessageView>> {
         let mid = parse_id(message_id)?;
-        let mut stmt = self.conn.prepare_cached(&format!(
-            "SELECT {MESSAGE_COLS} FROM messages m LEFT JOIN channels c ON c.id = m.channel_id WHERE m.id = ?1"
-        ))?;
+        let mut stmt = self.conn.prepare_cached(&format!("SELECT {MESSAGE_COLS} {MESSAGE_FROM} WHERE m.id = ?1"))?;
         let raw = stmt.query_map([mid], message_row)?.collect::<rusqlite::Result<Vec<_>>>()?;
         Ok(self.finish(raw, true)?.pop())
     }
@@ -225,16 +268,19 @@ impl Store {
                 if pos < m.content.len() || segments.is_empty() {
                     segments.push(Segment { text: m.content[pos..].to_string(), sensitive: false });
                 }
+                let is_file = m.platform == "pc";
                 Ok(MessageView {
                     id: m.id.to_string(),
                     channel_id: m.channel_id.to_string(),
                     channel_name: m.channel_name,
-                    ts: m.ts,
                     content: segments.iter().map(|s| s.text.as_str()).collect(),
                     has_sensitive: !spans.is_empty(),
                     segments,
-                    attachments: m.attachments.split_whitespace().map(str::to_string).collect(),
-                    discord_url: discord_url(m.guild_id, m.channel_id, m.id),
+                    attachments: if is_file { vec![] } else { m.attachments.split_whitespace().map(str::to_string).collect() },
+                    file_path: is_file.then_some(m.attachments),
+                    link: m.link,
+                    platform: m.platform,
+                    ts: m.ts,
                 })
             })
             .collect()
@@ -266,7 +312,7 @@ impl Store {
         let mut stmt = self.conn.prepare_cached(&format!(
             "SELECT {MESSAGE_COLS} FROM messages_fts f
              JOIN messages m ON m.id = f.rowid
-             LEFT JOIN channels c ON c.id = m.channel_id
+             JOIN channels c ON c.id = m.channel_id
              WHERE messages_fts MATCH ?1 AND (?2 IS NULL OR m.channel_id = ?2)
              ORDER BY m.ts DESC LIMIT ?3 OFFSET ?4"
         ))?;

@@ -7,14 +7,16 @@ import { listen as tauriListen, type UnlistenFn } from "@tauri-apps/api/event";
 
 export type KindKey =
   | "credential" | "card" | "iban" | "watch_term" | "address"
-  | "phone" | "email" | "ip_address" | "postcode" | "crypto_wallet";
+  | "phone" | "email" | "ip_address" | "postcode" | "crypto_wallet" | "sensitive_file";
 export type Status = "deleted" | "ok" | "later";
+export type Platform = "discord" | "reddit" | "telegram" | "x" | "pc";
 export type StatusTab = "open" | "later" | "done";
 
 export interface ChannelView {
   id: string;
+  platform: Platform;
   name: string;
-  kind: "dm" | "group_dm" | "server" | "thread" | "unknown";
+  kind: "dm" | "group_dm" | "server" | "thread" | "community" | "posts" | "channel" | "saved" | "folder" | "unknown";
   guild_name: string | null;
   message_count: number;
   first_ts: number | null;
@@ -25,22 +27,26 @@ export interface MessageView {
   id: string;
   channel_id: string;
   channel_name: string;
+  platform: Platform;
   ts: number;
   content: string;
   segments: Segment[];
   has_sensitive: boolean;
   attachments: string[];
-  discord_url: string;
+  link: string | null;
+  file_path: string | null;
 }
 export interface Page<T> { total: number; offset: number; items: T[] }
+export interface SourceView { platform: Platform; label: string; origin: string; imported_at: number; channels: number; messages: number }
 export interface Stats {
-  messages: number; channels: number; servers: number; dms: number; group_dms: number;
+  messages: number; channels: number; servers: number; dms: number; group_dms: number; files: number;
   with_attachments: number; first_ts: number | null; last_ts: number | null;
   imported_at_ms: number | null;
   per_year: { year: number; count: number }[];
   top_channels: ChannelView[];
+  sources: SourceView[];
 }
-export interface ImportSummary { channels: number; messages: number; servers: number; warnings: string[] }
+export interface ImportSummary { platform: Platform; channels: number; messages: number; servers: number; warnings: string[] }
 export interface ImportProgress { phase: string; done: number; total: number }
 export interface KindCount { kind: KindKey; label: string; severity: number; advice: string; count: number; open: number }
 export interface ScanSummary {
@@ -49,10 +55,10 @@ export interface ScanSummary {
   scanned_at_ms: number | null; by_kind: KindCount[];
 }
 export interface FindingView {
-  id: number; message_id: string; channel_id: string; channel_name: string; ts: number;
+  id: number; message_id: string; channel_id: string; channel_name: string; platform: Platform; ts: number;
   kind: KindKey; label: string; severity: number; advice: string;
   before: string; matched: string; after: string; masked: boolean;
-  status: Status | null; discord_url: string;
+  status: Status | null; link: string | null; file_path: string | null;
 }
 
 export const inDesktopApp = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -75,6 +81,11 @@ export const api = {
   isDemo: () => call<boolean>("is_demo"),
   loadDemo: () => call<void>("load_demo"),
   importPackage: (path: string) => call<ImportSummary>("import_package", { path }),
+  scanFolders: (folders: string[]) => call<ImportSummary>("scan_folders", { folders }),
+  sources: () => call<SourceView[]>("sources"),
+  removeSource: (platform: Platform) => call<void>("remove_source", { platform }),
+  recycleFile: (id: number) => call<[string, ScanSummary]>("recycle_file", { id }),
+  showInFolder: (id: number) => call<void>("show_in_folder", { id }),
   stats: () => call<Stats>("stats"),
   channels: (filter?: string) => call<ChannelView[]>("channels", { filter: filter || null }),
   messages: (channelId: string, offset: number, limit: number) =>
@@ -85,8 +96,8 @@ export const api = {
     call<Page<MessageView>>("search", { text, channelId, offset, limit }),
   runScan: (watchTerms: string[]) => call<ScanSummary>("run_scan", { watchTerms }),
   scanSummary: () => call<ScanSummary>("scan_summary"),
-  findings: (kind: KindKey | null, status: StatusTab, offset: number, limit: number, reveal: boolean) =>
-    call<Page<FindingView>>("findings", { kind, status, offset, limit, reveal }),
+  findings: (kind: KindKey | null, platform: Platform | null, status: StatusTab, offset: number, limit: number, reveal: boolean) =>
+    call<Page<FindingView>>("findings", { kind, platform, status, offset, limit, reveal }),
   revealFinding: (id: number) => call<FindingView | null>("reveal_finding", { id }),
   setStatus: (id: number, status: Status | null) => call<ScanSummary>("set_status", { id, status }),
   ignoreEverywhere: (id: number) => call<[number, ScanSummary]>("ignore_everywhere", { id }),
@@ -108,15 +119,24 @@ export async function pickPackage(folder: boolean): Promise<string | null> {
   return typeof picked === "string" ? picked : null;
 }
 
+export async function pickFolders(): Promise<string[]> {
+  if (!inDesktopApp) return ["C:\\Users\\you\\Documents"];
+  const { open } = await import("@tauri-apps/plugin-dialog");
+  const picked = await open({ directory: true, multiple: true, title: "Choose folders to scan" });
+  return Array.isArray(picked) ? picked : typeof picked === "string" ? [picked] : [];
+}
+
 export async function pickSavePath(defaultName: string): Promise<string | null> {
   if (!inDesktopApp) return defaultName;
   const { save } = await import("@tauri-apps/plugin-dialog");
   return save({ defaultPath: defaultName, filters: [{ name: "CSV", extensions: ["csv"] }] });
 }
 
-/** Opens a message in Discord (in the browser, where Discord is signed in). Only discord.com links are allowed. */
-export async function openInDiscord(url: string) {
-  if (!url.startsWith("https://discord.com/channels/")) return;
+const ALLOWED_LINKS = ["https://discord.com/channels/", "https://www.reddit.com/", "https://x.com/", "https://t.me/c/"];
+
+/** Opens a message on its platform, in the browser where the person is signed in. Only known sites are allowed. */
+export async function openLink(url: string | null) {
+  if (!url || !ALLOWED_LINKS.some((p) => url.startsWith(p))) return;
   if (!inDesktopApp) {
     window.open(url, "_blank", "noopener");
     return;
@@ -152,5 +172,16 @@ export async function onFileDrop(cb: (path: string) => void, hover: (over: boole
     }
   });
 }
+
+export const platformName: Record<Platform, string> = {
+  discord: "Discord",
+  reddit: "Reddit",
+  telegram: "Telegram",
+  x: "X",
+  pc: "This PC",
+};
+
+/** "Open in Discord", "Open on Reddit", … */
+export const openLabel = (p: Platform) => (p === "discord" || p === "telegram" ? `Open in ${platformName[p]}` : `Open on ${platformName[p]}`);
 
 export const severityLabel = (s: number) => (s >= 3 ? "Fix now" : s === 2 ? "Worth a look" : "Low risk");

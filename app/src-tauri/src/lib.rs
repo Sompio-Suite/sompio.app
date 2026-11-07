@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter, Manager, State};
 use veil_core::{
     ChannelView, FindingView, FindingsPage, ImportSummary, MessageView, MessagesPage, ScanOptions,
-    ScanSummary, SearchPage, Stats, StatusFilter, Store,
+    ScanSummary, SearchPage, SourceView, Stats, StatusFilter, Store,
 };
 
 struct AppState {
@@ -42,6 +42,45 @@ async fn import_package(app: AppHandle, state: State<'_, AppState>, path: String
         })
     })
     .await
+}
+
+#[tauri::command]
+async fn scan_folders(app: AppHandle, state: State<'_, AppState>, folders: Vec<String>) -> CmdResult<ImportSummary> {
+    with_store(state.db_path.clone(), move |s| {
+        let folders: Vec<PathBuf> = folders.into_iter().map(PathBuf::from).collect();
+        veil_core::scan_folders(s, &folders, &mut |p| {
+            let _ = app.emit("import-progress", &p);
+        })
+    })
+    .await
+}
+
+#[tauri::command]
+async fn sources(state: State<'_, AppState>) -> CmdResult<Vec<SourceView>> {
+    with_store(state.db_path.clone(), |s| s.sources()).await
+}
+
+#[tauri::command]
+async fn remove_source(state: State<'_, AppState>, platform: String) -> CmdResult<()> {
+    with_store(state.db_path.clone(), move |s| s.remove_source(&platform)).await
+}
+
+/// Moves a file found by the PC scan to the Recycle Bin.
+#[tauri::command]
+async fn recycle_file(state: State<'_, AppState>, id: i64) -> CmdResult<(String, ScanSummary)> {
+    with_store(state.db_path.clone(), move |s| {
+        let path = s.recycle_file(id)?;
+        Ok((path, s.scan_summary()?))
+    })
+    .await
+}
+
+/// Opens File Explorer with the file selected. Only paths Veil itself found can be shown.
+#[tauri::command]
+async fn show_in_folder(state: State<'_, AppState>, id: i64) -> CmdResult<()> {
+    let path = with_store(state.db_path.clone(), move |s| s.file_path_for(id)).await?;
+    let path = path.ok_or_else(|| "This item isn't a file on this PC.".to_string())?;
+    tauri_plugin_opener::reveal_item_in_dir(&path).map_err(|e| format!("Couldn't open the folder: {e}"))
 }
 
 #[tauri::command]
@@ -94,13 +133,14 @@ async fn scan_summary(state: State<'_, AppState>) -> CmdResult<ScanSummary> {
 async fn findings(
     state: State<'_, AppState>,
     kind: Option<String>,
+    platform: Option<String>,
     status: String,
     offset: i64,
     limit: i64,
     reveal: bool,
 ) -> CmdResult<FindingsPage> {
     with_store(state.db_path.clone(), move |s| {
-        s.findings(kind.as_deref(), StatusFilter::parse(&status), offset, limit, reveal)
+        s.findings_for_platform(kind.as_deref(), platform.as_deref(), StatusFilter::parse(&status), offset, limit, reveal)
     })
     .await
 }
@@ -183,6 +223,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             has_data,
             import_package,
+            scan_folders,
+            sources,
+            remove_source,
+            recycle_file,
+            show_in_folder,
             stats,
             channels,
             messages,

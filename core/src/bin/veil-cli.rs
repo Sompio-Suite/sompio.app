@@ -1,7 +1,9 @@
 //! Command-line access to the same engine the app uses. Handy for testing on your own
 //! package without the UI:
 //!
-//!   veil-cli import  <package.zip|folder>
+//!   veil-cli import  <export.zip|folder>   (Discord, Reddit, Telegram or X)
+//!   veil-cli folders <folder> [folder…]    (scan files on this PC)
+//!   veil-cli sources
 //!   veil-cli scan    [watch term, another term]
 //!   veil-cli report  [kind] [--reveal]
 //!   veil-cli search  <text>
@@ -13,7 +15,7 @@
 use anyhow::{bail, Result};
 use std::path::PathBuf;
 use std::time::Instant;
-use veil_core::{import_package, load_demo, run_scan, ScanOptions, StatusFilter, Store};
+use veil_core::{import_package, load_demo, run_scan, scan_folders, ScanOptions, StatusFilter, Store};
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -29,9 +31,22 @@ fn main() -> Result<()> {
                     eprintln!("{}: {}/{}", p.phase, p.done, p.total);
                 }
             })?;
-            println!("Imported {} messages from {} channels ({} servers) in {:.1?}", s.messages, s.channels, s.servers, t.elapsed());
+            println!("Imported {} {} messages from {} channels in {:.1?}", s.messages, veil_core::platform_label(&s.platform), s.channels, t.elapsed());
             for w in s.warnings {
                 println!("  warning: {w}");
+            }
+        }
+        Some("folders") => {
+            let folders: Vec<PathBuf> = args[1..].iter().map(PathBuf::from).collect();
+            let s = scan_folders(&mut store, &folders, &mut |_| {})?;
+            println!("Read {} files in {} folders in {:.1?}", s.messages, s.channels, t.elapsed());
+            for w in s.warnings {
+                println!("  warning: {w}");
+            }
+        }
+        Some("sources") => {
+            for s in store.sources()? {
+                println!("{:<14} {:>8} items  from {}", s.label, s.messages, s.origin.replace('\n', ", "));
             }
         }
         Some("scan") => {
@@ -49,7 +64,7 @@ fn main() -> Result<()> {
             let page = store.findings(kind, StatusFilter::All, 0, 50, reveal)?;
             println!("{} findings (showing up to 50)\n", page.total);
             for f in page.items {
-                println!("[{}] {} — {}\n    {}[{}]{}\n", f.label, f.channel_name, f.message_id, f.before, f.matched, f.after);
+                println!("[{}] {} — {}\n    {}[{}]{}\n", f.label, veil_core::platform_label(&f.platform), f.channel_name, f.before, f.matched, f.after);
             }
         }
         Some("search") => {
@@ -67,7 +82,7 @@ fn main() -> Result<()> {
             store.wipe()?;
             println!("All imported data removed from {}", db.display());
         }
-        _ => println!("usage: veil-cli <import|demo|scan|report|search|wipe> ..."),
+        _ => println!("usage: veil-cli <import|folders|sources|demo|scan|report|search|wipe> ..."),
     }
     Ok(())
 }

@@ -4,7 +4,7 @@
 //! (IBAN checksum, Luhn for cards, digit counts for phone numbers) to keep
 //! false alarms low. Results are stored as byte positions only.
 
-use crate::{snowflake_to_ms, Store};
+use crate::Store;
 use sha2::{Digest, Sha256};
 use anyhow::Result;
 use regex::Regex;
@@ -25,10 +25,11 @@ pub enum Kind {
     IpAddress,
     Postcode,
     CryptoWallet,
+    SensitiveFile,
 }
 
 impl Kind {
-    pub const ALL: [Kind; 10] = [
+    pub const ALL: [Kind; 11] = [
         Kind::Credential,
         Kind::Card,
         Kind::Iban,
@@ -38,6 +39,7 @@ impl Kind {
         Kind::Email,
         Kind::IpAddress,
         Kind::Postcode,
+        Kind::SensitiveFile,
         Kind::CryptoWallet,
     ];
 
@@ -53,6 +55,7 @@ impl Kind {
             Kind::IpAddress => "ip_address",
             Kind::Postcode => "postcode",
             Kind::CryptoWallet => "crypto_wallet",
+            Kind::SensitiveFile => "sensitive_file",
         }
     }
 
@@ -72,6 +75,7 @@ impl Kind {
             Kind::IpAddress => "IP addresses",
             Kind::Postcode => "Postcodes",
             Kind::CryptoWallet => "Crypto wallets",
+            Kind::SensitiveFile => "Sensitive files on this PC",
         }
     }
 
@@ -88,6 +92,7 @@ impl Kind {
             Kind::IpAddress => "An IP address can show roughly where you are. Delete the message if this was your home connection.",
             Kind::Postcode => "A postcode narrows down where you live. Low risk on its own, more so next to a street name.",
             Kind::CryptoWallet => "Wallet addresses are public, but tying one to your account reveals its balance and history.",
+            Kind::SensitiveFile => "This file's name suggests an identity document, money matters or secrets. Keep it only if you need it, ideally in an encrypted folder or password manager, and move it to the Recycle Bin if you don't.",
         }
     }
 
@@ -95,7 +100,7 @@ impl Kind {
     pub fn severity(self) -> i64 {
         match self {
             Kind::Credential | Kind::Card | Kind::Iban | Kind::WatchTerm | Kind::Address => 3,
-            Kind::Phone | Kind::Email | Kind::IpAddress => 2,
+            Kind::Phone | Kind::Email | Kind::IpAddress | Kind::SensitiveFile => 2,
             Kind::Postcode | Kind::CryptoWallet => 1,
         }
     }
@@ -313,7 +318,7 @@ pub(crate) fn merge_spans(content: &str, mut spans: Vec<(usize, usize)>) -> Vec<
     merged
 }
 
-/// Normalised form used for "not a problem anywhere" fingerprints, so
+/// Normalised form used for "never flag this again" fingerprints, so
 /// "06-12345678" and "06 1234 5678" count as the same number.
 fn normalize(kind: Kind, value: &str) -> String {
     match kind {
@@ -330,6 +335,57 @@ fn fingerprint(kind: Kind, value: &str) -> String {
     h.update([0]);
     h.update(normalize(kind, value).as_bytes());
     h.finalize().iter().map(|b| format!("{b:02x}")).collect()
+}
+
+// ---------------------------------------------------------------------------------
+// Files from the PC scan: the first line is the file's path, the rest its text.
+
+fn word_at(hay: &str, i: usize, len: usize) -> bool {
+    let before = hay[..i].chars().next_back();
+    let after = hay[i + len..].chars().next();
+    !before.is_some_and(|c| c.is_alphanumeric()) && !after.is_some_and(|c| c.is_alphanumeric())
+}
+
+/// Flags a file by its name: identity documents and money matters, or key files.
+fn detect_file_name(path_line: &str) -> Vec<Detection> {
+    let lower = path_line.to_lowercase();
+    // Only the file's own name counts, not the folders it sits in.
+    let name_start = path_line.rfind('/').map(|i| i + 1).unwrap_or(0);
+    let name = path_line[name_start..].to_lowercase();
+    if crate::pcscan::is_key_file(&lower) {
+        return vec![Detection { kind: Kind::Credential, start: name_start, end: path_line.len() }];
+    }
+    // Treat _ - . as spaces so "Passport_scan.jpg" and "bank-statement.pdf" match.
+    let spaced: String = name.chars().map(|c| if matches!(c, '_' | '-' | '.') { ' ' } else { c }).collect();
+    for word in crate::pcscan::SENSITIVE_NAME_WORDS {
+        let mut from = 0;
+        while let Some(pos) = spaced[from..].find(word) {
+            let i = from + pos;
+            if word_at(&spaced, i, word.len()) {
+                // The whole file name is the finding, so "never flag this again" applies
+                // to this file only, not to every file with the same word in its name.
+                return vec![Detection { kind: Kind::SensitiveFile, start: name_start, end: path_line.len() }];
+            }
+            from = i + word.len();
+        }
+    }
+    vec![]
+}
+
+/// What to scan in a message: the whole text, or for PC files the name and the body separately.
+fn detect_message(scanner: &Scanner, platform: &str, content: &str) -> Vec<Detection> {
+    if platform != "pc" {
+        return scanner.detect(content);
+    }
+    let first_end = content.find('\n').unwrap_or(content.len());
+    let mut found = detect_file_name(&content[..first_end]);
+    let body_start = content.find("\n\n").map(|i| i + 2).unwrap_or(content.len());
+    found.extend(scanner.detect(&content[body_start..]).into_iter().map(|d| Detection {
+        start: d.start + body_start,
+        end: d.end + body_start,
+        ..d
+    }));
+    found
 }
 
 // ---------------------------------------------------------------------------------
@@ -367,6 +423,7 @@ pub struct FindingView {
     pub message_id: String,
     pub channel_id: String,
     pub channel_name: String,
+    pub platform: String,
     pub ts: i64,
     pub kind: Kind,
     pub label: &'static str,
@@ -378,8 +435,10 @@ pub struct FindingView {
     pub masked: bool,
     /// deleted | ok | later, or None when not decided yet
     pub status: Option<String>,
-    /// Link that opens this exact message in Discord
-    pub discord_url: String,
+    /// Where to open it on its platform, when it has a web address
+    pub link: Option<String>,
+    /// For files found on this PC: the full path
+    pub file_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -387,11 +446,6 @@ pub struct FindingsPage {
     pub total: i64,
     pub offset: i64,
     pub items: Vec<FindingView>,
-}
-
-pub(crate) fn discord_url(guild_id: Option<i64>, channel_id: i64, message_id: i64) -> String {
-    let guild = guild_id.map(|g| g.to_string()).unwrap_or_else(|| "@me".to_string());
-    format!("https://discord.com/channels/{guild}/{channel_id}/{message_id}")
 }
 
 /// Scans every imported message. Replaces the results of any previous scan;
@@ -413,7 +467,9 @@ pub fn run_scan(
     let tx = store.conn.transaction()?;
     tx.execute("DELETE FROM findings", [])?;
     {
-        let mut read = tx.prepare("SELECT id, content FROM messages WHERE content <> ''")?;
+        let mut read = tx.prepare(
+            "SELECT m.id, m.content, c.platform FROM messages m JOIN channels c ON c.id = m.channel_id WHERE m.content <> ''",
+        )?;
         let mut write = tx.prepare(
             "INSERT INTO findings(message_id, kind, severity, start_byte, end_byte) VALUES (?1, ?2, ?3, ?4, ?5)",
         )?;
@@ -422,7 +478,8 @@ pub fn run_scan(
         while let Some(row) = rows.next()? {
             let id: i64 = row.get(0)?;
             let content: String = row.get(1)?;
-            for d in scanner.detect(&content) {
+            let platform: String = row.get(2)?;
+            for d in detect_message(&scanner, &platform, &content) {
                 if !ignored.is_empty()
                     && ignored.contains(&(d.kind.key().to_string(), fingerprint(d.kind, &content[d.start..d.end])))
                 {
@@ -517,8 +574,8 @@ impl StatusFilter {
 
 const FINDING_FROM: &str = "FROM findings f
      JOIN messages m ON m.id = f.message_id
-     LEFT JOIN channels ch ON ch.id = m.channel_id
-     LEFT JOIN reviews r ON r.message_id = f.message_id AND r.kind = f.kind AND r.start_byte = f.start_byte";
+     JOIN channels ch ON ch.id = m.channel_id
+     LEFT JOIN reviews r ON r.uid = m.uid AND r.kind = f.kind AND r.start_byte = f.start_byte";
 
 impl Store {
     pub fn watch_terms(&self) -> Result<Vec<String>> {
@@ -561,7 +618,8 @@ impl Store {
         })
     }
 
-    /// Findings, most serious and newest first. `kind` filters by Kind::key().
+    /// Findings, most serious and newest first. `kind` filters by Kind::key(),
+    /// `platform` by source.
     pub fn findings(
         &self,
         kind: Option<&str>,
@@ -570,17 +628,31 @@ impl Store {
         limit: i64,
         reveal: bool,
     ) -> Result<FindingsPage> {
-        self.findings_inner(kind, status, None, offset, limit, reveal)
+        self.findings_inner(kind, None, status, None, offset, limit, reveal)
+    }
+
+    pub fn findings_for_platform(
+        &self,
+        kind: Option<&str>,
+        platform: Option<&str>,
+        status: StatusFilter,
+        offset: i64,
+        limit: i64,
+        reveal: bool,
+    ) -> Result<FindingsPage> {
+        self.findings_inner(kind, platform, status, None, offset, limit, reveal)
     }
 
     /// One finding with its text shown in full (for revealing a single item).
     pub fn reveal_finding(&self, id: i64) -> Result<Option<FindingView>> {
-        Ok(self.findings_inner(None, StatusFilter::All, Some(id), 0, 1, true)?.items.pop())
+        Ok(self.findings_inner(None, None, StatusFilter::All, Some(id), 0, 1, true)?.items.pop())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn findings_inner(
         &self,
         kind: Option<&str>,
+        platform: Option<&str>,
         status: StatusFilter,
         only_id: Option<i64>,
         offset: i64,
@@ -588,23 +660,26 @@ impl Store {
         reveal: bool,
     ) -> Result<FindingsPage> {
         let c = &self.conn;
-        let filter = format!("(?1 IS NULL OR f.kind = ?1) AND (?2 IS NULL OR f.id = ?2) AND {}", status.sql());
+        let filter = format!(
+            "(?1 IS NULL OR f.kind = ?1) AND (?2 IS NULL OR f.id = ?2) AND (?5 IS NULL OR ch.platform = ?5) AND {}",
+            status.sql()
+        );
         let total: i64 = c.query_row(
             &format!("SELECT COUNT(*) {FINDING_FROM} WHERE {filter}"),
-            params![kind, only_id],
+            params![kind, only_id, 0, 0, platform],
             |r| r.get(0),
         )?;
         let mut stmt = c.prepare_cached(&format!(
-            "SELECT f.id, f.message_id, m.channel_id, COALESCE(ch.name, ''), ch.guild_id, m.ts, f.kind,
-                    f.start_byte, f.end_byte, m.content, r.status
+            "SELECT f.id, f.message_id, m.channel_id, ch.name, ch.platform, m.ts, f.kind,
+                    f.start_byte, f.end_byte, m.content, r.status, m.link, m.attachments
              {FINDING_FROM}
              WHERE {filter}
              ORDER BY f.severity DESC, m.ts DESC, f.start_byte
              LIMIT ?3 OFFSET ?4"
         ))?;
-        type Row = (i64, i64, i64, String, Option<i64>, i64, String, usize, usize, String, Option<String>);
+        type Row = (i64, i64, i64, String, String, i64, String, usize, usize, String, Option<String>, Option<String>, String);
         let rows: Vec<Row> = stmt
-            .query_map(params![kind, only_id, limit.clamp(1, 1000), offset.max(0)], |r| {
+            .query_map(params![kind, only_id, limit.clamp(1, 1000), offset.max(0), platform], |r| {
                 Ok((
                     r.get(0)?,
                     r.get(1)?,
@@ -617,23 +692,27 @@ impl Store {
                     r.get::<_, i64>(8)? as usize,
                     r.get(9)?,
                     r.get(10)?,
+                    r.get(11)?,
+                    r.get(12)?,
                 ))
             })?
             .collect::<rusqlite::Result<_>>()?;
 
         let mut items = Vec::with_capacity(rows.len());
-        for (id, mid, cid, cname, guild, ts, k, start, end, content, status) in rows {
+        for (id, mid, cid, cname, platform, ts, k, start, end, content, status, link, attachments) in rows {
             let Some(kind) = Kind::from_key(&k) else { continue };
             if end > content.len() || !content.is_char_boundary(start) || !content.is_char_boundary(end) {
                 continue;
             }
             let spans = self.spans_for(mid)?;
             let (before, matched, after, masked) = snippet(&content, start, end, &spans, reveal);
+            let file_path = (platform == "pc").then_some(attachments);
             items.push(FindingView {
                 id,
                 message_id: mid.to_string(),
                 channel_id: cid.to_string(),
                 channel_name: cname,
+                platform,
                 ts,
                 kind,
                 label: kind.label(),
@@ -644,7 +723,8 @@ impl Store {
                 after,
                 masked,
                 status,
-                discord_url: discord_url(guild, cid, mid),
+                link,
+                file_path,
             });
         }
         Ok(FindingsPage { total, offset, items })
@@ -663,26 +743,57 @@ impl Store {
         if let Some(s) = status {
             anyhow::ensure!(matches!(s, "deleted" | "ok" | "later"), "unknown status {s}");
         }
-        let (mid, kind, start): (i64, String, i64) = self.conn.query_row(
-            "SELECT message_id, kind, start_byte FROM findings WHERE id = ?1",
+        let (uid, kind, start): (String, String, i64) = self.conn.query_row(
+            "SELECT m.uid, f.kind, f.start_byte FROM findings f JOIN messages m ON m.id = f.message_id WHERE f.id = ?1",
             [finding_id],
             |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
         )?;
         match status {
             Some(s) => self.conn.execute(
-                "INSERT INTO reviews(message_id, kind, start_byte, status) VALUES (?1, ?2, ?3, ?4)
-                 ON CONFLICT(message_id, kind, start_byte) DO UPDATE SET status = excluded.status",
-                params![mid, kind, start, s],
+                "INSERT INTO reviews(uid, kind, start_byte, status) VALUES (?1, ?2, ?3, ?4)
+                 ON CONFLICT(uid, kind, start_byte) DO UPDATE SET status = excluded.status",
+                params![uid, kind, start, s],
             )?,
             None => self.conn.execute(
-                "DELETE FROM reviews WHERE message_id = ?1 AND kind = ?2 AND start_byte = ?3",
-                params![mid, kind, start],
+                "DELETE FROM reviews WHERE uid = ?1 AND kind = ?2 AND start_byte = ?3",
+                params![uid, kind, start],
             )?,
         };
         Ok(())
     }
 
-    /// "Not a problem anywhere": stops flagging this exact value (say, a public work email)
+    /// Moves a file found by the PC scan to the Recycle Bin, and marks everything
+    /// found in it as deleted. Returns the path that was moved.
+    pub fn recycle_file(&self, finding_id: i64) -> Result<String> {
+        let (message_id, platform, path): (i64, String, String) = self.conn.query_row(
+            "SELECT m.id, c.platform, m.attachments FROM findings f
+             JOIN messages m ON m.id = f.message_id JOIN channels c ON c.id = m.channel_id WHERE f.id = ?1",
+            [finding_id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )?;
+        anyhow::ensure!(platform == "pc", "only files on this PC can be moved to the Recycle Bin");
+        crate::pcscan::move_to_recycle_bin(&path)?;
+        self.conn.execute(
+            "INSERT INTO reviews(uid, kind, start_byte, status)
+             SELECT m.uid, f.kind, f.start_byte, 'deleted' FROM findings f JOIN messages m ON m.id = f.message_id
+             WHERE f.message_id = ?1
+             ON CONFLICT(uid, kind, start_byte) DO UPDATE SET status = 'deleted'",
+            [message_id],
+        )?;
+        Ok(path)
+    }
+
+    /// The full path of a PC-scan file a finding is in, for "Show in folder".
+    pub fn file_path_for(&self, finding_id: i64) -> Result<Option<String>> {
+        Ok(self.conn.query_row(
+            "SELECT CASE WHEN c.platform = 'pc' THEN m.attachments END FROM findings f
+             JOIN messages m ON m.id = f.message_id JOIN channels c ON c.id = m.channel_id WHERE f.id = ?1",
+            [finding_id],
+            |r| r.get(0),
+        )?)
+    }
+
+    /// "Never flag this again": stops flagging this exact value (say, a public work email)
     /// now and in future scans. Returns how many findings were cleared.
     pub fn ignore_everywhere(&mut self, finding_id: i64) -> Result<usize> {
         let (kind_key, start, end, content): (String, usize, usize, String) = self.conn.query_row(
@@ -722,45 +833,39 @@ impl Store {
         Ok(doomed.len())
     }
 
-    /// Forgets every "not a problem anywhere" rule. The items come back on the next scan.
+    /// Forgets every "never flag this again" rule. The items come back on the next scan.
     pub fn clear_ignored(&self) -> Result<usize> {
         Ok(self.conn.execute("DELETE FROM ignored", [])?)
     }
 
-    /// Writes a CSV of flagged messages with no message content in it.
-    /// Includes a link to each message so it can be opened and deleted by hand.
+    /// Writes a CSV of flagged messages with no message text in it: IDs, dates, status
+    /// and where to find each one (a web link, or a file path for files on this PC).
     pub fn export_flagged_csv(&self, path: &std::path::Path) -> Result<usize> {
         let mut stmt = self.conn.prepare(&format!(
-            "SELECT m.channel_id, f.message_id, ch.guild_id, MAX(f.severity), GROUP_CONCAT(DISTINCT f.kind),
+            "SELECT ch.platform, ch.name, m.uid, m.ts, MAX(f.severity), GROUP_CONCAT(DISTINCT f.kind),
                     CASE WHEN SUM(r.status IS NULL) > 0 THEN 'to review'
-                         WHEN SUM(r.status = 'later') > 0 THEN 'later' ELSE 'done' END
+                         WHEN SUM(r.status = 'later') > 0 THEN 'later' ELSE 'done' END,
+                    COALESCE(m.link, CASE WHEN ch.platform = 'pc' THEN m.attachments END, '')
              {FINDING_FROM}
-             GROUP BY f.message_id ORDER BY m.channel_id, f.message_id"
+             GROUP BY f.message_id ORDER BY ch.platform, ch.name, m.ts"
         ))?;
         let mut w = csv::Writer::from_path(path)?;
-        w.write_record(["channel_id", "message_id", "sent_at_utc_ms", "severity", "kinds", "status", "discord_link"])?;
+        w.write_record(["platform", "where", "id", "sent_at_utc_ms", "severity", "kinds", "status", "link_or_path"])?;
         let mut n = 0;
         let rows = stmt.query_map([], |r| {
-            Ok((
-                r.get::<_, i64>(0)?,
-                r.get::<_, i64>(1)?,
-                r.get::<_, Option<i64>>(2)?,
-                r.get::<_, i64>(3)?,
-                r.get::<_, String>(4)?,
+            Ok([
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, i64>(3)?.to_string(),
+                r.get::<_, i64>(4)?.to_string(),
                 r.get::<_, String>(5)?,
-            ))
+                r.get::<_, String>(6)?,
+                r.get::<_, String>(7)?,
+            ])
         })?;
         for row in rows {
-            let (cid, mid, guild, sev, kinds, status) = row?;
-            w.write_record([
-                cid.to_string(),
-                mid.to_string(),
-                snowflake_to_ms(mid).to_string(),
-                sev.to_string(),
-                kinds,
-                status,
-                discord_url(guild, cid, mid),
-            ])?;
+            w.write_record(row?)?;
             n += 1;
         }
         w.flush()?;

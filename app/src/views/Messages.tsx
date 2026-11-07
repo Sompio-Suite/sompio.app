@@ -1,6 +1,6 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { api, openInDiscord, type ChannelView, type MessageView } from "../api";
+import { api, openLabel, openLink, platformName, type ChannelView, type MessageView } from "../api";
 import type { Jump } from "../App";
 import { channelKind, dateTime, fileName, n } from "../format";
 import { usePaged } from "../usePaged";
@@ -112,7 +112,7 @@ export default function Messages({ jump, onJumpHandled }: Props) {
             >
               <span style={{ minWidth: 0 }}>
                 <span className="row-title" style={{ display: "block" }}>{c.name}</span>
-                <span className="chan-kind">{channelKind[c.kind]}</span>
+                <span className="chan-kind">{platformName[c.platform]} · {channelKind[c.kind]}</span>
               </span>
               <span className="small num">{n(c.message_count)}</span>
             </button>
@@ -193,9 +193,11 @@ export default function Messages({ jump, onJumpHandled }: Props) {
                         {m.attachments.map((a) => (
                           <div className="attach" key={a}>Attached file: {fileName(a)}</div>
                         ))}
-                        <button className="link small msg-open" onClick={() => openInDiscord(m.discord_url)}>
-                          Open in Discord
-                        </button>
+                        {m.link && (
+                          <button className="link small msg-open" onClick={() => openLink(m.link)}>
+                            {openLabel(m.platform)}
+                          </button>
+                        )}
                       </div>
                     </>
                   ) : (

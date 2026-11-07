@@ -1,6 +1,6 @@
 // Fake backend for working on the UI in a plain browser. Never used inside the desktop app.
 // It mimics the Rust side closely enough to click through every screen.
-import type { ChannelView, FindingView, KindKey, MessageView, Page, ScanSummary, Segment, Stats, Status } from "./api";
+import type { ChannelView, FindingView, KindKey, MessageView, Page, Platform, ScanSummary, Segment, SourceView, Stats, Status } from "./api";
 
 const words = "anyone up for raid tonight the boss was rough need a healer brb dinner that patch broke my ui see you later nice drop gg honestly no idea what happened lol".split(" ");
 let seed = 7;
@@ -16,6 +16,7 @@ const KINDS: Record<KindKey, [string, number, string]> = {
   phone: ["Phone numbers", 2, "Delete the message if you don't want this number linked to your Discord account."],
   email: ["Email addresses", 2, "Check whether you want this address linked to your Discord account. If it's a public work address, mark it as not a problem everywhere."],
   ip_address: ["IP addresses", 2, "An IP address can show roughly where you are. Delete the message if this was your home connection."],
+  sensitive_file: ["Sensitive files on this PC", 2, "This file's name suggests an identity document, money matters or secrets. Keep it only if you need it, ideally in an encrypted folder or password manager, and move it to the Recycle Bin if you don't."],
   postcode: ["Postcodes", 1, "A postcode narrows down where you live. Low risk on its own, more so next to a street name."],
   crypto_wallet: ["Crypto wallets", 1, "Wallet addresses are public, but tying one to your account reveals its balance and history."],
 };
@@ -34,9 +35,10 @@ const channelDefs: [string, ChannelView["kind"], string | null][] = [
   ["help", "server", "Home Lab Builders"], ["Direct message with sam", "dm", null], ["Direct message with noor", "dm", null], ["Weekend crew", "group_dm", null],
 ];
 
-interface Msg { id: string; channel_id: string; channel_name: string; guild: string | null; ts: number; content: string; attachments: string[] }
-const channels: ChannelView[] = [];
-const messages: Msg[] = [];
+interface Msg { id: string; channel_id: string; channel_name: string; platform: Platform; guild: string | null; ts: number; content: string; attachments: string[]; file_path?: string }
+let channels: ChannelView[] = [];
+let messages: Msg[] = [];
+let sources: SourceView[] = [];
 let nextId = 1;
 channelDefs.forEach(([name, kind, guild], ci) => {
   const cid = String(1000 + ci);
@@ -50,11 +52,21 @@ channelDefs.forEach(([name, kind, guild], ci) => {
       const [pre, , value] = pick(LEAKS);
       content = pre + value + (rand() < 0.5 ? " if you need it" : "");
     }
-    messages.push({ id: String(nextId++), channel_id: cid, channel_name: label, guild: guild ? "9" + ci : null, ts: t, content, attachments: rand() < 0.04 ? ["https://cdn.discordapp.com/attachments/1/2/screenshot.png"] : [] });
+    messages.push({ id: String(nextId++), channel_id: cid, channel_name: label, platform: "discord", guild: guild ? "9" + ci : null, ts: t, content, attachments: rand() < 0.04 ? ["https://cdn.discordapp.com/attachments/1/2/screenshot.png"] : [] });
   }
-  channels.push({ id: cid, name: label, kind, guild_name: guild, message_count: n, first_ts: null, last_ts: t });
+  channels.push({ id: cid, platform: "discord", name: label, kind, guild_name: guild, message_count: n, first_ts: null, last_ts: t });
 });
 channels.sort((a, b) => b.message_count - a.message_count);
+const baseChannels = [...channels];
+const baseMessages = [...messages];
+
+const PC_FILES: [string, string][] = [
+  ["taxes/2023/Passport_scan.jpg", ""],
+  ["notes.txt", "wifi password: SuperSecret99 and the router admin"],
+  ["cv.docx", "Sam Rivers, sam.rivers.private@example.org, 06-12345678"],
+  ["holiday packing list.txt", "socks, charger, sunscreen"],
+];
+const SENSITIVE_WORDS = ["passport", "cv"];
 
 interface Finding { id: number; msg: Msg; kind: KindKey; start: number; end: number }
 let findings: Finding[] = [];
@@ -65,7 +77,7 @@ let demo = false;
 let scanned = false;
 let terms: string[] = [];
 
-const url = (m: Msg) => `https://discord.com/channels/${m.guild ?? "@me"}/${m.channel_id}/${m.id}`;
+const url = (m: Msg) => (m.platform === "pc" ? null : `https://discord.com/channels/${m.guild ?? "@me"}/${m.channel_id}/${m.id}`);
 const mask = (s: string) => s.replace(/(\p{L}|\d)([\p{L}\d]*)/gu, (_, a, b) => a + "•".repeat(b.length));
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const page = <T,>(all: T[], offset: number, limit: number): Page<T> => ({ total: all.length, offset, items: all.slice(offset, offset + limit) });
@@ -76,6 +88,19 @@ function scan() {
   findings = [];
   let id = 1;
   for (const m of messages) {
+    if (m.platform === "pc") {
+      const nameEnd = m.content.indexOf("\n") < 0 ? m.content.length : m.content.indexOf("\n");
+      const name = m.content.slice(0, nameEnd).toLowerCase();
+      for (const w of SENSITIVE_WORDS) {
+        const at = name.search(new RegExp(`(^|[^a-z])${w}([^a-z]|$)`));
+        if (at >= 0) { const s0 = name.indexOf(w, at); findings.push({ id: id++, msg: m, kind: "sensitive_file", start: s0, end: s0 + w.length }); break; }
+      }
+      for (const [k, re] of [["credential", /password: \S+/], ["email", /\S+@example\.org/], ["phone", /06-\d{8}/]] as [KindKey, RegExp][]) {
+        const mm = m.content.slice(nameEnd).match(re);
+        if (mm && mm.index !== undefined) findings.push({ id: id++, msg: m, kind: k, start: nameEnd + mm.index, end: nameEnd + mm.index + mm[0].length });
+      }
+      continue;
+    }
     for (const [, kind, value] of LEAKS) {
       const at = m.content.indexOf(value);
       if (at >= 0 && !ignored.has(kind + value)) findings.push({ id: id++, msg: m, kind, start: at, end: at + value.length });
@@ -93,9 +118,9 @@ function view(f: Finding, reveal: boolean): FindingView {
   const c = f.msg.content;
   const v = c.slice(f.start, f.end);
   return {
-    id: f.id, message_id: f.msg.id, channel_id: f.msg.channel_id, channel_name: f.msg.channel_name, ts: f.msg.ts,
+    id: f.id, message_id: f.msg.id, channel_id: f.msg.channel_id, channel_name: f.msg.channel_name, platform: f.msg.platform, ts: f.msg.ts,
     kind: f.kind, label, severity, advice, before: c.slice(0, f.start), matched: reveal ? v : mask(v), after: c.slice(f.end),
-    masked: !reveal, status: statuses.get(f.id) ?? null, discord_url: url(f.msg),
+    masked: !reveal, status: statuses.get(f.id) ?? null, link: url(f.msg), file_path: f.msg.file_path ?? null,
   };
 }
 
@@ -111,7 +136,7 @@ function messageView(m: Msg, reveal: boolean): MessageView {
     pos = f.end;
   }
   if (pos < m.content.length || !segments.length) segments.push({ text: m.content.slice(pos), sensitive: false });
-  return { ...m, content: segments.map((s) => s.text).join(""), segments, has_sensitive: spans.length > 0, discord_url: url(m) };
+  return { ...m, content: segments.map((s) => s.text).join(""), segments, has_sensitive: spans.length > 0, link: url(m), file_path: m.file_path ?? null };
 }
 
 function summary(): ScanSummary {
@@ -137,23 +162,60 @@ const matchesTab = (f: Finding, tab: string) => {
   return tab === "open" ? !s : tab === "later" ? s === "later" : tab === "done" ? s === "deleted" || s === "ok" : true;
 };
 
-const reset = () => { loaded = false; demo = false; scanned = false; findings = []; statuses.clear(); ignored.clear(); };
+const reset = () => {
+  loaded = false; demo = false; scanned = false; findings = []; statuses.clear(); ignored.clear();
+  channels = [...baseChannels]; messages = [...baseMessages]; sources = [];
+};
+const discordSource = (): SourceView => ({ platform: "discord", label: "Discord", origin: "C:\\Users\\you\\Downloads\\package.zip", imported_at: Date.now(), channels: baseChannels.length, messages: baseMessages.length });
 
 const handlers: Record<string, (a: any) => unknown> = {
   has_data: () => loaded,
   is_demo: () => demo,
-  load_demo: async () => { reset(); await wait(300); loaded = true; demo = true; },
+  load_demo: async () => { reset(); await wait(300); loaded = true; demo = true; sources = [discordSource()]; },
   import_package: async () => {
     reset();
     for (let i = 0; i <= channels.length; i++) { emit("import-progress", { phase: "Importing messages", done: i, total: channels.length }); await wait(80); }
     loaded = true;
-    return { channels: channels.length, messages: messages.length, servers: 2, warnings: [] };
+    sources = [...sources.filter((x) => x.platform !== "discord"), discordSource()];
+    return { platform: "discord", channels: channels.length, messages: messages.length, servers: 2, warnings: [] };
   },
+  scan_folders: async ({ folders }) => {
+    if (!loaded) reset();
+    demo = false;
+    channels = channels.filter((c) => c.platform !== "pc");
+    messages = messages.filter((m) => m.platform !== "pc");
+    const root = folders[0];
+    channels.push({ id: "pc1", platform: "pc", name: root.split("\\").pop(), kind: "folder", guild_name: root, message_count: PC_FILES.length, first_ts: null, last_ts: null });
+    PC_FILES.forEach(([rel, text], i) => messages.push({
+      id: `pc-${i}`, channel_id: "pc1", channel_name: root.split("\\").pop()!, platform: "pc", guild: null, ts: Date.now() - i * 864e5,
+      content: text ? `${rel}\n\n${text}` : rel, attachments: [], file_path: `${root}\\${rel.replace(/\//g, "\\")}`,
+    }));
+    for (let i = 0; i <= 5; i++) { emit("import-progress", { phase: "Reading files", done: i, total: 5 }); await wait(60); }
+    loaded = true;
+    sources = [...sources.filter((x) => x.platform !== "pc"), { platform: "pc", label: "This PC", origin: folders.join("\n"), imported_at: Date.now(), channels: 1, messages: PC_FILES.length }];
+    return { platform: "pc", channels: 1, messages: PC_FILES.length, servers: 0, warnings: [] };
+  },
+  sources: () => sources,
+  remove_source: ({ platform }) => {
+    channels = channels.filter((c) => c.platform !== platform);
+    messages = messages.filter((m) => m.platform !== platform);
+    sources = sources.filter((x) => x.platform !== platform);
+    findings = findings.filter((f) => f.msg.platform !== platform);
+    if (!messages.length) loaded = false;
+  },
+  recycle_file: ({ id }) => {
+    const f = findings.find((x) => x.id === id)!;
+    findings.filter((x) => x.msg === f.msg).forEach((x) => statuses.set(x.id, "deleted"));
+    return [f.msg.file_path, summary()];
+  },
+  show_in_folder: () => undefined,
   stats: (): Stats => {
     const years = new Map<number, number>();
     messages.forEach((m) => { const y = new Date(m.ts).getUTCFullYear(); years.set(y, (years.get(y) || 0) + 1); });
+    const chat = messages.filter((m) => m.platform !== "pc");
     return {
-      messages: messages.length, channels: channels.length, servers: 2, dms: 2, group_dms: 1,
+      messages: chat.length, channels: channels.filter((c) => c.platform !== "pc").length, servers: 2, dms: 2, group_dms: 1,
+      files: messages.length - chat.length, sources,
       with_attachments: messages.filter((m) => m.attachments.length).length,
       first_ts: Math.min(...messages.map((m) => m.ts)), last_ts: Math.max(...messages.map((m) => m.ts)),
       imported_at_ms: Date.now(), per_year: [...years].sort((a, b) => a[0] - b[0]).map(([year, count]) => ({ year, count })), top_channels: channels.slice(0, 8),
@@ -178,8 +240,8 @@ const handlers: Record<string, (a: any) => unknown> = {
     return summary();
   },
   scan_summary: () => summary(),
-  findings: ({ kind, status, offset, limit, reveal }) => {
-    const all = findings.filter((f) => (!kind || f.kind === kind) && matchesTab(f, status))
+  findings: ({ kind, platform, status, offset, limit, reveal }) => {
+    const all = findings.filter((f) => (!kind || f.kind === kind) && (!platform || f.msg.platform === platform) && matchesTab(f, status))
       .sort((a, b) => KINDS[b.kind][1] - KINDS[a.kind][1] || b.msg.ts - a.msg.ts);
     const p = page(all, offset, limit);
     return { ...p, items: p.items.map((f) => view(f, reveal)) };

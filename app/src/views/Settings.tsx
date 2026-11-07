@@ -38,11 +38,13 @@ export default function Settings({ scan, demo, onScan, onLeave }: Props) {
       <section className="setting">
         <h3>Your data on this computer</h3>
         <p className="muted">
-          {demo ? "Sample data loaded" : "Imported"} {dateTime(importedAt)}. Veil keeps a copy of your messages, your review
+          {demo ? "Sample data loaded" : "Last import"} {dateTime(importedAt)}. Veil keeps a copy of what it read, your review
           progress and your watch terms in one file:
         </p>
         <code>{location}</code>
-        <p className="muted small">The original package is never changed. Nothing here touches your Discord account.</p>
+        <p className="muted small">
+          Your exports and files are never changed by importing them. Adding and removing sources is on the Sources screen.
+        </p>
       </section>
 
       <section className="setting">
@@ -64,22 +66,13 @@ export default function Settings({ scan, demo, onScan, onLeave }: Props) {
         {note && <p className="small muted">{note}</p>}
       </section>
 
-      <section className="setting">
-        <h3>{demo ? "Open your own package" : "Import a different package"}</h3>
-        <p className="muted">
-          {demo
-            ? "This removes the sample data and takes you back to the start."
-            : "This replaces everything Veil has imported, including your review progress."}
-        </p>
-        {confirm === "replace" ? (
-          <div className="toolbar">
-            <button className="primary" onClick={onLeave}>{demo ? "Remove sample data" : "Replace my data"}</button>
-            <button onClick={() => setConfirm(null)}>Cancel</button>
-          </div>
-        ) : (
-          <div><button onClick={() => (demo ? onLeave() : setConfirm("replace"))}>{demo ? "Open my own package" : "Choose a new package"}</button></div>
-        )}
-      </section>
+      {demo && (
+        <section className="setting">
+          <h3>Use your own data</h3>
+          <p className="muted">This removes the sample data and takes you back to the start.</p>
+          <div><button onClick={onLeave}>Remove sample data</button></div>
+        </section>
+      )}
 
       <section className="setting">
         <h3>Delete everything</h3>

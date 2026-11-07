@@ -2,16 +2,26 @@
 
 Find personal information in your Discord history, offline.
 
-Veil reads the data package Discord gives you (User Settings › Data & Privacy › Request all of my data)
-and shows you every message where you shared something like a phone number, home address, bank details,
-a password or an access token, then walks you through cleaning them up. Nothing leaves your computer.
+Veil reads the data exports from Discord, Reddit, Telegram and X, plus folders you choose on your PC,
+and shows you everywhere you shared something like a phone number, home address, bank details,
+a password or an access token, then walks you through cleaning it up. Nothing leaves your computer.
+
+| Source | What Veil reads | Only your own? |
+| --- | --- | --- |
+| Discord | "Request all of my data" package | Yes, the package only has your messages |
+| Reddit | Data request export (CSV files) | Posts and comments are yours; private messages are filtered to the ones you sent |
+| Telegram | Telegram Desktop › Export Telegram data, JSON format | Filtered to messages from your account |
+| X | "Download an archive of your data" | Your posts (not reposts) and DMs you sent |
+| This PC | Folders you choose | Text files, Word documents, and every file's name (passport scans, key files…) |
 
 ## What using it looks like
 
-1. Open your package, or try the built-in sample data while Discord prepares yours.
+1. Open an export or scan folders on your PC, or try the built-in sample data while your exports are prepared.
+   Add more sources any time on the **Sources** screen; each platform's newest export replaces its last one.
 2. Veil imports and scans straight away, then lands on **Review** with everything it found.
 3. Each item says how urgent it is (Fix now, Worth a look, Low risk) and what to do about it.
-4. **Open in Discord** jumps to the exact message in your browser so you can delete it by hand.
+4. **Open in Discord / on Reddit / on X** jumps to the exact message in your browser so you can delete it by hand.
+   For files on your PC: **Show in folder** and **Move to Recycle Bin**.
 5. Mark each one **I deleted it**, **Not a problem** or **Later**. Progress is saved and survives rescans.
    **Never flag this again** stops a harmless value (a public work email, say) from coming back.
 6. Add watch terms (your real name, street, school) and scan again to catch what patterns can't.
@@ -65,7 +75,9 @@ so you can work on the design without building the app.
 
 ```
 cargo test                                         # run the tests
-cargo run --release --bin veil-cli -- import "C:\path\to\package.zip"
+cargo run --release --bin veil-cli -- import "C:\path\to\export.zip"   # any supported platform
+cargo run --release --bin veil-cli -- folders "C:\Users\you\Documents"
+cargo run --release --bin veil-cli -- sources
 cargo run --release --bin veil-cli -- scan "Your Name, Your Street"
 cargo run --release --bin veil-cli -- report        # masked
 cargo run --release --bin veil-cli -- report email --reveal
@@ -76,7 +88,8 @@ cargo run --release --bin veil-cli -- demo          # load the sample data
 
 ```
 core/              Rust library, all the real work. No UI, no network.
-  src/import.rs      reads the package (.zip or folder, old CSV and new JSON layouts)
+  src/import/        one reader per platform; mod.rs detects which export it is
+  src/pcscan.rs      the PC folder scan and Recycle Bin
   src/db.rs          the local SQLite database
   src/query.rs       stats, conversations, paged messages, full-text search
   src/scan.rs        the exposure scanner, masked results, review decisions, never-flag rules
@@ -106,7 +119,7 @@ Tested with a 1 million message package: import takes about 6 seconds, a full sc
 - **No network.** `core` has no HTTP library. The window's content security policy blocks every remote
   connection, and attachments are listed by file name instead of being loaded from Discord's servers.
 - **Smallest possible permissions.** The window can only call Veil's own commands, open file pickers, and hand
-  `https://discord.com/channels/…` links to your browser (`app/src-tauri/capabilities/default.json`).
+  links to Discord, Reddit, X and Telegram messages to your browser (`app/src-tauri/capabilities/default.json`).
   No shell, no file system access, no HTTP, and no other links.
 - **No login.** Veil never asks for a Discord token or password.
 - **One file, deletable.** Data lives in `veil.db` in the local (non-roaming) app data folder. "Delete everything"

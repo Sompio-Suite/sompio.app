@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, type ScanSummary, type Stats } from "../api";
+import { api, platformName, type ScanSummary, type Stats } from "../api";
 import type { Jump, View } from "../App";
 import { channelKind, month, n, plural } from "../format";
 
@@ -23,9 +23,15 @@ export default function Overview({ scan, onOpen, onGo }: Props) {
     <div className="page">
       <div className="lede">
         <h1>
-          You've sent {plural(stats.messages, "message", "messages")} since {month(stats.first_ts)}.
+          {stats.messages > 0
+            ? <>You've written {plural(stats.messages, "message", "messages")} since {month(stats.first_ts)}.</>
+            : <>Veil checked {plural(stats.files, "file", "files")} on this PC.</>}
         </h1>
         <div className="facts">
+          <span>
+            From {stats.sources.map((x) => platformName[x.platform]).join(", ")}
+          </span>
+          {stats.files > 0 && <Fact count={stats.files} one="file on this PC" many="files on this PC" />}
           <Fact count={stats.servers} one="server" many="servers" />
           <Fact count={stats.dms} one="direct message" many="direct messages" />
           <Fact count={stats.group_dms} one="group chat" many="group chats" />
@@ -80,7 +86,7 @@ export default function Overview({ scan, onOpen, onGo }: Props) {
               <button key={c.id} className="row-btn" onClick={() => onOpen({ channelId: c.id })}>
                 <span>
                   <span className="row-title" style={{ display: "block" }}>{c.name}</span>
-                  <span className="small muted">{channelKind[c.kind]}</span>
+                  <span className="small muted">{platformName[c.platform]}, {channelKind[c.kind].toLowerCase()}</span>
                 </span>
                 <span className="num muted">{n(c.message_count)}</span>
               </button>

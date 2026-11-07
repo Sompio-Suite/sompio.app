@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { api, listen, onFileDrop, pickPackage, type ImportProgress, type ScanSummary } from "../api";
+import { api, listen, onFileDrop, pickFolders, pickPackage, type ImportProgress, type ScanSummary } from "../api";
 import { n } from "../format";
 
 interface Busy { label: string; done: number; total: number }
@@ -51,11 +51,11 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
       <div className="welcome-inner">
         <div className="lede">
           <h1>
-            See what your Discord history says about <span className="redact">y••</span>.
+            See what your chats and files say about <span className="redact">y••</span>.
           </h1>
           <p className="muted">
-            Veil reads the data package Discord gives you and points out messages where you shared things like your
-            phone number, address or a password, then helps you clean them up.
+            Veil reads the data exports from Discord, Reddit, Telegram and X, and the folders on this PC you choose. It
+            points out where you shared things like your phone number, address or a password, then helps you clean up.
           </p>
         </div>
 
@@ -72,13 +72,24 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
             </div>
           ) : (
             <>
-              <h3>Open your data package</h3>
-              <p className="muted small">Drop the .zip from Discord here, or choose it. An extracted folder works too.</p>
+              <h3>Start with an export or your PC</h3>
+              <p className="muted small">
+                Drop a data export (.zip) from Discord, Reddit, Telegram or X here, or choose one. You can add more sources
+                afterwards.
+              </p>
               <div className="drop-actions">
                 <button className="primary" onClick={async () => importPath(await pickPackage(false))}>
-                  Choose .zip file
+                  Choose an export
                 </button>
-                <button onClick={async () => importPath(await pickPackage(true))}>Choose folder</button>
+                <button onClick={async () => importPath(await pickPackage(true))}>Choose an extracted folder</button>
+                <button
+                  onClick={async () => {
+                    const folders = await pickFolders();
+                    if (folders.length) start(() => api.scanFolders(folders));
+                  }}
+                >
+                  Scan folders on this PC
+                </button>
               </div>
             </>
           )}
@@ -87,12 +98,11 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
 
         <div className="split">
           <div>
-            <h3>Don't have it yet?</h3>
-            <ol className="steps muted">
-              <li>In Discord, open User Settings, then Data &amp; Privacy.</li>
-              <li>Choose Request all of my data, and make sure Messages is selected.</li>
-              <li>Discord emails you a download link, usually within a few days.</li>
-            </ol>
+            <h3>Don't have an export yet?</h3>
+            <p className="muted">
+              Each platform has a "request your data" option in its settings and emails you a download. Telegram Desktop
+              exports straight to your PC. The Sources screen has the steps for each.
+            </p>
           </div>
           <div>
             <h3>See how it works first</h3>
@@ -110,7 +120,7 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
           </div>
           <div>
             <h3>No Discord login</h3>
-            <p>Veil doesn't ask for your password or token. It only reads the file you give it.</p>
+            <p>Veil doesn't ask for your passwords or tokens. It only reads the files you give it.</p>
           </div>
           <div>
             <h3>Gone when you say so</h3>

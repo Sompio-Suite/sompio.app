@@ -1,7 +1,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  api, copyText, listen, openInDiscord, pickSavePath, severityLabel,
+  api, copyText, listen, openLabel, openLink as openUrl, pickSavePath, platformName, severityLabel,
   type FindingView, type KindKey, type ScanSummary, type Status, type StatusTab,
 } from "../api";
 import type { Jump } from "../App";
@@ -53,7 +53,7 @@ export default function Exposure({ scan, demo, onScan, onOpen }: Props) {
 
   const scanned = scan?.scanned_at_ms != null;
   const listKey = scanned ? `${tab}|${kind}|${revealAll}|${listVersion}` : null;
-  const { total, items, ensure } = usePaged<FindingView>(listKey, (o, l) => api.findings(kind, tab, o, l, revealAll));
+  const { total, items, ensure } = usePaged<FindingView>(listKey, (o, l) => api.findings(kind, null, tab, o, l, revealAll));
 
   // If the selected type has nothing left (say, after "never flag this again"), go back to everything.
   useEffect(() => {
@@ -118,13 +118,38 @@ export default function Exposure({ scan, demo, onScan, onOpen }: Props) {
     if (full) setRevealed(new Map(revealed).set(f.id, full));
   }, [revealed]);
 
+  /** Takes you to the item: its web page, or the file in File Explorer. */
   const openLink = async (f: FindingView) => {
-    await openInDiscord(f.discord_url);
-    setToast({ text: "Opened in your browser. Delete the message there, then mark it as deleted here." });
+    try {
+      if (f.platform === "pc") {
+        await api.showInFolder(f.id);
+        setToast({ text: "Opened the folder with the file selected." });
+      } else if (f.link) {
+        await openUrl(f.link);
+        setToast({ text: "Opened in your browser. Delete it there, then mark it as deleted here." });
+      } else {
+        setToast({ text: `${platformName[f.platform]} has no web link for private chats. Open the chat in the app and find it by its date.` });
+      }
+    } catch (e) {
+      setToast({ text: String(e) });
+    }
   };
   const copyLink = async (f: FindingView) => {
-    await copyText(f.discord_url);
-    setToast({ text: "Link copied. Paste it into Discord's search bar or a browser to jump to the message." });
+    const value = f.link ?? f.file_path;
+    if (!value) return;
+    await copyText(value);
+    setToast({ text: f.link ? "Link copied." : "File path copied." });
+  };
+  const recycle = async (f: FindingView) => {
+    try {
+      const [path, summary] = await api.recycleFile(f.id);
+      onScan(summary);
+      reload();
+      const name = path.split(/[\\/]/).pop();
+      setToast({ text: `Moved ${name} to the Recycle Bin. You can restore it from there.` });
+    } catch (e) {
+      setToast({ text: String(e) });
+    }
   };
 
   // Keyboard: works anywhere on the page except while typing in a field.
@@ -299,6 +324,7 @@ export default function Exposure({ scan, demo, onScan, onOpen }: Props) {
                           onIgnore={() => ignoreEverywhere(f)}
                           onOpenLink={() => openLink(f)}
                           onCopyLink={() => copyLink(f)}
+                          onRecycle={() => recycle(f)}
                           onOpenHere={() => onOpen({ channelId: f.channel_id, messageId: f.message_id })}
                         />
                       ) : (
@@ -336,6 +362,7 @@ const NOUN: Record<KindKey, string> = {
   ip_address: "IP address",
   postcode: "postcode",
   crypto_wallet: "wallet",
+  sensitive_file: "file name",
 };
 
 const pickText = (f: FindingView) => ({ before: f.before, matched: f.matched, after: f.after, masked: false });
@@ -349,14 +376,18 @@ interface RowProps {
   onIgnore: () => void;
   onOpenLink: () => void;
   onCopyLink: () => void;
+  onRecycle: () => void;
   onOpenHere: () => void;
 }
 
-function FindingRow({ f, focused, onFocus, onReveal, onDecide, onIgnore, onOpenLink, onCopyLink, onOpenHere }: RowProps) {
+function FindingRow({ f, focused, onFocus, onReveal, onDecide, onIgnore, onOpenLink, onCopyLink, onRecycle, onOpenHere }: RowProps) {
+  const [confirmRecycle, setConfirmRecycle] = useState(false);
+  const isFile = f.platform === "pc";
   return (
     <article id={`f-${f.id}`} role="option" aria-selected={focused} className={`finding${focused ? " focused" : ""}`} onClick={onFocus}>
       <div className="finding-meta">
         <span className={`sev-pill sev-pill-${f.severity}`}>{severityLabel(f.severity)}</span>
+        <span className="platform-chip">{platformName[f.platform]}</span>
         <span>{f.label}</span>
         <span className="where" title={f.channel_name}>{f.channel_name}</span>
         <time>{dateTime(f.ts)}</time>
@@ -376,9 +407,26 @@ function FindingRow({ f, focused, onFocus, onReveal, onDecide, onIgnore, onOpenL
       </p>
       {focused && <p className="advice">{f.advice}</p>}
       <div className="actions" onClick={(e) => e.stopPropagation()}>
-        <button className="small-btn primary-soft" onClick={onOpenLink}>Open in Discord</button>
-        <button className="small-btn" onClick={onCopyLink}>Copy link</button>
-        <button className="small-btn ghost" onClick={onOpenHere}>Show conversation</button>
+        {isFile ? (
+          <>
+            <button className="small-btn primary-soft" onClick={onOpenLink}>Show in folder</button>
+            {!f.status &&
+              (confirmRecycle ? (
+                <>
+                  <button className="small-btn danger" onClick={onRecycle}>Yes, move to Recycle Bin</button>
+                  <button className="small-btn ghost" onClick={() => setConfirmRecycle(false)}>Cancel</button>
+                </>
+              ) : (
+                <button className="small-btn" onClick={() => setConfirmRecycle(true)}>Move to Recycle Bin…</button>
+              ))}
+          </>
+        ) : (
+          <>
+            <button className="small-btn primary-soft" onClick={onOpenLink}>{openLabel(f.platform)}</button>
+            {f.link && <button className="small-btn" onClick={onCopyLink}>Copy link</button>}
+            <button className="small-btn ghost" onClick={onOpenHere}>Show conversation</button>
+          </>
+        )}
         <span className="grow" />
         {f.status ? (
           <button className="small-btn" onClick={() => onDecide(null)}>Move back to review</button>
@@ -472,7 +520,7 @@ function KeyHints() {
     ["D", "deleted"],
     ["N", "not a problem"],
     ["L", "later"],
-    ["O", "open in Discord"],
+    ["O", "open where it is"],
   ];
   return (
     <div className="key-hints" aria-label="Keyboard shortcuts">

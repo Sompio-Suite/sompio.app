@@ -1,21 +1,11 @@
-//! Sample data, so people can see what Veil does while Discord prepares their real package.
+//! Sample data, so people can see what Veil does while they wait for their real exports.
 //! Everything here is made up: example.org addresses, test card numbers, the textbook IBAN.
 
+use crate::import::{after_import, Writer};
 use crate::Store;
 use anyhow::Result;
 
 const DISCORD_EPOCH_MS: i64 = 1_420_070_400_000;
-
-const CHANNELS: &[(&str, &str, Option<(i64, &str)>)] = &[
-    ("general", "server", Some((700_000_000_000_000_001, "Night Owls Gaming"))),
-    ("raid-planning", "server", Some((700_000_000_000_000_001, "Night Owls Gaming"))),
-    ("trading", "server", Some((700_000_000_000_000_001, "Night Owls Gaming"))),
-    ("help", "server", Some((700_000_000_000_000_002, "Home Lab Builders"))),
-    ("show-your-setup", "server", Some((700_000_000_000_000_002, "Home Lab Builders"))),
-    ("Direct message with sam", "dm", None),
-    ("Direct message with noor", "dm", None),
-    ("Weekend crew", "group_dm", None),
-];
 
 const WORDS: &[&str] = &[
     "anyone", "up", "for", "a", "raid", "tonight", "the", "boss", "was", "rough", "need", "healer", "brb",
@@ -36,71 +26,76 @@ const LEAKS: &[&str] = &[
     "call me at +31 6 98765432 if discord is down",
 ];
 
-/// Replaces whatever is imported with sample data.
-pub fn load_demo(store: &mut Store) -> Result<()> {
-    store.wipe()?;
-    let mut seed: u64 = 42;
-    let mut rand = move || {
-        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
-        (seed >> 33) as f64 / (1u64 << 31) as f64
-    };
-
-    let tx = store.conn.transaction()?;
-    {
-        let mut ins_c = tx.prepare(
-            "INSERT INTO channels(id, name, kind, guild_id, guild_name) VALUES (?1, ?2, ?3, ?4, ?5)",
-        )?;
-        let mut ins_m = tx.prepare(
-            "INSERT OR IGNORE INTO messages(id, channel_id, ts, content, attachments) VALUES (?1, ?2, ?3, ?4, ?5)",
-        )?;
-        let start = 1_525_132_800_000i64; // May 2018
-        let span = 1_700_000_000_000i64 - start;
-        let mut counter = 0i64;
-
-        for (ci, (name, kind, guild)) in CHANNELS.iter().enumerate() {
-            let cid = 800_000_000_000_000_000 + ci as i64;
-            let display = match guild {
-                Some((_, g)) => format!("{name} in {g}"),
-                None => name.to_string(),
-            };
-            ins_c.execute((cid, &display, kind, guild.map(|g| g.0), guild.map(|g| g.1)))?;
-
-            let n = 300 + (rand() * 1400.0) as usize;
-            let mut ts = start + (rand() * span as f64 * 0.3) as i64;
-            for _ in 0..n {
-                ts += (rand() * (span as f64 * 0.7 / n as f64) * 2.0) as i64;
-                counter += 1;
-                let id = ((ts - DISCORD_EPOCH_MS) << 22) + (counter % 4096);
-                let len = 3 + (rand() * 18.0) as usize;
-                let mut text = (0..len).map(|_| WORDS[(rand() * WORDS.len() as f64) as usize]).collect::<Vec<_>>().join(" ");
-                if rand() < 0.012 {
-                    text = LEAKS[(rand() * LEAKS.len() as f64) as usize].to_string();
-                }
-                let att = if rand() < 0.04 {
-                    format!("https://cdn.discordapp.com/attachments/{cid}/{id}/screenshot.png")
-                } else {
-                    String::new()
-                };
-                ins_m.execute((id, cid, ts, &text, &att))?;
-            }
-        }
+struct Rng(u64);
+impl Rng {
+    fn next(&mut self) -> f64 {
+        self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        (self.0 >> 33) as f64 / (1u64 << 31) as f64
     }
-    tx.commit()?;
-    store.conn.execute_batch(
-        "UPDATE channels SET
-            message_count = (SELECT COUNT(*) FROM messages m WHERE m.channel_id = channels.id),
-            first_ts      = (SELECT MIN(ts) FROM messages m WHERE m.channel_id = channels.id),
-            last_ts       = (SELECT MAX(ts) FROM messages m WHERE m.channel_id = channels.id);
-         INSERT INTO messages_fts(messages_fts) VALUES('rebuild');",
-    )?;
-    store.set_meta("demo", "1")?;
-    store.set_meta("imported_at_ms", &crate::now_ms().to_string())?;
-    Ok(())
+    fn pick<'a>(&mut self, list: &[&'a str]) -> &'a str {
+        list[(self.next() * list.len() as f64) as usize % list.len()]
+    }
+    fn chatter(&mut self) -> String {
+        let len = 3 + (self.next() * 18.0) as usize;
+        (0..len).map(|_| self.pick(WORDS)).collect::<Vec<_>>().join(" ")
+    }
 }
 
-impl Store {
-    /// True while the sample data is loaded instead of a real package.
-    pub fn is_demo(&self) -> Result<bool> {
-        Ok(self.get_meta("demo")?.as_deref() == Some("1"))
+/// Replaces whatever is imported with sample data from two platforms.
+pub fn load_demo(store: &mut Store) -> Result<()> {
+    store.wipe()?;
+    let mut rng = Rng(42);
+    let start = 1_525_132_800_000i64; // May 2018
+    let span = 1_700_000_000_000i64 - start;
+
+    // Discord
+    let discord: &[(&str, &str, Option<(&str, &str)>)] = &[
+        ("general", "server", Some(("700000000000000001", "Night Owls Gaming"))),
+        ("raid-planning", "server", Some(("700000000000000001", "Night Owls Gaming"))),
+        ("trading", "server", Some(("700000000000000001", "Night Owls Gaming"))),
+        ("help", "server", Some(("700000000000000002", "Home Lab Builders"))),
+        ("Direct message with sam", "dm", None),
+        ("Direct message with noor", "dm", None),
+        ("Weekend crew", "group_dm", None),
+    ];
+    let mut w = Writer::new(store, "discord")?;
+    let mut counter = 0i64;
+    for (ci, (name, kind, guild)) in discord.iter().enumerate() {
+        let cid_ext = (800_000_000_000_000_000i64 + ci as i64).to_string();
+        let display = match guild {
+            Some((_, g)) => format!("{name} in {g}"),
+            None => name.to_string(),
+        };
+        let cid = w.channel(&cid_ext, &display, kind, guild.map(|g| g.0), guild.map(|g| g.1))?;
+        let n = 300 + (rng.next() * 1400.0) as usize;
+        let mut ts = start + (rng.next() * span as f64 * 0.3) as i64;
+        for _ in 0..n {
+            ts += (rng.next() * (span as f64 * 0.7 / n as f64) * 2.0) as i64;
+            counter += 1;
+            let id = (((ts - DISCORD_EPOCH_MS) << 22) + (counter % 4096)).to_string();
+            let text = if rng.next() < 0.012 { rng.pick(LEAKS).to_string() } else { rng.chatter() };
+            let att = if rng.next() < 0.04 { format!("https://cdn.discordapp.com/attachments/{cid_ext}/{id}/screenshot.png") } else { String::new() };
+            let link = format!("https://discord.com/channels/{}/{cid_ext}/{id}", guild.map(|g| g.0).unwrap_or("@me"));
+            w.message(&id, cid, ts, &text, &att, Some(&link))?;
+        }
     }
+    w.finish("Sample data")?;
+
+    // Reddit
+    let mut w = Writer::new(store, "reddit")?;
+    for sub in ["homelab", "Amsterdam", "buildapc"] {
+        let cid = w.channel(&format!("r/{sub}"), &format!("r/{sub}"), "community", None, None)?;
+        for i in 0..(80 + (rng.next() * 120.0) as usize) {
+            let ts = start + (rng.next() * span as f64) as i64;
+            let text = if rng.next() < 0.03 { rng.pick(LEAKS).to_string() } else { rng.chatter() };
+            let id = format!("t1_{sub}{i}");
+            let link = format!("https://www.reddit.com/r/{sub}/comments/demo/_/{i}/");
+            w.message(&id, cid, ts, &text, "", Some(&link))?;
+        }
+    }
+    w.finish("Sample data")?;
+
+    after_import(store)?;
+    store.set_meta("demo", "1")?;
+    Ok(())
 }

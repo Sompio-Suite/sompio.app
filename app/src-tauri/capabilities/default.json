@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The only permissions the window has: talk to Veil's own commands, listen for progress events, open the system file pickers, and open discord.com message links in the browser. No shell, no file system, no HTTP.",
+  "description": "The only permissions the window has: talk to Veil's own commands, listen for progress events, open the system file pickers, and open message links on Discord, Reddit, X and Telegram in the browser. No shell, no file system, no HTTP.",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -9,7 +9,12 @@
     "dialog:allow-save",
     {
       "identifier": "opener:allow-open-url",
-      "allow": [{ "url": "https://discord.com/channels/*" }]
+      "allow": [
+        { "url": "https://discord.com/channels/*" },
+        { "url": "https://www.reddit.com/*" },
+        { "url": "https://x.com/*" },
+        { "url": "https://t.me/c/*" }
+      ]
     }
   ]
 }

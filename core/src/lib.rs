@@ -3,25 +3,25 @@
 //! Design rules (keep these when you change things):
 //! - No networking. This crate has no HTTP client dependency, and must never get one.
 //! - Your data stays in one local SQLite file that you can wipe at any time.
+//! - Only what you wrote is imported; other people's messages are skipped.
 //! - Sensitive matches are stored as positions, never copied into a second place.
 //! - Anything shown on screen is masked unless the user explicitly reveals it.
 
 mod db;
 mod demo;
 mod import;
+mod pcscan;
 mod query;
 mod scan;
+mod time;
 
 pub use db::Store;
 pub use demo::load_demo;
-pub use import::{import_package, ImportProgress, ImportSummary};
-pub use query::{
-    ChannelView, MessageView, MessagesPage, SearchPage, Segment, Stats, YearCount,
-};
+pub use import::{import_package, platform_label, ImportProgress, ImportSummary};
+pub use pcscan::scan_folders;
+pub use query::{ChannelView, MessageView, MessagesPage, SearchPage, Segment, SourceView, Stats, YearCount};
 pub use scan::{
-    run_scan, Detection, FindingView, FindingsPage, Kind, KindCount, ScanOptions, ScanSummary,
-    StatusFilter,
-    Scanner,
+    run_scan, Detection, FindingView, FindingsPage, Kind, KindCount, ScanOptions, ScanSummary, Scanner, StatusFilter,
 };
 
 /// Discord IDs ("snowflakes") contain their own creation time.

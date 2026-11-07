@@ -14,6 +14,11 @@ export const channelKind: Record<string, string> = {
   group_dm: "Group chat",
   server: "Server",
   thread: "Thread",
+  community: "Community",
+  posts: "Your posts",
+  channel: "Channel",
+  saved: "Saved messages",
+  folder: "Folder",
   unknown: "Other",
 };
 

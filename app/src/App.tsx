@@ -6,8 +6,9 @@ import Overview from "./views/Overview";
 import Exposure from "./views/Exposure";
 import Messages from "./views/Messages";
 import Settings from "./views/Settings";
+import Sources from "./views/Sources";
 
-export type View = "overview" | "exposure" | "messages" | "settings";
+export type View = "overview" | "exposure" | "messages" | "sources" | "settings";
 export interface Jump { channelId: string; messageId?: string }
 
 export default function App() {
@@ -64,6 +65,7 @@ export default function App() {
     ["exposure", "Review"],
     ["overview", "Overview"],
     ["messages", "Messages"],
+    ["sources", "Sources"],
     ["settings", "Settings"],
   ];
   const toReview = scan ? scan.open : 0;
@@ -82,19 +84,31 @@ export default function App() {
         ))}
         <div className="rail-foot">
           <strong>Offline</strong>
-          Veil has no internet access. Your messages stay on this computer.
+          Veil has no internet access. Your data stays on this computer.
         </div>
       </nav>
       <main>
         {demo && (
           <div className="demo-bar" role="status">
             <span>You're looking at sample data. Nothing here is yours.</span>
-            <button onClick={leave}>Open my own package</button>
+            <button onClick={leave}>Use my own data</button>
           </div>
         )}
         {view === "overview" && <Overview key={version} scan={scan} onOpen={openChannel} onGo={setView} />}
         {view === "exposure" && <Exposure key={version} scan={scan} demo={demo} onScan={setScan} onOpen={openChannel} />}
         {view === "messages" && <Messages key={version} jump={jump} onJumpHandled={() => setJump(null)} />}
+        {view === "sources" && (
+          <Sources
+            demo={demo}
+            onScan={setScan}
+            onChanged={async () => {
+              setVersion((v) => v + 1);
+              const has = await api.hasData();
+              if (!has) return leave();
+              setDemo(await api.isDemo());
+            }}
+          />
+        )}
         {view === "settings" && <Settings scan={scan} demo={demo} onScan={setScan} onLeave={leave} />}
       </main>
     </div>
