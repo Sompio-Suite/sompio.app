@@ -165,4 +165,19 @@ export const vaultHandlers: Record<string, (a: any) => unknown> = {
   vault_autotype_matches: () => ({ window: "Battle.net Login", matches: [{ entry: summary(items[0]), sequence: "{PASSWORD}{ENTER}", because: "window rule" }, { entry: summary(items[1]), sequence: "{USERNAME}{TAB}{PASSWORD}{ENTER}", because: "title" }] }),
   vault_autotype_choose: () => undefined,
   vault_autotype_now: () => undefined,
+  vault_add_samples: () => {
+    const g = { id: `g${seq++}`, parent: ROOT, name: "Samples", depth: 1, entries: 0, recycle_bin: false };
+    groups.splice(1, 0, g);
+    items.push(make(g.id, "Sompio test login", "tester@example.org", "", "Glacier-Lantern-Fjord-77", { tags: ["try auto-type"] }));
+    items.push(make(g.id, "Notepad (auto-type test)", "alex.rivers", "", "typed-by-sompio", { autotype: { enabled: true, sequence: "Hello from Sompio{ENTER}", windows: ["*Notepad*"] } }));
+    return g.id;
+  },
+  samples_write: ({ which }) => ({
+    folder: `C:\\Users\\you\\Documents\\Sompio samples\\${which[0].toUpperCase()}${which.slice(1)}`,
+    files: which === "vault"
+      ? [["Sample KeePass.kdbx", "A KeePass file. Its password is: sample-password"], ["Sample Bitwarden export.csv", "A Bitwarden export with a folder and a 2FA secret."], ["Test login page.html", "Open it in your browser to try auto-type."]]
+      : which === "calendar"
+        ? [["Night Owls raids (sample).csv", "A shared schedule with groups."], ["Sample Desk Reminders folder", "A Desk Reminders folder to bring in."]]
+        : [["Discord package.zip", "Discord: a server with two channels and two DMs."], ["Telegram export.zip", "Telegram: a private chat and a group."], ["Sample PC folder", "This PC: a folder for Scan a folder."]],
+  }),
 };

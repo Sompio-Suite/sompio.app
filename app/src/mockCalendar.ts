@@ -196,6 +196,7 @@ export const calendarHandlers: Record<string, (a: any) => unknown> = {
     return (paused = `${iso(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`);
   },
   cal_paused: () => paused,
+  cal_add_samples: () => calendarHandlers.cal_create_shared({ name: "Sample reminders", timezone: "", groups: ["Team A", "Team B"] }),
   cal_autostart: () => autostart,
   cal_set_autostart: ({ on }) => { autostart = on; },
 };

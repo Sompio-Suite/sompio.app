@@ -3,6 +3,7 @@
 
 mod calendar;
 mod vault;
+mod samples;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -737,6 +738,9 @@ pub fn run() {
             vault::vault_autotype_matches,
             vault::vault_autotype_choose,
             vault::vault_autotype_now,
+            vault::vault_add_samples,
+            samples::samples_write,
+            samples::cal_add_samples,
         ])
         .run(context)
         .expect("error while running Sompio");

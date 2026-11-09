@@ -13,6 +13,7 @@ mod import;
 mod pcscan;
 mod query;
 mod scan;
+pub mod samples;
 mod time;
 
 pub use db::Store;

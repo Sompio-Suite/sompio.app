@@ -15,12 +15,13 @@ import LockScreen from "./views/LockScreen";
 import Security from "./views/Security";
 import Calendar from "./views/Calendar";
 import Vault from "./views/Vault";
+import Samples from "./views/Samples";
 import { SUITE, accessText } from "./licence";
 import { autoCheckEnabled, checkForUpdate, dueForCheck, type UpdateInfo } from "./updates";
 
 /** Suite pages, then Clean's pages. */
 export type View =
-  | "overview" | "calendar" | "vault" | "voice" | "licences" | "security"
+  | "overview" | "calendar" | "vault" | "voice" | "licences" | "security" | "samples"
   | "home" | "review" | "messages" | "sources" | "settings";
 const CLEAN_VIEWS: View[] = ["home", "review", "messages", "sources", "settings"];
 export interface Jump { channelId: string; messageId?: string }
@@ -158,7 +159,7 @@ export default function App() {
     <button
       key={id}
       className={`nav${sub ? " sub" : ""}`}
-      aria-current={view === id ? "page" : undefined}
+      aria-current={view === id || (id === "home" && inClean) ? "page" : undefined}
       aria-label={label}
       onClick={() => (id === "review" ? openReview(null) : setView(id))}
     >
@@ -219,21 +220,12 @@ export default function App() {
           <span className="brand-name">sompio</span>
         </div>
         {navButton("overview", "Overview", "grid")}
-        <div className="rail-group">
-          {navButton("home", "Clean", "review", cleanLocked ? <Icon name="lock" size={14} /> : undefined)}
-          {ready && inClean && (
-            <>
-              {navButton("review", "Review", "check", toReview > 0 ? <span className="count" aria-label={`${toReview} to review`}>{n(toReview)}</span> : undefined, true)}
-              {navButton("messages", "Messages", "messages", undefined, true)}
-              {navButton("sources", "Sources", "sources", undefined, true)}
-              {navButton("settings", "Settings", "settings", undefined, true)}
-            </>
-          )}
-        </div>
+        {navButton("home", "Clean", "review", cleanLocked ? <Icon name="lock" size={14} /> : toReview > 0 && !inClean ? <span className="count" aria-label={`${toReview} to review`}>{n(toReview)}</span> : undefined)}
         {navButton("calendar", "Calendar", "calendar", calendarLocked ? <Icon name="lock" size={14} /> : undefined)}
         {navButton("vault", "Vault", "key", vaultLocked ? <Icon name="lock" size={14} /> : undefined)}
         {SUITE.filter((a) => !a.ready).map((a) => navButton(a.key as View, a.name, a.icon, <span className="soon-dot" title={a.when} />))}
         <div className="rail-spacer" />
+        {navButton("samples", "Samples", "sparkle")}
         {navButton("security", "Security", "lock")}
         {navButton("licences", "Licences", "ticket")}
         {update && (
@@ -278,6 +270,24 @@ export default function App() {
             <button onClick={leave}>Use my own data</button>
           </div>
         )}
+        {inClean && (
+          <div className="app-head">
+            <div className="app-title">
+              <h1>Clean</h1>
+              <span className="muted">Find and remove what you've shared over the years.</span>
+            </div>
+            {ready && (
+              <div className="segmented" role="tablist" aria-label="Clean">
+                {([["home", "Overview"], ["review", "Review"], ["messages", "Messages"], ["sources", "Sources"], ["settings", "Settings"]] as [View, string][]).map(([id, label]) => (
+                  <button key={id} role="tab" aria-selected={view === id} onClick={() => (id === "review" ? openReview(null) : setView(id))}>
+                    {label}
+                    {id === "review" && toReview > 0 && <span className="count">{n(toReview)}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {view === "overview" && <Overview licence={licence} scan={scan} cleanReady={ready} onGo={setView} />}
         {view === "licences" && <Licences licence={licence} onChanged={setLicence} />}
         {view === "security" && (
@@ -292,6 +302,18 @@ export default function App() {
         )}
         {view === "calendar" && <Calendar readOnly={calendarLocked} onAddKey={() => setView("licences")} />}
         {view === "vault" && <Vault readOnly={vaultLocked} onAddKey={() => setView("licences")} />}
+        {view === "samples" && (
+          <Samples
+            cleanHasData={!!ready && !demo}
+            onCleanDemo={async () => {
+              await api.loadDemo();
+              await refresh();
+              setVersion((v) => v + 1);
+              setView("home");
+            }}
+            onGo={setView}
+          />
+        )}
         {view === "voice" && <Upcoming app={SUITE.find((a) => a.key === view)!} />}
         {inClean && cleanPage()}
       </main>

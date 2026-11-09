@@ -170,6 +170,7 @@ export default function Calendar({ readOnly, onAddKey }: Props) {
                   <button className="primary" disabled={readOnly} onClick={() => setEditing("new")}>New reminder</button>
                   <button disabled={readOnly} onClick={() => setPacks(true)}>Pick a routine</button>
                   <button disabled={readOnly} onClick={() => setTab("schedules")}>Bring in Desk Reminders</button>
+                  <button className="quiet" disabled={readOnly} onClick={() => run(() => api.calAddSamples(), "Sample reminders added. The first pops up within a minute.")}>Try sample reminders</button>
                 </div>
               </div>
             ) : ofDay.length === 0 ? (

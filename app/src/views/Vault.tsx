@@ -135,6 +135,7 @@ export default function Vault({ readOnly, onAddKey }: Props) {
                     <div className="toolbar">
                       <button className="primary" disabled={readOnly} onClick={() => setEditing("new")}>New entry</button>
                       <button onClick={() => setTab("settings")}>Import</button>
+                      <button className="quiet" onClick={() => run(() => api.vaultAddSamples(), "Sample entries added in the Samples folder.")}>Add sample entries</button>
                     </div>
                   </>
                 )}

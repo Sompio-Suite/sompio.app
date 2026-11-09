@@ -842,3 +842,25 @@ input.shortcut-input { width: 13rem; text-align: center; cursor: pointer; }
 .chooser-window { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chooser ul { list-style: none; margin: 0; padding: 0; overflow: auto; flex: 1; }
 .chooser .entry-row:focus-visible { background: var(--nav-active); }
+
+/* App header with tabs (Clean) */
+.app-head { display: grid; gap: 1.1rem; padding: 2.2rem 3rem 0; max-width: 1180px; width: 100%; }
+.app-title { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+.app-title h1 { font-size: var(--t-xl); }
+.app-head .segmented { justify-self: start; }
+.app-head .segmented .count { margin-left: 0.45rem; }
+.app-head + .page { padding-top: 1.6rem; }
+.app-head ~ .page .page-head h1 { font-size: 1.45rem; }
+.app-head ~ .page .home-hero h1 { font-size: 1.9rem; }
+
+/* Samples */
+.sample-card { padding: 1.25rem 1.4rem; display: grid; gap: 1rem; }
+.sample-card header { display: flex; align-items: center; gap: 0.6rem; }
+.sample-card header .icon { color: var(--accent); }
+.sample-card h2 { font-size: 1.2rem; }
+.sample-row { display: flex; gap: 1.5rem; align-items: center; justify-content: space-between; padding-top: 1rem; border-top: 1px solid var(--line); }
+.sample-row > div { display: grid; gap: 0.2rem; max-width: 70ch; }
+.sample-row > button { flex: none; }
+.sample-files { display: grid; gap: 0.4rem; background: var(--sunken); border-radius: var(--r-m); padding: 0.8rem 1rem; }
+.sample-files ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.25rem; }
+.muted-card { opacity: 0.7; }

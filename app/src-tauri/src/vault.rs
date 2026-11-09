@@ -309,6 +309,12 @@ pub async fn vault_export_csv(app: AppHandle, path: String) -> CmdResult<()> {
     with_vault(&app, move |v| Ok(std::fs::write(&path, sompio_vault::csvfile::export(v)?)?)).await
 }
 
+/// Adds the "Samples" folder of made-up entries. Delete the folder to remove them.
+#[tauri::command]
+pub async fn vault_add_samples(app: AppHandle) -> CmdResult<String> {
+    with_vault(&app, |v| sompio_vault::samples::add_sample_entries(v)).await
+}
+
 #[tauri::command]
 pub fn vault_settings(state: State<'_, AppState>) -> CmdResult<VaultSettings> {
     Ok(state.passwords.settings.lock().map_err(err)?.clone())

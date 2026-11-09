@@ -283,6 +283,9 @@ export const api = {
   vaultAutotypeMatches: () => call<{ window: string; matches: AutoTypeMatch[] }>("vault_autotype_matches"),
   vaultAutotypeChoose: (id: string, sequence: string | null) => call<void>("vault_autotype_choose", { id, sequence }),
   vaultAutotypeNow: (id: string) => call<void>("vault_autotype_now", { id }),
+  vaultAddSamples: () => call<string>("vault_add_samples"),
+  calAddSamples: () => call<number>("cal_add_samples"),
+  samplesWrite: (which: "clean" | "calendar" | "vault") => call<{ folder: string; files: [string, string][] }>("samples_write", { which }),
 };
 
 export async function pickScheduleFile(): Promise<string | null> {

@@ -5,6 +5,7 @@ pub mod autotype;
 pub mod csvfile;
 pub mod generator;
 pub mod health;
+pub mod samples;
 pub mod store;
 
 pub use store::{AutoTypeSettings, EntryDetail, EntryInput, EntrySummary, FieldInput, GroupView, ImportSummary, Totp, Vault};

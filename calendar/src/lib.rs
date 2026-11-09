@@ -4,6 +4,7 @@
 pub mod engine;
 pub mod format;
 pub mod runtime;
+pub mod samples;
 pub mod store;
 
 pub use engine::{alert_key, due, occurrences, Alert, AlertMode, Kind, Occurrence, Quiet, Source};
