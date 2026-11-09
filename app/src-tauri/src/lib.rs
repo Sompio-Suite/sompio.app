@@ -84,6 +84,61 @@ async fn lock_change_password(state: State<'_, AppState>, old: String, new: Stri
     with_vault(&state, move |v| v.change_password(&old, &new, picture_path.as_deref().map(Path::new))).await
 }
 
+// YubiKey: stands in for the key picture. The device is asked with HID feature reports.
+
+fn touch_notice(app: &tauri::AppHandle) -> impl FnMut() + '_ {
+    move || {
+        let _ = app.emit("yubikey-touch", ());
+    }
+}
+
+fn ask_key(app: &tauri::AppHandle, k: &sompio_suite::HardwareKeyInfo) -> anyhow::Result<[u8; 20]> {
+    let mut touch = touch_notice(app);
+    Ok(sompio_hwkey::challenge(k.slot, &k.challenge, k.serial, &mut touch)?.0)
+}
+
+#[derive(serde::Serialize)]
+struct YubiKeyFound {
+    name: String,
+    serial: Option<u32>,
+}
+
+#[tauri::command]
+async fn lock_yubikeys_present() -> CmdResult<Vec<YubiKeyFound>> {
+    tauri::async_runtime::spawn_blocking(|| sompio_hwkey::list().map(|l| l.into_iter().map(|f| YubiKeyFound { name: f.name, serial: f.serial }).collect()))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn lock_unlock_yubikey(app: tauri::AppHandle, state: State<'_, AppState>, password: String) -> CmdResult<()> {
+    with_vault(&state, move |v| v.unlock_with_hardware(&password, &mut |k| ask_key(&app, k))).await?;
+    state.calendar.mark_dirty();
+    Ok(())
+}
+
+#[tauri::command]
+async fn lock_add_yubikey(app: tauri::AppHandle, state: State<'_, AppState>, picture_path: Option<String>, slot: u8, label: String) -> CmdResult<()> {
+    with_vault(&state, move |v| {
+        v.add_hardware_key(picture_path.as_deref().map(Path::new), slot, &label, &mut |slot, ch| {
+            let mut touch = touch_notice(&app);
+            sompio_hwkey::challenge(slot, ch, None, &mut touch)
+        })
+    })
+    .await
+}
+
+#[tauri::command]
+async fn lock_remove_yubikey(state: State<'_, AppState>, index: usize) -> CmdResult<()> {
+    with_vault(&state, move |v| v.remove_hardware_key(index)).await
+}
+
+#[tauri::command]
+async fn lock_change_password_yubikey(app: tauri::AppHandle, state: State<'_, AppState>, old: String, new: String) -> CmdResult<()> {
+    with_vault(&state, move |v| v.change_password_with_hardware(&old, &new, &mut |k| ask_key(&app, k))).await
+}
+
 #[tauri::command]
 fn lock_forget_picture(state: State<'_, AppState>) -> CmdResult<()> {
     state.vault.forget_picture().map_err(|e| e.to_string())
@@ -640,6 +695,11 @@ pub fn run() {
             lock_recover,
             lock_change_password,
             lock_forget_picture,
+            lock_yubikeys_present,
+            lock_unlock_yubikey,
+            lock_add_yubikey,
+            lock_remove_yubikey,
+            lock_change_password_yubikey,
             lock_lock,
             licence_status,
             licence_add,

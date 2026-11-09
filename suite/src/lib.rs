@@ -5,6 +5,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use sompio_clean::Store;
 use sompio_connect::SecretStore;
 use sompio_lock::{read_picture, LockFile, PictureSecret, VaultKey};
+pub use sompio_lock::HardwareKeyInfo;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use zeroize::Zeroizing;
@@ -12,12 +13,15 @@ use zeroize::Zeroizing;
 /// Where the picture's secret is kept on a PC the person chose to trust.
 const REMEMBERED_PICTURE: &str = "lock.picture";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct LockStatus {
     pub set_up: bool,
     pub unlocked: bool,
     /// This PC remembers the key picture, so only the password is needed
     pub remembers_picture: bool,
+    /// YubiKeys added as a stand-in for the key picture
+    #[serde(default)]
+    pub hardware_keys: Vec<sompio_lock::HardwareKeyInfo>,
 }
 
 pub struct Vault {
@@ -54,6 +58,7 @@ impl Vault {
             set_up: self.lock_path().exists(),
             unlocked: self.key.lock().map(|k| k.is_some()).unwrap_or(false),
             remembers_picture: self.remembered().is_some(),
+            hardware_keys: LockFile::load(&self.lock_path()).ok().flatten().map(|f| f.hardware_keys()).unwrap_or_default(),
         })
     }
 
@@ -142,6 +147,75 @@ impl Vault {
         Ok(s.recovery_code)
     }
 
+    /// Asks each added YubiKey in turn (via `respond`, which talks to the device) until one
+    /// answers, and turns its answer into the picture's secret.
+    fn picture_from_hardware(&self, file: &LockFile, respond: &mut dyn FnMut(&sompio_lock::HardwareKeyInfo) -> Result<[u8; 20]>) -> Result<PictureSecret> {
+        let keys = file.hardware_keys();
+        if keys.is_empty() {
+            bail!("No YubiKey has been added to this Sompio yet.");
+        }
+        let mut last = None;
+        for k in &keys {
+            match respond(k).and_then(|r| file.picture_from_hardware(k.index, &r)) {
+                Ok(p) => return Ok(p),
+                Err(e) => last = Some(e),
+            }
+        }
+        Err(last.unwrap_or_else(|| anyhow!("No added YubiKey answered.")))
+    }
+
+    /// Password plus a YubiKey instead of the picture.
+    pub fn unlock_with_hardware(&self, password: &str, respond: &mut dyn FnMut(&sompio_lock::HardwareKeyInfo) -> Result<[u8; 20]>) -> Result<()> {
+        let file = LockFile::load(&self.lock_path())?.ok_or_else(|| anyhow!("Sompio has no lock yet."))?;
+        let picture = self.picture_from_hardware(&file, respond)?;
+        let vault = file.unlock(password, &picture)?;
+        self.secure_data(&vault)?;
+        self.set_key(Some(vault));
+        Ok(())
+    }
+
+    /// Adds a YubiKey. Needs Sompio unlocked, and the key picture (or this PC remembering it).
+    /// `respond` asks the device; it returns the answer and the key's serial number.
+    pub fn add_hardware_key(
+        &self,
+        picture_path: Option<&Path>,
+        slot: u8,
+        label: &str,
+        respond: &mut dyn FnMut(u8, &[u8; 32]) -> Result<([u8; 20], Option<u32>)>,
+    ) -> Result<()> {
+        if !self.status()?.unlocked {
+            bail!("Unlock Sompio first.");
+        }
+        let mut file = LockFile::load(&self.lock_path())?.ok_or_else(|| anyhow!("Sompio has no lock yet."))?;
+        let picture = self.picture_from(picture_path)?;
+        let challenge = LockFile::new_challenge()?;
+        let (response, serial) = respond(slot, &challenge)?;
+        // Ask again: a key whose slot doesn't give the same answer twice can't open anything later
+        let (again, _) = respond(slot, &challenge)?;
+        if again != response {
+            bail!("The YubiKey gave two different answers. Its slot {slot} needs to be set up for HMAC-SHA1 challenge-response.");
+        }
+        file.add_hardware_key(&picture, challenge, response, slot, serial, label)?;
+        file.save(&self.lock_path())
+    }
+
+    pub fn remove_hardware_key(&self, index: usize) -> Result<()> {
+        if !self.status()?.unlocked {
+            bail!("Unlock Sompio first.");
+        }
+        let mut file = LockFile::load(&self.lock_path())?.ok_or_else(|| anyhow!("Sompio has no lock yet."))?;
+        file.remove_hardware_key(index)?;
+        file.save(&self.lock_path())
+    }
+
+    /// Changing the password with a YubiKey instead of the picture.
+    pub fn change_password_with_hardware(&self, old: &str, new: &str, respond: &mut dyn FnMut(&sompio_lock::HardwareKeyInfo) -> Result<[u8; 20]>) -> Result<()> {
+        let mut file = LockFile::load(&self.lock_path())?.ok_or_else(|| anyhow!("Sompio has no lock yet."))?;
+        let picture = self.picture_from_hardware(&file, respond)?;
+        file.change_password(old, new, &picture)?;
+        file.save(&self.lock_path())
+    }
+
     pub fn change_password(&self, old: &str, new: &str, picture_path: Option<&Path>) -> Result<()> {
         let mut file = LockFile::load(&self.lock_path())?.ok_or_else(|| anyhow!("Sompio has no lock yet."))?;
         let picture = self.picture_from(picture_path)?;
@@ -188,6 +262,43 @@ impl Vault {
 }
 
 #[cfg(test)]
+mod hardware_tests {
+    use super::*;
+
+    struct Mem(std::sync::Mutex<std::collections::HashMap<String, String>>);
+    impl SecretStore for Mem {
+        fn get(&self, k: &str) -> Result<Option<String>> { Ok(self.0.lock().unwrap().get(k).cloned()) }
+        fn set(&self, k: &str, v: &str) -> Result<()> { self.0.lock().unwrap().insert(k.into(), v.into()); Ok(()) }
+        fn delete(&self, k: &str) -> Result<()> { self.0.lock().unwrap().remove(k); Ok(()) }
+    }
+
+    #[test]
+    fn unlock_with_a_yubikey() {
+        let dir = tempfile::tempdir().unwrap();
+        let v = Vault::new(dir.path().to_path_buf(), Arc::new(Mem(Default::default())));
+        let pic = dir.path().join("key.png");
+        v.setup("correct horse battery staple", &pic, false).unwrap();
+        // A pretend YubiKey: HMAC is faked as a hash of the challenge with a device secret
+        let device = |ch: &[u8; 32]| -> [u8; 20] { let mut r = [0u8; 20]; for i in 0..20 { r[i] = ch[i] ^ 0x5a ^ ch[31 - i]; } r };
+        v.add_hardware_key(Some(&pic), 2, "Blue key", &mut |_, ch| Ok((device(ch), Some(777)))).unwrap();
+        let st = v.status().unwrap();
+        assert_eq!(st.hardware_keys.len(), 1);
+        assert_eq!(st.hardware_keys[0].label, "Blue key");
+        v.lock();
+        assert!(v.unlock_with_hardware("wrong password here!", &mut |k| Ok(device(&k.challenge))).is_err());
+        assert!(v.unlock_with_hardware("correct horse battery staple", &mut |_| Ok([0; 20])).is_err(), "another key");
+        v.unlock_with_hardware("correct horse battery staple", &mut |k| Ok(device(&k.challenge))).unwrap();
+        assert!(v.status().unwrap().unlocked);
+        assert!(v.clean_db().is_ok());
+        v.change_password_with_hardware("correct horse battery staple", "new horse battery staple!", &mut |k| Ok(device(&k.challenge))).unwrap();
+        v.lock();
+        v.unlock_with_hardware("new horse battery staple!", &mut |k| Ok(device(&k.challenge))).unwrap();
+        v.remove_hardware_key(0).unwrap();
+        assert!(v.status().unwrap().hardware_keys.is_empty());
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use sompio_connect::MemoryStore;
@@ -213,7 +324,7 @@ mod tests {
         std::fs::copy(dir.join("clean.db"), old.join("veil.db")).unwrap();
 
         let v = vault(&dir);
-        assert_eq!(v.status().unwrap(), LockStatus { set_up: false, unlocked: false, remembers_picture: false });
+        assert_eq!(v.status().unwrap(), LockStatus { set_up: false, unlocked: false, remembers_picture: false, hardware_keys: vec![] });
         assert!(v.clean_db().is_err());
         let pic = tmp.path().join("Sompio key.png");
         let code = v.setup(PW, &pic, true).unwrap();

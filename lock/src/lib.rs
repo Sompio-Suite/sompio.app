@@ -80,6 +80,40 @@ pub struct LockFile {
     /// Vault key wrapped with the recovery code
     recovery: Wrapped,
     created_ms: i64,
+    /// YubiKeys that stand in for the key picture
+    #[serde(default)]
+    hardware_keys: Vec<HardwareKey>,
+}
+
+/// A YubiKey added to the lock. Its HMAC answer to `challenge` opens a copy of the picture's
+/// secret, which then works with the password exactly like the picture does.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct HardwareKey {
+    serial: Option<u32>,
+    label: String,
+    slot: u8,
+    challenge: String,
+    picture: Wrapped,
+    added_ms: i64,
+}
+
+/// What the app shows about an added YubiKey, and what it needs to ask it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HardwareKeyInfo {
+    pub index: usize,
+    pub serial: Option<u32>,
+    pub label: String,
+    pub slot: u8,
+    #[serde(skip)]
+    pub challenge: [u8; 32],
+    pub added_ms: i64,
+}
+
+fn hardware_wrap_key(response: &[u8; 20], challenge: &[u8]) -> Zeroizing<[u8; 32]> {
+    let hk = hkdf::Hkdf::<Sha256>::new(Some(challenge), response);
+    let mut out = Zeroizing::new([0u8; 32]);
+    hk.expand(b"sompio-lock-yubikey-v1", out.as_mut()).expect("valid length");
+    out
 }
 
 /// What setup hands back: the lock file to save, the picture to give the person, and the code to print.
@@ -236,6 +270,8 @@ impl LockFile {
             recovery_kdf,
             recovery,
             created_ms: now_ms(),
+            // A new picture secret means old YubiKey entries no longer fit; they're added again.
+            hardware_keys: Vec::new(),
         };
         let picture_png = make_picture(&picture_secret)?;
         Ok(Setup { file, vault, picture_png, picture_secret, recovery_code })
@@ -273,6 +309,54 @@ impl LockFile {
         Ok(())
     }
 
+    /// A fresh random challenge for adding a YubiKey.
+    pub fn new_challenge() -> Result<[u8; 32]> {
+        random::<32>()
+    }
+
+    /// Adds a YubiKey: its answer to `challenge` will open the picture's secret. Needs the
+    /// picture (or the remembered copy) to prove it belongs to this lock.
+    pub fn add_hardware_key(&mut self, picture: &PictureSecret, challenge: [u8; 32], response: [u8; 20], slot: u8, serial: Option<u32>, label: &str) -> Result<()> {
+        if picture_id(picture) != self.picture_id {
+            bail!("That's not the key picture for this Sompio.");
+        }
+        if serial.is_some() && self.hardware_keys.iter().any(|k| k.serial == serial) {
+            bail!("This YubiKey is already added.");
+        }
+        let picture_copy = VaultKey(*picture.as_bytes());
+        let wrapped = wrap(&hardware_wrap_key(&response, &challenge), &picture_copy)?;
+        let label = if label.trim().is_empty() { serial.map(|s| format!("YubiKey {s}")).unwrap_or_else(|| "YubiKey".into()) } else { label.trim().to_string() };
+        self.hardware_keys.push(HardwareKey { serial, label, slot, challenge: hex(&challenge), picture: wrapped, added_ms: now_ms() });
+        Ok(())
+    }
+
+    pub fn hardware_keys(&self) -> Vec<HardwareKeyInfo> {
+        self.hardware_keys
+            .iter()
+            .enumerate()
+            .filter_map(|(index, k)| {
+                let challenge: [u8; 32] = unhex(&k.challenge).ok()?.try_into().ok()?;
+                Some(HardwareKeyInfo { index, serial: k.serial, label: k.label.clone(), slot: k.slot, challenge, added_ms: k.added_ms })
+            })
+            .collect()
+    }
+
+    /// The picture's secret, from a YubiKey's answer. Then unlock with the password as usual.
+    pub fn picture_from_hardware(&self, index: usize, response: &[u8; 20]) -> Result<PictureSecret> {
+        let k = self.hardware_keys.get(index).ok_or_else(|| anyhow!("That YubiKey isn't added to this Sompio."))?;
+        let opened = unwrap(&hardware_wrap_key(response, &unhex(&k.challenge)?), &k.picture)
+            .ok_or_else(|| anyhow!("This YubiKey isn't the one added to this Sompio, or its slot {} was set up again.", k.slot))?;
+        PictureSecret::from_hex(&hex(&opened.0)).ok_or_else(|| anyhow!("lock file is damaged"))
+    }
+
+    pub fn remove_hardware_key(&mut self, index: usize) -> Result<()> {
+        if index >= self.hardware_keys.len() {
+            bail!("That YubiKey isn't added to this Sompio.");
+        }
+        self.hardware_keys.remove(index);
+        Ok(())
+    }
+
     pub fn load(path: &Path) -> Result<Option<LockFile>> {
         match std::fs::read(path) {
             Ok(b) => {
@@ -292,6 +376,39 @@ impl LockFile {
         std::fs::write(&tmp, serde_json::to_vec_pretty(self)?)?;
         std::fs::rename(&tmp, path)?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod hardware_tests {
+    use super::*;
+
+    #[test]
+    fn a_yubikey_stands_in_for_the_picture() {
+        let setup = LockFile::create("correct horse battery staple").unwrap();
+        let mut file = setup.file;
+        let ch = LockFile::new_challenge().unwrap();
+        let answer = [42u8; 20];
+        file.add_hardware_key(&setup.picture_secret, ch, answer, 2, Some(1234), "").unwrap();
+        assert!(file.add_hardware_key(&setup.picture_secret, ch, answer, 2, Some(1234), "").is_err(), "no duplicates");
+        assert!(file.add_hardware_key(&PictureSecret::new().unwrap(), ch, answer, 2, Some(99), "").is_err(), "needs the right picture");
+        let keys = file.hardware_keys();
+        assert_eq!(keys[0].label, "YubiKey 1234");
+        assert_eq!(keys[0].challenge, ch);
+        let pic = file.picture_from_hardware(0, &answer).unwrap();
+        assert!(file.unlock("correct horse battery staple", &pic).is_ok());
+        assert!(file.picture_from_hardware(0, &[1u8; 20]).is_err(), "another key's answer fails");
+        // Survives a password change and a save/load
+        file.change_password("correct horse battery staple", "new horse battery staple", &pic).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("lock.json");
+        file.save(&path).unwrap();
+        let loaded = LockFile::load(&path).unwrap().unwrap();
+        let pic2 = loaded.picture_from_hardware(0, &answer).unwrap();
+        assert!(loaded.unlock("new horse battery staple", &pic2).is_ok());
+        // Recovery makes a new picture, so YubiKeys are added again afterwards
+        let rec = loaded.recover(&setup.recovery_code, "third horse battery staple").unwrap();
+        assert!(rec.file.hardware_keys().is_empty());
     }
 }
 

@@ -65,6 +65,16 @@ Round 2 (built so far):
 Still to come in round 2: browser fill (aiming for the KeePassXC-Browser extension's protocol) and YubiKey.
 Round 3: SSH agent, passkeys, Windows Hello quick unlock.
 
+## YubiKey
+
+A YubiKey can stand in for the key picture (Security, YubiKey). It uses HMAC-SHA1 challenge-response in slot 2
+(or 1), like KeePassXC, so a key already set up for KeePassXC works as is. Sompio talks to the key's OTP
+interface with HID feature reports (`hwkey/`), which Windows allows without admin rights or a driver. The key's
+answer to a stored random challenge opens a copy of the picture's secret, which then works with the password as
+usual, so password changes keep working and several keys can be added (add a spare). Recovery makes a new
+picture, so keys are added again after it. The protocol code is tested against a simulated YubiKey; it hasn't
+met a real one in this repository's tests.
+
 ## Samples
 
 The Samples page (sidebar) has made-up data for every function: Clean's sample data, sample exports for all

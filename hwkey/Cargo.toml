@@ -1,0 +1,13 @@
+[package]
+name = "sompio-hwkey"
+version = "0.1.0"
+edition = "2021"
+description = "YubiKey HMAC-SHA1 challenge-response over the OTP HID interface (no drivers needed on Windows)."
+
+[dependencies]
+anyhow = "1"
+hidapi = { version = "2", default-features = false, features = ["windows-native", "linux-static-hidraw"] }
+
+[dev-dependencies]
+hmac = "0.12"
+sha1 = "0.10"

@@ -24,6 +24,7 @@ jobs:
             suite -> target
             calendar -> target
             vault -> target
+            hwkey -> target
             connect -> target
       - name: Run engine tests
         working-directory: clean
@@ -42,6 +43,9 @@ jobs:
         run: cargo test --release
       - name: Run calendar tests
         working-directory: calendar
+        run: cargo test
+      - name: Run YubiKey protocol tests
+        working-directory: hwkey
         run: cargo test
       - name: Run vault tests
         working-directory: vault

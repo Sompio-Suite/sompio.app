@@ -28,6 +28,7 @@ sompio-licence = { path = "../../licence" }
 sompio-suite = { path = "../../suite" }
 sompio-calendar = { path = "../../calendar" }
 sompio-vault = { path = "../../vault" }
+sompio-hwkey = { path = "../../hwkey" }
 enigo = "0.6"
 arboard = "3"
 ureq = "3"

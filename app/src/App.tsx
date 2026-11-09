@@ -60,7 +60,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    api.lockStatus().then(setLock).catch(() => setLock({ set_up: true, unlocked: false, remembers_picture: false }));
+    api.lockStatus().then(setLock).catch(() => setLock({ set_up: true, unlocked: false, remembers_picture: false, hardware_keys: [] }));
     api.licenceStatus().then(setLicence).catch(() => {});
   }, []);
   const unlocked = lock?.unlocked ?? false;

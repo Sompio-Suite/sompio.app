@@ -870,3 +870,8 @@ input.shortcut-input { width: 13rem; text-align: center; cursor: pointer; }
 .leak-check { padding: 1.1rem 1.25rem; display: grid; gap: 0.8rem; justify-items: start; }
 .leak-check > div:first-child { display: grid; gap: 0.3rem; max-width: 80ch; }
 .leak-check .health-list { width: 100%; }
+.key-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
+.key-list li { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.8rem; border-radius: var(--r-m); background: var(--sunken); }
+.key-list .grow { flex: 1; display: grid; }
+.help-steps { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.3rem; }
+.lock-step .segmented { justify-self: start; width: auto; }

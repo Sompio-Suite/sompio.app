@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, onFileDrop, passwordProblem, pickPicture, pickPictureSave, type LockStatus } from "../api";
+import { api, listen, onFileDrop, passwordProblem, pickPicture, pickPictureSave, type LockStatus } from "../api";
 import Icon from "../Icon";
 
 interface Props {
@@ -95,6 +95,14 @@ export default function LockScreen({ status, onUnlocked }: Props) {
   const [newCode, setNewCode] = useState<string | null>(null);
   const [savedTo, setSavedTo] = useState<string | null>(null);
   const [over, setOver] = useState(false);
+  const hasKeys = status.hardware_keys.length > 0;
+  // With a YubiKey added and no remembered picture, the YubiKey is the usual way in
+  const [useKey, setUseKey] = useState(hasKeys && !status.remembers_picture);
+  const [touch, setTouch] = useState(false);
+  useEffect(() => {
+    const un = listen("yubikey-touch", () => setTouch(true));
+    return () => void un.then((f) => f());
+  }, []);
 
   useEffect(() => {
     const un = onFileDrop((p) => p.toLowerCase().endsWith(".png") && setPicture(p), setOver);
@@ -129,7 +137,12 @@ export default function LockScreen({ status, onUnlocked }: Props) {
 
   const unlock = () =>
     run(async () => {
-      await api.lockUnlock(pw, picture, remember);
+      try {
+        if (useKey) await api.lockUnlockYubikey(pw);
+        else await api.lockUnlock(pw, picture, remember);
+      } finally {
+        setTouch(false);
+      }
       setPw("");
       onUnlocked();
     });
@@ -201,7 +214,22 @@ export default function LockScreen({ status, onUnlocked }: Props) {
             <span>Master password</span>
             <input type="password" autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} autoFocus />
           </label>
-          {!status.remembers_picture && (
+          {hasKeys && (
+            <div className="segmented" role="radiogroup" aria-label="Second key">
+              <button type="button" role="radio" aria-checked={useKey} aria-selected={useKey} onClick={() => setUseKey(true)}>YubiKey</button>
+              <button type="button" role="radio" aria-checked={!useKey} aria-selected={!useKey} onClick={() => setUseKey(false)}>Key picture</button>
+            </div>
+          )}
+          {useKey && (
+            <div className={`picture-pick${touch ? " done" : ""}`}>
+              <Icon name="key" />
+              <div>
+                <strong>{touch ? "Touch your YubiKey now" : "Plug in your YubiKey"}</strong>
+                <span className="small muted">{touch ? "It's blinking: touch the gold disc." : status.hardware_keys.map((k) => k.label).join(", ")}</span>
+              </div>
+            </div>
+          )}
+          {!useKey && !status.remembers_picture && (
             <div className={`picture-pick${picture ? " done" : ""}`}>
               <Icon name={picture ? "check" : "eye"} />
               <div>
@@ -211,11 +239,11 @@ export default function LockScreen({ status, onUnlocked }: Props) {
               <button type="button" onClick={async () => setPicture(await pickPicture())}>{picture ? "Change" : "Choose…"}</button>
             </div>
           )}
-          {!status.remembers_picture && picture && rememberBox}
+          {!useKey && !status.remembers_picture && picture && rememberBox}
           {error && <div className="error">{error}</div>}
-          <button className="primary big" disabled={busy || !pw || (!status.remembers_picture && !picture)}>{busy ? "Unlocking…" : "Unlock"}</button>
+          <button className="primary big" disabled={busy || !pw || (!useKey && !status.remembers_picture && !picture)}>{busy ? (useKey ? "Asking the YubiKey…" : "Unlocking…") : "Unlock"}</button>
           <button type="button" className="link" onClick={() => { setMode("recover"); setError(null); setPw(""); }}>
-            Forgot your password or lost the picture?
+            {hasKeys ? "Forgot your password, or lost the picture and YubiKey?" : "Forgot your password or lost the picture?"}
           </button>
         </form>
       )}

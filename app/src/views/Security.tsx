@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, passwordProblem, pickPicture, type LockStatus } from "../api";
+import { api, listen, passwordProblem, pickPicture, type LockStatus } from "../api";
 import Icon from "../Icon";
 import { autoCheckEnabled, checkForUpdate, currentVersion, setAutoCheck, updatesOn, type UpdateInfo } from "../updates";
 
@@ -42,9 +42,13 @@ export default function Security({ status, idleMinutes, onIdleMinutes, onLockNow
     setBusy(true);
     setNote(null);
     try {
-      const picture = status.remembers_picture ? null : await pickPicture();
-      if (!status.remembers_picture && !picture) return;
-      await api.lockChangePassword(old, pw, picture);
+      if (!status.remembers_picture && status.hardware_keys.length > 0) {
+        await api.lockChangePasswordYubikey(old, pw);
+      } else {
+        const picture = status.remembers_picture ? null : await pickPicture();
+        if (!status.remembers_picture && !picture) return;
+        await api.lockChangePassword(old, pw, picture);
+      }
       setOld("");
       setPw("");
       setAgain("");
@@ -107,7 +111,7 @@ export default function Security({ status, idleMinutes, onIdleMinutes, onLockNow
           </label>
           <div className="toolbar">
             <button className="primary" disabled={busy || !old || !!problem || !pw || pw !== again}>
-              {busy ? "Changing…" : status.remembers_picture ? "Change password" : "Choose key picture and change"}
+              {busy ? "Changing…" : status.remembers_picture ? "Change password" : status.hardware_keys.length > 0 ? "Change with my YubiKey" : "Choose key picture and change"}
             </button>
           </div>
         </form>
@@ -140,10 +144,99 @@ export default function Security({ status, idleMinutes, onIdleMinutes, onLockNow
         )}
       </section>
 
+      <YubiKeys status={status} onChanged={onChanged} />
+
       <section className="setting">
         <h3>Coming to the lock</h3>
-        <p className="muted">YubiKey as the second key instead of the picture, and Windows Hello for quick unlocking on this PC.</p>
+        <p className="muted">Windows Hello for quick unlocking on this PC.</p>
       </section>
     </div>
+  );
+}
+
+function YubiKeys({ status, onChanged }: { status: LockStatus; onChanged: () => void }) {
+  const [present, setPresent] = useState<{ name: string; serial: number | null }[] | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [slot, setSlot] = useState(2);
+  const [label, setLabel] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [touch, setTouch] = useState(false);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [help, setHelp] = useState(false);
+  useEffect(() => {
+    const un = listen("yubikey-touch", () => setTouch(true));
+    return () => void un.then((f) => f());
+  }, []);
+  const look = () => api.lockYubikeysPresent().then(setPresent).catch((e) => setNote({ ok: false, text: String(e) }));
+  const add = async () => {
+    setBusy(true);
+    setNote(null);
+    try {
+      const picture = status.remembers_picture ? null : await pickPicture();
+      if (!status.remembers_picture && !picture) return;
+      await api.lockAddYubikey(picture, slot, label);
+      setAdding(false);
+      setLabel("");
+      onChanged();
+      setNote({ ok: true, text: "YubiKey added. Next time you unlock, choose YubiKey and touch it. Add a spare key too, in case you lose this one." });
+    } catch (e) {
+      setNote({ ok: false, text: String(e) });
+    } finally {
+      setBusy(false);
+      setTouch(false);
+    }
+  };
+  return (
+    <section className="setting">
+      <h3>YubiKey</h3>
+      <p className="muted">
+        A YubiKey can stand in for your key picture: password plus a touch of the key. Your picture and recovery code keep working
+        too. Add two keys if you can, so a lost one doesn't lock you out.
+      </p>
+      {status.hardware_keys.length > 0 && (
+        <ul className="key-list">
+          {status.hardware_keys.map((k) => (
+            <li key={k.index}>
+              <Icon name="key" size={16} />
+              <span className="grow"><strong>{k.label}</strong><span className="small muted">Slot {k.slot}{k.serial ? ` · serial ${k.serial}` : ""} · added {new Date(k.added_ms).toLocaleDateString()}</span></span>
+              <button className="small-btn ghost danger" onClick={async () => {
+                try { await api.lockRemoveYubikey(k.index); onChanged(); } catch (e) { setNote({ ok: false, text: String(e) }); }
+              }}>Remove</button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {!adding ? (
+        <div className="toolbar"><button onClick={() => { setAdding(true); look(); }}><Icon name="plus" size={16} />Add a YubiKey</button></div>
+      ) : (
+        <div className="panel inset-form">
+          <span className="small">
+            {present === null ? "Looking for YubiKeys…" : present.length === 0 ? "No YubiKey found. Plug it in, then look again." : `Found: ${present.map((p) => p.name + (p.serial ? ` (${p.serial})` : "")).join(", ")}`}
+            {" "}<button type="button" className="link" onClick={look}>Look again</button>
+          </span>
+          <div className="field-row">
+            <label className="field grow"><span>Name it</span><input type="text" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Keyring key, Spare in the drawer…" /></label>
+            <label className="field"><span>Slot</span>
+              <select value={slot} onChange={(e) => setSlot(Number(e.target.value))}><option value={2}>2 (long touch)</option><option value={1}>1 (short touch)</option></select>
+            </label>
+          </div>
+          {touch && <div className="notice"><Icon name="key" /><div><strong>Touch your YubiKey now</strong><span>It's blinking. You may be asked twice.</span></div></div>}
+          <div className="toolbar">
+            <button className="primary" disabled={busy || !present?.length} onClick={add}>{busy ? "Asking the YubiKey…" : status.remembers_picture ? "Add this YubiKey" : "Choose key picture and add"}</button>
+            <button className="quiet" onClick={() => setAdding(false)}>Cancel</button>
+            <button type="button" className="link" onClick={() => setHelp(!help)}>{help ? "Hide" : "How do I set up the slot?"}</button>
+          </div>
+          {help && (
+            <ol className="small muted help-steps">
+              <li>The slot needs HMAC-SHA1 challenge-response, like KeePassXC uses. Keys from Sompio come set up already.</li>
+              <li>To set one up yourself, install Yubico's free YubiKey Manager and open Applications, then OTP.</li>
+              <li>Pick slot 2 (Long Touch), choose Challenge-response, Generate a secret, tick Require touch, and Finish.</li>
+              <li>This replaces whatever was in that slot. If you already use slot 2 for KeePassXC, you can keep it: Sompio works with the same setup.</li>
+            </ol>
+          )}
+        </div>
+      )}
+      {note && <div className={note.ok ? "success" : "error"} role="status">{note.text}</div>}
+    </section>
   );
 }

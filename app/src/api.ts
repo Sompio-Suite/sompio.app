@@ -89,7 +89,8 @@ export interface KeyView { serial: string; label: string; days: number; activate
 export interface LicenceStatus { apps: AppStatus[]; keys: KeyView[]; trial_ends_at: number | null; clock_behind: boolean; now: number }
 export interface Added { label: string; days: number; test: boolean; status: LicenceStatus }
 
-export interface LockStatus { set_up: boolean; unlocked: boolean; remembers_picture: boolean }
+export interface HardwareKey { index: number; serial: number | null; label: string; slot: number; added_ms: number }
+export interface LockStatus { set_up: boolean; unlocked: boolean; remembers_picture: boolean; hardware_keys: HardwareKey[] }
 
 
 // Calendar. Times are local, as "YYYY-MM-DDTHH:MM:SS" without a zone.
@@ -179,6 +180,11 @@ export const api = {
   lockRecover: (code: string, newPassword: string, picturePath: string, remember: boolean) =>
     call<string>("lock_recover", { code, newPassword, picturePath, remember }),
   lockChangePassword: (old: string, nu: string, picturePath: string | null) => call<void>("lock_change_password", { old, new: nu, picturePath }),
+  lockYubikeysPresent: () => call<{ name: string; serial: number | null }[]>("lock_yubikeys_present"),
+  lockUnlockYubikey: (password: string) => call<void>("lock_unlock_yubikey", { password }),
+  lockAddYubikey: (picturePath: string | null, slot: number, label: string) => call<void>("lock_add_yubikey", { picturePath, slot, label }),
+  lockRemoveYubikey: (index: number) => call<void>("lock_remove_yubikey", { index }),
+  lockChangePasswordYubikey: (old: string, nu: string) => call<void>("lock_change_password_yubikey", { old, new: nu }),
   lockForgetPicture: () => call<void>("lock_forget_picture"),
   lockLock: () => call<void>("lock_lock"),
   licenceStatus: () => call<LicenceStatus>("licence_status"),

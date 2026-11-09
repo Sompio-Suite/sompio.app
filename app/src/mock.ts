@@ -193,7 +193,7 @@ function licenceStatus() {
 }
 
 // The lock in the browser preview: starts not set up, like a first run.
-let lockState = { set_up: false, unlocked: false, remembers_picture: false };
+let lockState: import("./api").LockStatus = { set_up: false, unlocked: false, remembers_picture: false, hardware_keys: [] };
 let mockPassword = "";
 
 let mail = { connected: false, address: null as string | null, provider: null as string | null };
@@ -245,7 +245,7 @@ const handlers: Record<string, (a: any) => unknown> = {
   lock_setup: async ({ password }) => {
     await wait(600);
     if (String(password).length < 10) throw "Use at least 10 characters. A few unrelated words work well.";
-    lockState = { set_up: true, unlocked: true, remembers_picture: true };
+    lockState = { set_up: true, unlocked: true, remembers_picture: true, hardware_keys: [] };
     mockPassword = String(password);
     return "7KQ2-XR9D-4M8T-PLWA-0G3H-ZE5N";
   },
@@ -256,10 +256,28 @@ const handlers: Record<string, (a: any) => unknown> = {
   },
   lock_recover: async () => {
     await wait(600);
-    lockState = { set_up: true, unlocked: true, remembers_picture: true };
+    lockState = { set_up: true, unlocked: true, remembers_picture: true, hardware_keys: [] };
     return "M3PA-9VX2-QH7K-W0TC-8RJD-5NFE";
   },
   lock_change_password: async ({ old, new: nu }) => {
+    await wait(500);
+    if (old !== mockPassword) throw "That password isn't right. Check Caps Lock and try again.";
+    mockPassword = String(nu);
+  },
+  lock_yubikeys_present: () => [{ name: "YubiKey OTP+FIDO+CCID", serial: 21786543 }],
+  lock_unlock_yubikey: async ({ password }) => {
+    emit("yubikey-touch", null);
+    await wait(900);
+    if (password !== mockPassword) throw "That password isn't right. Check Caps Lock and try again.";
+    lockState = { ...lockState, unlocked: true };
+  },
+  lock_add_yubikey: async ({ label }) => {
+    emit("yubikey-touch", null);
+    await wait(900);
+    lockState = { ...lockState, hardware_keys: [...lockState.hardware_keys, { index: lockState.hardware_keys.length, serial: 21786543, label: label || "YubiKey 21786543", slot: 2, added_ms: Date.now() }] };
+  },
+  lock_remove_yubikey: ({ index }) => { lockState = { ...lockState, hardware_keys: lockState.hardware_keys.filter((k) => k.index !== index) }; },
+  lock_change_password_yubikey: async ({ old, new: nu }) => {
     await wait(500);
     if (old !== mockPassword) throw "That password isn't right. Check Caps Lock and try again.";
     mockPassword = String(nu);
