@@ -1,4 +1,5 @@
-import type { LicenceStatus, ScanSummary } from "../api";
+import { useEffect, useState } from "react";
+import { api, type LicenceStatus, type Occurrence, type ScanSummary } from "../api";
 import { date, n, plural } from "../format";
 import Icon from "../Icon";
 import { accessText, SUITE } from "../licence";
@@ -15,6 +16,8 @@ export default function Overview({ licence, scan, cleanReady, onGo }: Props) {
   const now = licence?.now ?? Date.now();
   const trialOnly = licence?.apps.every((a) => a.trial_only) ?? false;
   const anyActive = licence?.apps.some((a) => a.active) ?? false;
+  const [next, setNext] = useState<Occurrence | null>(null);
+  useEffect(() => { api.calNext(1).then((n) => setNext(n[0] ?? null)).catch(() => {}); }, []);
 
   return (
     <div className="page">
@@ -62,9 +65,16 @@ export default function Overview({ licence, scan, cleanReady, onGo }: Props) {
               {app.key === "clean" && cleanReady && scan && scan.open > 0 && (
                 <p className="small"><strong>{plural(scan.open, "thing", "things")} to review</strong> from {n(scan.scanned)} scanned.</p>
               )}
+              {app.key === "calendar" && next && (
+                <p className="small"><strong>Next: {next.title}</strong> {next.at.slice(0, 10) === new Date().toLocaleDateString("sv") ? "at" : `on ${new Date(next.at).toLocaleDateString(undefined, { weekday: "long" })} at`} {next.at.slice(11, 16)}</p>
+              )}
               <div className="suite-card-foot">
                 {app.ready ? (
-                  <button className="primary" onClick={() => onGo("home")}>{cleanReady ? "Open Clean" : "Set up Clean"}</button>
+                  app.key === "clean" ? (
+                    <button className="primary" onClick={() => onGo("home")}>{cleanReady ? "Open Clean" : "Set up Clean"}</button>
+                  ) : (
+                    <button className="primary" onClick={() => onGo(app.key as View)}>Open {app.name}</button>
+                  )
                 ) : (
                   <button onClick={() => onGo(app.key as View)}>See what's planned</button>
                 )}

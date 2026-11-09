@@ -22,6 +22,7 @@ jobs:
             licence -> target
             lock -> target
             suite -> target
+            calendar -> target
             connect -> target
       - name: Run engine tests
         working-directory: clean
@@ -38,6 +39,9 @@ jobs:
       - name: Run suite tests
         working-directory: suite
         run: cargo test --release
+      - name: Run calendar tests
+        working-directory: calendar
+        run: cargo test
 
   windows:
     name: Build Windows app

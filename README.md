@@ -5,11 +5,33 @@ Private tools that keep your data on your PC, unlocked with a key instead of an 
 | App | Status |
 | --- | --- |
 | **Clean** | Built: finds and cleans up personal information in your exports and files (below) |
-| **Calendar** | Next: Desk Reminders rebuilt, with privacy routines |
+| **Calendar** | Built: Desk Reminders rebuilt, encrypted, with privacy routines (below) |
 | **Vault** | Later: KeePass-compatible password manager |
 | **Voice** | Later: end-to-end encrypted voice rooms |
 
 The plan lives in the "Sompio Suite plan" doc.
+
+## Sompio Calendar
+
+Desk Reminders, rebuilt into the suite. Schedules use the same file format (`Days,Time,Colour,Title,Text,Notice,For`),
+so an existing `schedule.csv` and shared schedules open as they are, but inside Sompio they're kept in `calendar.db`,
+encrypted with the lock like everything else.
+
+- **Day, month, Next up:** today's reminders with how many are done, a month with dots for the special days (raids,
+  check-ups, one-offs), and what's coming. Edit, skip one time, mute for a day or always, or remove.
+- **Routines:** Privacy check-ups (monthly password check-up, quarterly "request fresh data exports", sign out of old
+  sessions, check your recovery sheet), plus Desk Reminders' water, move, eye breaks, meals and bedtime.
+- **Schedules:** bring in a whole Desk Reminders folder (your schedule, `shared/`, colours, groups, quiet hours, sound),
+  add a shared schedule file, or start one you organise and save it as a file to share. Groups (Tanks, Healers…)
+  decide who gets a pop-up.
+- **Pop-ups:** a small window in the corner you choose that never takes the keyboard, with your sound, Done and snooze
+  5/15 min. They're kept out of screen shares and streams (Windows 10 2020+), and a discreet mode hides the text.
+- **Keeps running:** closing the window keeps Sompio in the tray. Reminders for the next 7 days stay in memory, so they
+  keep coming while Sompio is locked. After a restart, unlock once to start them. "Start with Windows" is in the
+  Calendar settings.
+
+Code: `calendar/` (format, engine, store, pop-up queue; all tested) and `app/src-tauri/src/calendar.rs` (commands,
+the reminder loop, the pop-up window and the tray).
 
 ## The Sompio Lock
 
@@ -210,6 +232,7 @@ connect/           Live account connections (Telegram, email over IMAP). The onl
 licence/           Licence keys: signing, offline checking, the trial, and Sompio Key Maker.
 lock/              The Sompio Lock: Argon2id, key wrapping, the key picture, recovery codes.
 suite/             Glue for the app: setup, unlock, recovery, each app's database key.
+calendar/          Sompio Calendar: the Desk Reminders format, the reminder engine, the encrypted store.
 vendor/            libsqlite3-sys with SQLite3 Multiple Ciphers in place of plain SQLite.
 app/
   src-tauri/         the desktop shell: passes UI requests to the libraries, nothing else

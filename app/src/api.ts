@@ -91,6 +91,37 @@ export interface Added { label: string; days: number; test: boolean; status: Lic
 
 export interface LockStatus { set_up: boolean; unlocked: boolean; remembers_picture: boolean }
 
+
+// Calendar. Times are local, as "YYYY-MM-DDTHH:MM:SS" without a zone.
+export interface Occurrence {
+  at: string; event_at: string; kind: "event" | "notice";
+  source_id: number; source_name: string; mine: boolean; colour: string;
+  title: string; text: string; notice: number; for_groups: string[];
+  for_me: boolean; notify: boolean; quiet_allow: boolean;
+  key: string; line: number; days_text: string; time_text: string; one_off: boolean;
+  zone_date: string; zone_time: string;
+}
+export interface ScheduleView {
+  id: number; name: string; mine: boolean; owned: boolean; editable: boolean; colour: string; enabled: boolean;
+  sound: string | null; groups: string[]; my_groups: string[]; quiet_allow: boolean;
+  timezone: string; updated: string; source: string | null; reminders: number; problems: { line: number; message: string }[];
+}
+export interface CalSettings {
+  quiet: { on: boolean; from: number; to: number };
+  sound: string; sound_on: boolean; volume: number; corner: string; popup_seconds: number; discreet: boolean; hide_from_capture: boolean;
+}
+export interface RowInput { days: string; time: string; skip?: boolean; title: string; text?: string; notice?: number; for_groups?: string[] }
+export interface CalOverview { schedules: ScheduleView[]; occurrences: Occurrence[]; settings: CalSettings }
+export interface Popup { id: number; occurrence: Occurrence; snoozed: boolean }
+export interface PopupState {
+  shown: { popups: Popup[]; paused_until: string | null };
+  sound: string; sound_on: boolean; volume: number; seconds: number; discreet: boolean;
+  /** Schedules with their own sound, by schedule id */
+  sounds: Record<string, string>;
+}
+export type AlertModeKey = "mute" | "shout" | "hide";
+export const SOUNDS = ["Soft chime", "Warm bell", "Marimba", "Kalimba", "Glass", "Music box", "Rising", "Soft ping", "Water drop"];
+
 export const inDesktopApp = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 type Invoke = <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
@@ -168,7 +199,43 @@ export const api = {
   exportFlagged: (path: string) => call<number>("export_flagged", { path }),
   wipeData: () => call<void>("wipe_data"),
   dataLocation: () => call<string>("data_location"),
+  calOverview: (from: string, to: string) => call<CalOverview>("cal_overview", { from, to }),
+  calNext: (count: number) => call<Occurrence[]>("cal_next", { count }),
+  calAddRows: (scheduleId: number, rows: RowInput[]) => call<void>("cal_add_rows", { scheduleId, rows }),
+  calUpdateRow: (scheduleId: number, line: number, row: RowInput) => call<void>("cal_update_row", { scheduleId, line, row }),
+  calRemoveRow: (scheduleId: number, line: number) => call<void>("cal_remove_row", { scheduleId, line }),
+  calSkipOnce: (scheduleId: number, day: string, time: string) => call<void>("cal_skip_once", { scheduleId, day, time }),
+  calImportFile: (path: string) => call<number>("cal_import_file", { path }),
+  calImportDeskReminders: (folder: string) => call<number>("cal_import_desk_reminders", { folder }),
+  calExport: (scheduleId: number, path: string) => call<void>("cal_export", { scheduleId, path }),
+  calCreateShared: (name: string, timezone: string, groups: string[]) => call<number>("cal_create_shared", { name, timezone, groups }),
+  calSetOptions: (scheduleId: number, o: { colour?: string; enabled?: boolean; sound?: string; myGroups?: string[]; quietAllow?: boolean }) =>
+    call<void>("cal_set_options", { scheduleId, colour: o.colour ?? null, enabled: o.enabled ?? null, sound: o.sound ?? null, myGroups: o.myGroups ?? null, quietAllow: o.quietAllow ?? null }),
+  calRename: (scheduleId: number, name: string) => call<void>("cal_rename", { scheduleId, name }),
+  calRemoveSchedule: (scheduleId: number) => call<void>("cal_remove_schedule", { scheduleId }),
+  calSetAlert: (key: string, day: string | null, mode: AlertModeKey | null) => call<void>("cal_set_alert", { key, day, mode }),
+  calSetSettings: (settings: CalSettings) => call<void>("cal_set_settings", { settings }),
+  calPopups: () => call<PopupState>("cal_popups"),
+  calPopupAction: (id: number, action: "done" | "snooze" | "close-all", minutes?: number) => call<void>("cal_popup_action", { id, action, minutes: minutes ?? null }),
+  calPause: (minutes: number | null) => call<string | null>("cal_pause", { minutes }),
+  calPaused: () => call<string | null>("cal_paused"),
+  calAutostart: () => call<boolean>("cal_autostart"),
+  calSetAutostart: (on: boolean) => call<void>("cal_set_autostart", { on }),
 };
+
+export async function pickScheduleFile(): Promise<string | null> {
+  if (!inDesktopApp) return "C:\\Users\\you\\Downloads\\Guild Schedule.csv";
+  const { open } = await import("@tauri-apps/plugin-dialog");
+  const picked = await open({ title: "Choose a schedule file", filters: [{ name: "Schedule", extensions: ["csv"] }] });
+  return typeof picked === "string" ? picked : null;
+}
+
+export async function pickFolder(title: string): Promise<string | null> {
+  if (!inDesktopApp) return "C:\\Users\\you\\Desktop\\DeskReminders";
+  const { open } = await import("@tauri-apps/plugin-dialog");
+  const picked = await open({ directory: true, title });
+  return typeof picked === "string" ? picked : null;
+}
 
 export async function pickPackage(folder: boolean): Promise<string | null> {
   if (!inDesktopApp) return "demo-package.zip";

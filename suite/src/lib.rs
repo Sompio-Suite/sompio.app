@@ -163,6 +163,17 @@ impl Vault {
         let vault = guard.as_ref().ok_or_else(|| anyhow!("Sompio is locked. Unlock it to continue."))?;
         Ok((self.clean_db_path(), vault.derive("clean.db")))
     }
+
+    pub fn calendar_db_path(&self) -> PathBuf {
+        self.dir.join("calendar.db")
+    }
+
+    /// Calendar's database and its key. Fails while Sompio is locked.
+    pub fn calendar_db(&self) -> Result<(PathBuf, Zeroizing<[u8; 32]>)> {
+        let guard = self.key.lock().map_err(|_| anyhow!("lock state unavailable"))?;
+        let vault = guard.as_ref().ok_or_else(|| anyhow!("Sompio is locked. Unlock it to continue."))?;
+        Ok((self.calendar_db_path(), vault.derive("calendar.db")))
+    }
 }
 
 #[cfg(test)]
@@ -199,6 +210,7 @@ mod tests {
         assert!(!Store::is_plain(&dir.join("clean.db")), "existing data is encrypted");
         assert!(!old.join("veil.db").exists(), "old plain copy removed");
         let (path, key) = v.clean_db().unwrap();
+        assert_ne!(*v.calendar_db().unwrap().1, *key, "each app has its own key");
         assert!(Store::open_encrypted(&path, &key).unwrap().has_data().unwrap());
         assert!(v.setup(PW, &pic, true).is_err(), "setup only once");
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { api, type KindKey, type LicenceStatus, type LockStatus, type ScanSummary } from "./api";
+import { api, listen, type KindKey, type LicenceStatus, type LockStatus, type ScanSummary } from "./api";
 import { n } from "./format";
 import Icon, { type IconName } from "./Icon";
 import Welcome from "./views/Welcome";
@@ -13,6 +13,7 @@ import Licences from "./views/Licences";
 import Upcoming from "./views/Upcoming";
 import LockScreen from "./views/LockScreen";
 import Security from "./views/Security";
+import Calendar from "./views/Calendar";
 import { SUITE, accessText } from "./licence";
 import { autoCheckEnabled, checkForUpdate, dueForCheck, type UpdateInfo } from "./updates";
 
@@ -95,6 +96,11 @@ export default function App() {
     setScan(null);
     setVersion((v) => v + 1);
   }, []);
+  // "Lock Sompio" in the tray menu
+  useEffect(() => {
+    const un = listen("locked", () => lockNow());
+    return () => { un.then((f) => f()); };
+  }, [lockNow]);
 
   // Lock after a while without use
   useEffect(() => {
@@ -144,6 +150,7 @@ export default function App() {
   const cleanAccess = licence?.apps.find((a) => a.app === "clean");
   const cleanLocked = licence != null && !cleanAccess?.active;
   const inClean = CLEAN_VIEWS.includes(view);
+  const calendarLocked = licence != null && !licence.apps.find((a) => a.app === "calendar")?.active;
 
   const navButton = (id: View, label: string, icon: string, extra?: ReactNode, sub = false) => (
     <button
@@ -221,6 +228,7 @@ export default function App() {
             </>
           )}
         </div>
+        {navButton("calendar", "Calendar", "calendar", calendarLocked ? <Icon name="lock" size={14} /> : undefined)}
         {SUITE.filter((a) => !a.ready).map((a) => navButton(a.key as View, a.name, a.icon, <span className="soon-dot" title={a.when} />))}
         <div className="rail-spacer" />
         {navButton("security", "Security", "lock")}
@@ -279,7 +287,8 @@ export default function App() {
             onUpdateFound={setUpdate}
           />
         )}
-        {(view === "calendar" || view === "vault" || view === "voice") && <Upcoming app={SUITE.find((a) => a.key === view)!} />}
+        {view === "calendar" && <Calendar readOnly={calendarLocked} onAddKey={() => setView("licences")} />}
+        {(view === "vault" || view === "voice") && <Upcoming app={SUITE.find((a) => a.key === view)!} />}
         {inClean && cleanPage()}
       </main>
     </div>

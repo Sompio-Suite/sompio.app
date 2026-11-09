@@ -1,6 +1,8 @@
 //! The desktop shell. It only passes requests from the UI to sompio-clean and back.
 //! Every command runs off the UI thread so the window never freezes.
 
+mod calendar;
+
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -18,6 +20,8 @@ struct AppState {
     telegram: tokio::sync::Mutex<sompio_connect::telegram::Telegram>,
     /// The email connection (IMAP). Blocking, so it always runs on a background thread.
     email: std::sync::Arc<sompio_connect::email::Email>,
+    /// Reminders: what's coming up and what's on screen. Kept in memory so they run while locked.
+    calendar: calendar::Calendar,
 }
 
 type CmdResult<T> = Result<T, String>;
@@ -47,7 +51,9 @@ async fn lock_setup(state: State<'_, AppState>, password: String, picture_path: 
 
 #[tauri::command]
 async fn lock_unlock(state: State<'_, AppState>, password: String, picture_path: Option<String>, remember: bool) -> CmdResult<()> {
-    with_vault(&state, move |v| v.unlock(&password, picture_path.as_deref().map(Path::new), remember)).await
+    with_vault(&state, move |v| v.unlock(&password, picture_path.as_deref().map(Path::new), remember)).await?;
+    state.calendar.mark_dirty();
+    Ok(())
 }
 
 #[tauri::command]
@@ -545,6 +551,9 @@ fn move_from_veil(dir: &Path, db_path: &Path) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // A second launch (e.g. the shortcut clicked while Sompio sits in the tray) opens the window.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| calendar::show_main(app)))
+        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--autostart"])))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         // Updates: checks one small file on GitHub, installs only versions signed with our update key.
@@ -561,8 +570,20 @@ pub fn run() {
                 vault: Arc::new(sompio_suite::Vault::new(dir.clone(), secrets.clone())),
                 telegram: tokio::sync::Mutex::new(sompio_connect::telegram::Telegram::new(secrets.clone())),
                 email: std::sync::Arc::new(sompio_connect::email::Email::new(secrets)),
+                calendar: calendar::Calendar::new(),
             });
+            calendar::tray(app.handle())?;
+            calendar::start(app.handle().clone());
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            // Closing the main window keeps Sompio in the tray while reminders are loaded.
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() == "main" && calendar::keeps_running(window.app_handle()) {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             has_data,
@@ -619,6 +640,27 @@ pub fn run() {
             export_flagged,
             wipe_data,
             data_location,
+            calendar::cal_overview,
+            calendar::cal_next,
+            calendar::cal_add_rows,
+            calendar::cal_update_row,
+            calendar::cal_remove_row,
+            calendar::cal_skip_once,
+            calendar::cal_import_file,
+            calendar::cal_import_desk_reminders,
+            calendar::cal_export,
+            calendar::cal_create_shared,
+            calendar::cal_set_options,
+            calendar::cal_rename,
+            calendar::cal_remove_schedule,
+            calendar::cal_set_alert,
+            calendar::cal_set_settings,
+            calendar::cal_popups,
+            calendar::cal_popup_action,
+            calendar::cal_pause,
+            calendar::cal_paused,
+            calendar::cal_autostart,
+            calendar::cal_set_autostart,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Sompio");
