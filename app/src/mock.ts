@@ -190,6 +190,10 @@ function licenceStatus() {
   };
 }
 
+// The lock in the browser preview: starts not set up, like a first run.
+let lockState = { set_up: false, unlocked: false, remembers_picture: false };
+let mockPassword = "";
+
 let mail = { connected: false, address: null as string | null, provider: null as string | null };
 let myNames: string[] = [];
 let tg = { has_app_key: false, connected: false, name: null as string | null, waiting_for: null as null | "code" | "password" };
@@ -235,6 +239,31 @@ const handlers: Record<string, (a: any) => unknown> = {
   email_delete: ({ id }) => { statuses.set(id, "deleted"); return summary(); },
   my_names: () => [...myNames],
   set_my_names: ({ names }) => { myNames = names; },
+  lock_status: () => ({ ...lockState }),
+  lock_setup: async ({ password }) => {
+    await wait(600);
+    if (String(password).length < 10) throw "Use at least 10 characters. A few unrelated words work well.";
+    lockState = { set_up: true, unlocked: true, remembers_picture: true };
+    mockPassword = String(password);
+    return "7KQ2-XR9D-4M8T-PLWA-0G3H-ZE5N";
+  },
+  lock_unlock: async ({ password }) => {
+    await wait(500);
+    if (password !== mockPassword) throw "That password isn't right. Check Caps Lock and try again.";
+    lockState = { ...lockState, unlocked: true };
+  },
+  lock_recover: async () => {
+    await wait(600);
+    lockState = { set_up: true, unlocked: true, remembers_picture: true };
+    return "M3PA-9VX2-QH7K-W0TC-8RJD-5NFE";
+  },
+  lock_change_password: async ({ old, new: nu }) => {
+    await wait(500);
+    if (old !== mockPassword) throw "That password isn't right. Check Caps Lock and try again.";
+    mockPassword = String(nu);
+  },
+  lock_forget_picture: () => { lockState = { ...lockState, remembers_picture: false }; },
+  lock_lock: () => { lockState = { ...lockState, unlocked: false }; },
   licence_status: () => licenceStatus(),
   licence_add: async ({ key }) => {
     await wait(300);

@@ -2,6 +2,7 @@
 //! Every command runs off the UI thread so the window never freezes.
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager, State};
 use sompio_clean::{
     ChannelView, FindingView, FindingsPage, ImportSummary, MessageView, MessagesPage, ScanOptions,
@@ -9,7 +10,8 @@ use sompio_clean::{
 };
 
 struct AppState {
-    db_path: PathBuf,
+    /// The Sompio Lock and the key to each app's encrypted data. Nothing opens while it's locked.
+    vault: Arc<sompio_suite::Vault>,
     /// The licence keys entered on this PC, and the trial
     licences: Licences,
     /// The Telegram connection. Only does anything after the person connects an account.
@@ -19,6 +21,60 @@ struct AppState {
 }
 
 type CmdResult<T> = Result<T, String>;
+
+// The Sompio Lock. Argon2 takes about half a second on purpose, so these run off the UI thread.
+
+async fn with_vault<T, F>(state: &State<'_, AppState>, f: F) -> CmdResult<T>
+where
+    T: Send + 'static,
+    F: FnOnce(&sompio_suite::Vault) -> anyhow::Result<T> + Send + 'static,
+{
+    let vault = state.vault.clone();
+    tauri::async_runtime::spawn_blocking(move || f(&vault).map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+fn lock_status(state: State<'_, AppState>) -> CmdResult<sompio_suite::LockStatus> {
+    state.vault.status().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn lock_setup(state: State<'_, AppState>, password: String, picture_path: String, remember: bool) -> CmdResult<String> {
+    with_vault(&state, move |v| Ok(v.setup(&password, Path::new(&picture_path), remember)?.to_string())).await
+}
+
+#[tauri::command]
+async fn lock_unlock(state: State<'_, AppState>, password: String, picture_path: Option<String>, remember: bool) -> CmdResult<()> {
+    with_vault(&state, move |v| v.unlock(&password, picture_path.as_deref().map(Path::new), remember)).await
+}
+
+#[tauri::command]
+async fn lock_recover(
+    state: State<'_, AppState>,
+    code: String,
+    new_password: String,
+    picture_path: String,
+    remember: bool,
+) -> CmdResult<String> {
+    with_vault(&state, move |v| Ok(v.recover(&code, &new_password, Path::new(&picture_path), remember)?.to_string())).await
+}
+
+#[tauri::command]
+async fn lock_change_password(state: State<'_, AppState>, old: String, new: String, picture_path: Option<String>) -> CmdResult<()> {
+    with_vault(&state, move |v| v.change_password(&old, &new, picture_path.as_deref().map(Path::new))).await
+}
+
+#[tauri::command]
+fn lock_forget_picture(state: State<'_, AppState>) -> CmdResult<()> {
+    state.vault.forget_picture().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn lock_lock(state: State<'_, AppState>) {
+    state.vault.lock();
+}
 
 // Licences: which apps are unlocked. Checked offline against the public key built into the app.
 
@@ -82,14 +138,23 @@ fn licence_add(state: State<'_, AppState>, key: String) -> CmdResult<sompio_lice
     Ok(added)
 }
 
-/// Opens the database on a background thread, runs `f`, and reports errors as plain text.
-async fn with_store<T, F>(db: PathBuf, f: F) -> CmdResult<T>
+type DbKey = (PathBuf, zeroize::Zeroizing<[u8; 32]>);
+
+impl AppState {
+    /// Clean's encrypted database and its key, or an error while Sompio is locked.
+    fn db(&self) -> CmdResult<DbKey> {
+        self.vault.clean_db().map_err(|e| e.to_string())
+    }
+}
+
+/// Opens the encrypted database on a background thread, runs `f`, and reports errors as plain text.
+async fn with_store<T, F>(db: DbKey, f: F) -> CmdResult<T>
 where
     T: Send + 'static,
     F: FnOnce(&mut Store) -> anyhow::Result<T> + Send + 'static,
 {
     tauri::async_runtime::spawn_blocking(move || {
-        let mut store = Store::open(&db)?;
+        let mut store = Store::open_encrypted(&db.0, &db.1)?;
         f(&mut store)
     })
     .await
@@ -99,13 +164,13 @@ where
 
 #[tauri::command]
 async fn has_data(state: State<'_, AppState>) -> CmdResult<bool> {
-    with_store(state.db_path.clone(), |s| s.has_data()).await
+    with_store(state.db()?, |s| s.has_data()).await
 }
 
 #[tauri::command]
 async fn import_package(app: AppHandle, state: State<'_, AppState>, path: String) -> CmdResult<ImportSummary> {
     state.licences.require(App::Clean)?;
-    with_store(state.db_path.clone(), move |s| {
+    with_store(state.db()?, move |s| {
         sompio_clean::import_package(s, Path::new(&path), &mut |p| {
             let _ = app.emit("import-progress", &p);
         })
@@ -116,7 +181,7 @@ async fn import_package(app: AppHandle, state: State<'_, AppState>, path: String
 #[tauri::command]
 async fn scan_folders(app: AppHandle, state: State<'_, AppState>, folders: Vec<String>) -> CmdResult<ImportSummary> {
     state.licences.require(App::Clean)?;
-    with_store(state.db_path.clone(), move |s| {
+    with_store(state.db()?, move |s| {
         let folders: Vec<PathBuf> = folders.into_iter().map(PathBuf::from).collect();
         sompio_clean::scan_folders(s, &folders, &mut |p| {
             let _ = app.emit("import-progress", &p);
@@ -127,19 +192,19 @@ async fn scan_folders(app: AppHandle, state: State<'_, AppState>, folders: Vec<S
 
 #[tauri::command]
 async fn sources(state: State<'_, AppState>) -> CmdResult<Vec<SourceView>> {
-    with_store(state.db_path.clone(), |s| s.sources()).await
+    with_store(state.db()?, |s| s.sources()).await
 }
 
 #[tauri::command]
 async fn remove_source(state: State<'_, AppState>, platform: String) -> CmdResult<()> {
-    with_store(state.db_path.clone(), move |s| s.remove_source(&platform)).await
+    with_store(state.db()?, move |s| s.remove_source(&platform)).await
 }
 
 /// Moves a file found by the PC scan to the Recycle Bin.
 #[tauri::command]
 async fn recycle_file(state: State<'_, AppState>, id: i64) -> CmdResult<(String, ScanSummary)> {
     state.licences.require(App::Clean)?;
-    with_store(state.db_path.clone(), move |s| {
+    with_store(state.db()?, move |s| {
         let path = s.recycle_file(id)?;
         Ok((path, s.scan_summary()?))
     })
@@ -149,7 +214,7 @@ async fn recycle_file(state: State<'_, AppState>, id: i64) -> CmdResult<(String,
 /// Opens File Explorer with the file selected. Only paths Sompio itself found can be shown.
 #[tauri::command]
 async fn show_in_folder(state: State<'_, AppState>, id: i64) -> CmdResult<()> {
-    let path = with_store(state.db_path.clone(), move |s| s.file_path_for(id)).await?;
+    let path = with_store(state.db()?, move |s| s.file_path_for(id)).await?;
     let path = path.ok_or_else(|| "This item isn't a file on this PC.".to_string())?;
     tauri_plugin_opener::reveal_item_in_dir(&path).map_err(|e| format!("Couldn't open the folder: {e}"))
 }
@@ -206,19 +271,19 @@ async fn tg_sync(app: AppHandle, state: State<'_, AppState>) -> CmdResult<Import
         .await
         .map_err(text_err)?
     };
-    with_store(state.db_path.clone(), move |s| sompio_clean::import_live(s, "telegram", "Connected Telegram account", channels)).await
+    with_store(state.db()?, move |s| sompio_clean::import_live(s, "telegram", "Connected Telegram account", channels)).await
 }
 
 /// Deletes the message a finding is in, on Telegram, for everyone.
 #[tauri::command]
 async fn tg_delete(state: State<'_, AppState>, id: i64) -> CmdResult<ScanSummary> {
     state.licences.require(App::Clean)?;
-    let (platform, uid) = with_store(state.db_path.clone(), move |s| s.delete_target(id)).await?;
+    let (platform, uid) = with_store(state.db()?, move |s| s.delete_target(id)).await?;
     if platform != "telegram" {
         return Err("This item isn't a Telegram message.".into());
     }
     state.telegram.lock().await.delete_message(&uid).await.map_err(text_err)?;
-    with_store(state.db_path.clone(), move |s| {
+    with_store(state.db()?, move |s| {
         s.mark_deleted(id)?;
         s.scan_summary()
     })
@@ -270,20 +335,20 @@ async fn email_sync(app: AppHandle, state: State<'_, AppState>) -> CmdResult<Imp
         })
     })
     .await?;
-    with_store(state.db_path.clone(), move |s| sompio_clean::import_live(s, "email", "Connected email account", channels)).await
+    with_store(state.db()?, move |s| sompio_clean::import_live(s, "email", "Connected email account", channels)).await
 }
 
 /// Moves the sent email a finding is in to the mailbox's Trash.
 #[tauri::command]
 async fn email_delete(state: State<'_, AppState>, id: i64) -> CmdResult<ScanSummary> {
     state.licences.require(App::Clean)?;
-    let (platform, uid) = with_store(state.db_path.clone(), move |s| s.delete_target(id)).await?;
+    let (platform, uid) = with_store(state.db()?, move |s| s.delete_target(id)).await?;
     if platform != "email" {
         return Err("This item isn't an email.".into());
     }
     let ext = uid.strip_prefix("email:").unwrap_or(&uid).to_string();
     with_email(&state, move |e| e.delete_message(&ext)).await?;
-    with_store(state.db_path.clone(), move |s| {
+    with_store(state.db()?, move |s| {
         s.mark_deleted(id)?;
         s.scan_summary()
     })
@@ -294,32 +359,32 @@ async fn email_delete(state: State<'_, AppState>, id: i64) -> CmdResult<ScanSumm
 
 #[tauri::command]
 async fn my_names(state: State<'_, AppState>) -> CmdResult<Vec<String>> {
-    with_store(state.db_path.clone(), |s| s.my_names()).await
+    with_store(state.db()?, |s| s.my_names()).await
 }
 
 #[tauri::command]
 async fn set_my_names(state: State<'_, AppState>, names: Vec<String>) -> CmdResult<()> {
-    with_store(state.db_path.clone(), move |s| s.set_my_names(&names)).await
+    with_store(state.db()?, move |s| s.set_my_names(&names)).await
 }
 
 #[tauri::command]
 async fn stats(state: State<'_, AppState>) -> CmdResult<Stats> {
-    with_store(state.db_path.clone(), |s| s.stats()).await
+    with_store(state.db()?, |s| s.stats()).await
 }
 
 #[tauri::command]
 async fn channels(state: State<'_, AppState>, filter: Option<String>) -> CmdResult<Vec<ChannelView>> {
-    with_store(state.db_path.clone(), move |s| s.channels(filter.as_deref())).await
+    with_store(state.db()?, move |s| s.channels(filter.as_deref())).await
 }
 
 #[tauri::command]
 async fn messages(state: State<'_, AppState>, channel_id: String, offset: i64, limit: i64) -> CmdResult<MessagesPage> {
-    with_store(state.db_path.clone(), move |s| s.messages(&channel_id, offset, limit)).await
+    with_store(state.db()?, move |s| s.messages(&channel_id, offset, limit)).await
 }
 
 #[tauri::command]
 async fn message_index(state: State<'_, AppState>, channel_id: String, message_id: String) -> CmdResult<i64> {
-    with_store(state.db_path.clone(), move |s| s.message_index(&channel_id, &message_id)).await
+    with_store(state.db()?, move |s| s.message_index(&channel_id, &message_id)).await
 }
 
 #[tauri::command]
@@ -330,13 +395,13 @@ async fn search(
     offset: i64,
     limit: i64,
 ) -> CmdResult<SearchPage> {
-    with_store(state.db_path.clone(), move |s| s.search(&text, channel_id.as_deref(), offset, limit)).await
+    with_store(state.db()?, move |s| s.search(&text, channel_id.as_deref(), offset, limit)).await
 }
 
 #[tauri::command]
 async fn run_scan(app: AppHandle, state: State<'_, AppState>, watch_terms: Vec<String>) -> CmdResult<ScanSummary> {
     state.licences.require(App::Clean)?;
-    with_store(state.db_path.clone(), move |s| {
+    with_store(state.db()?, move |s| {
         sompio_clean::run_scan(s, &ScanOptions { watch_terms }, &mut |done, total| {
             let _ = app.emit("scan-progress", (done, total));
         })
@@ -346,7 +411,7 @@ async fn run_scan(app: AppHandle, state: State<'_, AppState>, watch_terms: Vec<S
 
 #[tauri::command]
 async fn scan_summary(state: State<'_, AppState>) -> CmdResult<ScanSummary> {
-    with_store(state.db_path.clone(), |s| s.scan_summary()).await
+    with_store(state.db()?, |s| s.scan_summary()).await
 }
 
 #[tauri::command]
@@ -361,7 +426,7 @@ async fn findings(
     group: Option<bool>,
     same_as: Option<i64>,
 ) -> CmdResult<FindingsPage> {
-    with_store(state.db_path.clone(), move |s| {
+    with_store(state.db()?, move |s| {
         let filter = sompio_clean::FindingsFilter {
             kind: kind.as_deref(),
             platform: platform.as_deref(),
@@ -378,7 +443,7 @@ async fn findings(
 /// Everywhere the value in a finding appears, within one status list.
 #[tauri::command]
 async fn group_info(state: State<'_, AppState>, id: i64, status: String) -> CmdResult<sompio_clean::GroupInfo> {
-    with_store(state.db_path.clone(), move |s| s.group_info(id, StatusFilter::parse(&status))).await
+    with_store(state.db()?, move |s| s.group_info(id, StatusFilter::parse(&status))).await
 }
 
 type Previous = Vec<(i64, Option<String>)>;
@@ -386,7 +451,7 @@ type Previous = Vec<(i64, Option<String>)>;
 /// One decision for many findings. Returns what they were before, for Undo.
 #[tauri::command]
 async fn set_status_many(state: State<'_, AppState>, ids: Vec<i64>, status: Option<String>) -> CmdResult<(Previous, ScanSummary)> {
-    with_store(state.db_path.clone(), move |s| {
+    with_store(state.db()?, move |s| {
         let before = s.set_status_many(&ids, status.as_deref())?;
         Ok((before, s.scan_summary()?))
     })
@@ -395,7 +460,7 @@ async fn set_status_many(state: State<'_, AppState>, ids: Vec<i64>, status: Opti
 
 #[tauri::command]
 async fn restore_statuses(state: State<'_, AppState>, previous: Previous) -> CmdResult<ScanSummary> {
-    with_store(state.db_path.clone(), move |s| {
+    with_store(state.db()?, move |s| {
         s.restore_statuses(&previous)?;
         s.scan_summary()
     })
@@ -404,17 +469,17 @@ async fn restore_statuses(state: State<'_, AppState>, previous: Previous) -> Cmd
 
 #[tauri::command]
 async fn reveal_finding(state: State<'_, AppState>, id: i64) -> CmdResult<Option<FindingView>> {
-    with_store(state.db_path.clone(), move |s| s.reveal_finding(id)).await
+    with_store(state.db()?, move |s| s.reveal_finding(id)).await
 }
 
 #[tauri::command]
 async fn reveal_message(state: State<'_, AppState>, message_id: String) -> CmdResult<Option<MessageView>> {
-    with_store(state.db_path.clone(), move |s| s.reveal_message(&message_id)).await
+    with_store(state.db()?, move |s| s.reveal_message(&message_id)).await
 }
 
 #[tauri::command]
 async fn set_status(state: State<'_, AppState>, id: i64, status: Option<String>) -> CmdResult<ScanSummary> {
-    with_store(state.db_path.clone(), move |s| {
+    with_store(state.db()?, move |s| {
         s.set_status(id, status.as_deref())?;
         s.scan_summary()
     })
@@ -423,7 +488,7 @@ async fn set_status(state: State<'_, AppState>, id: i64, status: Option<String>)
 
 #[tauri::command]
 async fn ignore_everywhere(state: State<'_, AppState>, id: i64) -> CmdResult<(usize, ScanSummary)> {
-    with_store(state.db_path.clone(), move |s| {
+    with_store(state.db()?, move |s| {
         let n = s.ignore_everywhere(id)?;
         Ok((n, s.scan_summary()?))
     })
@@ -432,37 +497,37 @@ async fn ignore_everywhere(state: State<'_, AppState>, id: i64) -> CmdResult<(us
 
 #[tauri::command]
 async fn clear_ignored(state: State<'_, AppState>) -> CmdResult<usize> {
-    with_store(state.db_path.clone(), |s| s.clear_ignored()).await
+    with_store(state.db()?, |s| s.clear_ignored()).await
 }
 
 #[tauri::command]
 async fn load_demo(state: State<'_, AppState>) -> CmdResult<()> {
-    with_store(state.db_path.clone(), |s| sompio_clean::load_demo(s)).await
+    with_store(state.db()?, |s| sompio_clean::load_demo(s)).await
 }
 
 #[tauri::command]
 async fn is_demo(state: State<'_, AppState>) -> CmdResult<bool> {
-    with_store(state.db_path.clone(), |s| s.is_demo()).await
+    with_store(state.db()?, |s| s.is_demo()).await
 }
 
 #[tauri::command]
 async fn watch_terms(state: State<'_, AppState>) -> CmdResult<Vec<String>> {
-    with_store(state.db_path.clone(), |s| s.watch_terms()).await
+    with_store(state.db()?, |s| s.watch_terms()).await
 }
 
 #[tauri::command]
 async fn export_flagged(state: State<'_, AppState>, path: String) -> CmdResult<usize> {
-    with_store(state.db_path.clone(), move |s| s.export_flagged_csv(Path::new(&path))).await
+    with_store(state.db()?, move |s| s.export_flagged_csv(Path::new(&path))).await
 }
 
 #[tauri::command]
 async fn wipe_data(state: State<'_, AppState>) -> CmdResult<()> {
-    with_store(state.db_path.clone(), |s| s.wipe()).await
+    with_store(state.db()?, |s| s.wipe()).await
 }
 
 #[tauri::command]
 fn data_location(state: State<'_, AppState>) -> String {
-    state.db_path.display().to_string()
+    state.vault.clean_db_path().display().to_string()
 }
 
 /// Testers ran this app as "Veil" before it became Sompio. Brings their Clean data along once.
@@ -487,11 +552,10 @@ pub fn run() {
             let dir = app.path().app_local_data_dir()?;
             std::fs::create_dir_all(&dir)?;
             let secrets = std::sync::Arc::new(sompio_connect::KeyringStore::new("Sompio"));
-            let db_path = dir.join("clean.db");
-            move_from_veil(&dir, &db_path);
+            move_from_veil(&dir, &dir.join("clean.db"));
             app.manage(AppState {
                 licences: Licences::load(dir.join("licences.json")),
-                db_path,
+                vault: Arc::new(sompio_suite::Vault::new(dir.clone(), secrets.clone())),
                 telegram: tokio::sync::Mutex::new(sompio_connect::telegram::Telegram::new(secrets.clone())),
                 email: std::sync::Arc::new(sompio_connect::email::Email::new(secrets)),
             });
@@ -499,6 +563,13 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             has_data,
+            lock_status,
+            lock_setup,
+            lock_unlock,
+            lock_recover,
+            lock_change_password,
+            lock_forget_picture,
+            lock_lock,
             licence_status,
             licence_add,
             import_package,

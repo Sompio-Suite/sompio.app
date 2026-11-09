@@ -89,6 +89,8 @@ export interface KeyView { serial: string; label: string; days: number; activate
 export interface LicenceStatus { apps: AppStatus[]; keys: KeyView[]; trial_ends_at: number | null; clock_behind: boolean; now: number }
 export interface Added { label: string; days: number; test: boolean; status: LicenceStatus }
 
+export interface LockStatus { set_up: boolean; unlocked: boolean; remembers_picture: boolean }
+
 export const inDesktopApp = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 type Invoke = <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
@@ -106,6 +108,14 @@ export const listen = async <T,>(event: string, cb: (payload: T) => void) => (aw
 
 export const api = {
   hasData: () => call<boolean>("has_data"),
+  lockStatus: () => call<LockStatus>("lock_status"),
+  lockSetup: (password: string, picturePath: string, remember: boolean) => call<string>("lock_setup", { password, picturePath, remember }),
+  lockUnlock: (password: string, picturePath: string | null, remember: boolean) => call<void>("lock_unlock", { password, picturePath, remember }),
+  lockRecover: (code: string, newPassword: string, picturePath: string, remember: boolean) =>
+    call<string>("lock_recover", { code, newPassword, picturePath, remember }),
+  lockChangePassword: (old: string, nu: string, picturePath: string | null) => call<void>("lock_change_password", { old, new: nu, picturePath }),
+  lockForgetPicture: () => call<void>("lock_forget_picture"),
+  lockLock: () => call<void>("lock_lock"),
   licenceStatus: () => call<LicenceStatus>("licence_status"),
   licenceAdd: (key: string) => call<Added>("licence_add", { key }),
   tgStatus: () => call<TgStatus>("tg_status"),
@@ -188,6 +198,31 @@ export async function pickSavePath(defaultName: string): Promise<string | null> 
   if (!inDesktopApp) return defaultName;
   const { save } = await import("@tauri-apps/plugin-dialog");
   return save({ defaultPath: defaultName, filters: [{ name: "CSV", extensions: ["csv"] }] });
+}
+
+/** Where to save a new key picture. */
+export async function pickPictureSave(): Promise<string | null> {
+  if (!inDesktopApp) return "C:\\Users\\you\\Pictures\\Sompio key.png";
+  const { save } = await import("@tauri-apps/plugin-dialog");
+  return save({ title: "Save your key picture", defaultPath: "Sompio key.png", filters: [{ name: "Picture", extensions: ["png"] }] });
+}
+
+/** The key picture, to unlock. */
+export async function pickPicture(): Promise<string | null> {
+  if (!inDesktopApp) return "C:\\Users\\you\\Pictures\\Sompio key.png";
+  const { open } = await import("@tauri-apps/plugin-dialog");
+  const picked = await open({ title: "Choose your key picture", filters: [{ name: "Picture", extensions: ["png"] }] });
+  return typeof picked === "string" ? picked : null;
+}
+
+/** Mirrors the rules the lock itself applies, so problems show while typing. */
+export function passwordProblem(p: string): string | null {
+  if ([...p].length < 10) return "Use at least 10 characters. A few unrelated words work well.";
+  if (new Set(p).size < 5) return "That password repeats too much. Mix it up a little.";
+  const l = p.toLowerCase();
+  if (["password", "wachtwoord", "123456789", "qwertyuiop", "sompio"].some((w) => l.includes(w)) && [...p].length < 16)
+    return "That password is easy to guess. Try a few unrelated words.";
+  return null;
 }
 
 const ALLOWED_LINKS = [

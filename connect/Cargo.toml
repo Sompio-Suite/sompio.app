@@ -16,3 +16,7 @@ sompio-clean = { version = "0.1.0", path = "../clean" }
 imap = "3.0.0-alpha.15"
 native-tls = "0.2.18"
 imap-proto = "0.16"
+
+# SQLite with built-in encryption (SQLite3 Multiple Ciphers), no OpenSSL needed.
+[patch.crates-io]
+libsqlite3-sys = { path = "../vendor/libsqlite3-sys" }

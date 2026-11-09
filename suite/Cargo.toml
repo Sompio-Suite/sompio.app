@@ -1,0 +1,20 @@
+[package]
+name = "sompio-suite"
+version = "0.1.0"
+edition = "2021"
+description = "Glue between the Sompio Lock and the apps' data: setup, unlock, recovery, and each app's database key."
+
+[dependencies]
+anyhow = "1"
+zeroize = "1"
+sompio-lock = { path = "../lock" }
+sompio-clean = { path = "../clean" }
+sompio-connect = { path = "../connect" }
+serde = { version = "1.0.229", features = ["derive"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+# SQLite with built-in encryption (SQLite3 Multiple Ciphers), no OpenSSL needed.
+[patch.crates-io]
+libsqlite3-sys = { path = "../vendor/libsqlite3-sys" }

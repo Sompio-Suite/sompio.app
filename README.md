@@ -11,6 +11,26 @@ Private tools that keep your data on your PC, unlocked with a key instead of an 
 
 The plan lives in the "Sompio Suite plan" doc.
 
+## The Sompio Lock
+
+Everything Sompio stores is encrypted with one random 256-bit vault key (`lock/`). The vault key is only kept
+wrapped (XChaCha20-Poly1305) in `lock.json`, and opens two ways:
+
+- **Master password + key picture.** The password goes through Argon2id (64 MiB, 3 passes) and is mixed with a
+  256-bit secret hidden in a night-sky PNG the person keeps on their phone. Both are needed. The secret sits in a
+  private PNG chunk and, as backup, in the lowest bit of the blue channel along three rows, so ordinary copying
+  keeps it; chat apps that shrink photos destroy it. On a PC the person trusts, the picture's secret can be
+  remembered in Windows Credential Manager so only the password is typed there.
+- **Recovery code** (120 bits, printed once). It sets a new password, picture and code; the old ones stop working.
+
+Each app gets its own key from the vault key (HKDF). Clean's database is encrypted with SQLite3 Multiple Ciphers
+(ChaCha20-Poly1305), vendored as a drop-in for rusqlite's bundled SQLite in `vendor/libsqlite3-sys`, so no
+OpenSSL is needed to build. Data from before the lock is encrypted in place on setup. Sompio locks itself after
+a chosen idle time. Nobody, including us, can reset a lost password together with a lost recovery code.
+
+Not yet: YubiKey as the second key, Windows Hello for quick unlock, and the Telegram and email credentials still
+live in Windows Credential Manager rather than under the lock.
+
 ## Licence keys
 
 A key holds which apps it unlocks, for how many days, the day it was made and a random serial, signed with
@@ -163,6 +183,9 @@ connect/           Live account connections (Telegram, email over IMAP). The onl
   src/bin/sompio-clean-cli.rs  command-line access to the same engine
   tests/             tests with fake packages in both layouts
 licence/           Licence keys: signing, offline checking, the trial, and Sompio Key Maker.
+lock/              The Sompio Lock: Argon2id, key wrapping, the key picture, recovery codes.
+suite/             Glue for the app: setup, unlock, recovery, each app's database key.
+vendor/            libsqlite3-sys with SQLite3 Multiple Ciphers in place of plain SQLite.
 app/
   src-tauri/         the desktop shell: passes UI requests to the libraries, nothing else
   src/               the React interface

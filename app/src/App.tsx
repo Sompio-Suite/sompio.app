@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { api, type KindKey, type LicenceStatus, type ScanSummary } from "./api";
+import { api, type KindKey, type LicenceStatus, type LockStatus, type ScanSummary } from "./api";
 import { n } from "./format";
 import Icon, { type IconName } from "./Icon";
 import Welcome from "./views/Welcome";
@@ -11,11 +11,13 @@ import Sources from "./views/Sources";
 import Overview from "./views/Overview";
 import Licences from "./views/Licences";
 import Upcoming from "./views/Upcoming";
+import LockScreen from "./views/LockScreen";
+import Security from "./views/Security";
 import { SUITE, accessText } from "./licence";
 
 /** Suite pages, then Clean's pages. */
 export type View =
-  | "overview" | "calendar" | "vault" | "voice" | "licences"
+  | "overview" | "calendar" | "vault" | "voice" | "licences" | "security"
   | "home" | "review" | "messages" | "sources" | "settings";
 const CLEAN_VIEWS: View[] = ["home", "review", "messages", "sources", "settings"];
 export interface Jump { channelId: string; messageId?: string }
@@ -25,6 +27,15 @@ export default function App() {
   const [demo, setDemo] = useState(false);
   const [view, setView] = useState<View>("overview");
   const [licence, setLicence] = useState<LicenceStatus | null>(null);
+  const [lock, setLock] = useState<LockStatus | null>(null);
+  const [idleMinutes, setIdleMinutes] = useState(() => {
+    try {
+      const v = localStorage.getItem("sompio.idleMinutes");
+      return v == null ? 15 : Number(v);
+    } catch {
+      return 15;
+    }
+  });
   const [jump, setJump] = useState<Jump | null>(null);
   const [reviewKind, setReviewKind] = useState<KindKey | null>(null);
   const [scan, setScan] = useState<ScanSummary | null>(null);
@@ -45,10 +56,44 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    api.lockStatus().then(setLock).catch(() => setLock({ set_up: true, unlocked: false, remembers_picture: false }));
+    api.licenceStatus().then(setLicence).catch(() => {});
+  }, []);
+  const unlocked = lock?.unlocked ?? false;
+  useEffect(() => {
+    if (!unlocked) return;
     refresh();
     checkConnections();
-    api.licenceStatus().then(setLicence).catch(() => {});
-  }, [refresh, checkConnections]);
+  }, [unlocked, refresh, checkConnections]);
+
+  const lockNow = useCallback(async () => {
+    await api.lockLock().catch(() => {});
+    setLock(await api.lockStatus());
+    setReady(null);
+    setScan(null);
+    setVersion((v) => v + 1);
+  }, []);
+
+  // Lock after a while without use
+  useEffect(() => {
+    try {
+      localStorage.setItem("sompio.idleMinutes", String(idleMinutes));
+    } catch {
+      /* not remembered, fine */
+    }
+    if (!unlocked || idleMinutes <= 0) return;
+    let last = Date.now();
+    const seen = () => { last = Date.now(); };
+    const events = ["mousemove", "keydown", "mousedown", "wheel", "touchstart"];
+    events.forEach((e) => window.addEventListener(e, seen, { passive: true }));
+    const timer = window.setInterval(() => {
+      if (Date.now() - last > idleMinutes * 60_000) lockNow();
+    }, 20_000);
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, seen));
+      window.clearInterval(timer);
+    };
+  }, [unlocked, idleMinutes, lockNow]);
 
   const openChannel = (j: Jump) => {
     setJump(j);
@@ -67,6 +112,10 @@ export default function App() {
     setVersion((v) => v + 1);
   };
 
+  if (!lock) return null;
+  if (!lock.set_up || !lock.unlocked) {
+    return <LockScreen key={String(lock.set_up)} status={lock} onUnlocked={async () => setLock(await api.lockStatus())} />;
+  }
   if (ready === null) return null;
 
   const toReview = scan ? scan.open : 0;
@@ -152,6 +201,7 @@ export default function App() {
         </div>
         {SUITE.filter((a) => !a.ready).map((a) => navButton(a.key as View, a.name, a.icon, <span className="soon-dot" title={a.when} />))}
         <div className="rail-spacer" />
+        {navButton("security", "Security", "lock")}
         {navButton("licences", "Licences", "ticket")}
         <div className="rail-foot">
           <Icon name="lock" size={16} />
@@ -186,6 +236,15 @@ export default function App() {
         )}
         {view === "overview" && <Overview licence={licence} scan={scan} cleanReady={ready} onGo={setView} />}
         {view === "licences" && <Licences licence={licence} onChanged={setLicence} />}
+        {view === "security" && (
+          <Security
+            status={lock}
+            idleMinutes={idleMinutes}
+            onIdleMinutes={setIdleMinutes}
+            onLockNow={lockNow}
+            onChanged={async () => setLock(await api.lockStatus())}
+          />
+        )}
         {(view === "calendar" || view === "vault" || view === "voice") && <Upcoming app={SUITE.find((a) => a.key === view)!} />}
         {inClean && cleanPage()}
       </main>

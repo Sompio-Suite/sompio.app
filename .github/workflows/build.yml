@@ -20,6 +20,8 @@ jobs:
           workspaces: |
             clean -> target
             licence -> target
+            lock -> target
+            suite -> target
             connect -> target
       - name: Run engine tests
         working-directory: clean
@@ -30,6 +32,12 @@ jobs:
       - name: Run licence tests
         working-directory: licence
         run: cargo test
+      - name: Run lock tests
+        working-directory: lock
+        run: cargo test --release
+      - name: Run suite tests
+        working-directory: suite
+        run: cargo test --release
 
   windows:
     name: Build Windows app

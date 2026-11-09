@@ -21,6 +21,8 @@ anyhow = "1"
 sompio-clean = { path = "../../clean" }
 sompio-connect = { path = "../../connect" }
 sompio-licence = { path = "../../licence" }
+sompio-suite = { path = "../../suite" }
+zeroize = "1"
 ed25519-dalek = "2"
 tokio = { version = "1", features = ["sync"] }
 
@@ -29,3 +31,7 @@ lto = true
 codegen-units = 1
 opt-level = 3
 strip = true
+
+# SQLite with built-in encryption (SQLite3 Multiple Ciphers), no OpenSSL needed.
+[patch.crates-io]
+libsqlite3-sys = { path = "../../vendor/libsqlite3-sys" }

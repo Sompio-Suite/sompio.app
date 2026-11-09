@@ -88,9 +88,57 @@ pub struct Store {
     pub(crate) conn: Connection,
 }
 
+/// SQLite3 Multiple Ciphers with ChaCha20-Poly1305. The key is already 256 random bits from the
+/// Sompio Lock, so the cipher's own password stretching is turned down to one round.
+fn apply_key(conn: &Connection, key: &[u8; 32], pragma: &str) -> Result<()> {
+    let hex: String = key.iter().map(|b| format!("{b:02x}")).collect();
+    conn.execute_batch(&format!("PRAGMA cipher = 'chacha20'; PRAGMA kdf_iter = 1; PRAGMA {pragma} = '{hex}';"))?;
+    Ok(())
+}
+
 impl Store {
     pub fn open(path: &Path) -> Result<Self> {
         Self::init(Connection::open(path)?)
+    }
+
+    /// Opens the encrypted database. A wrong key is reported as such, never as damage.
+    pub fn open_encrypted(path: &Path, key: &[u8; 32]) -> Result<Self> {
+        let conn = Connection::open(path)?;
+        apply_key(&conn, key, "key")?;
+        if conn.query_row("SELECT COUNT(*) FROM sqlite_master", [], |r| r.get::<_, i64>(0)).is_err() {
+            anyhow::bail!("The database didn't open with this key.");
+        }
+        Self::init(conn)
+    }
+
+    /// True if the file is an ordinary, unencrypted SQLite database. Reads only its first bytes.
+    pub fn is_plain(path: &Path) -> bool {
+        use std::io::Read;
+        let mut head = [0u8; 16];
+        std::fs::File::open(path).and_then(|mut f| f.read_exact(&mut head)).is_ok() && &head == b"SQLite format 3\0"
+    }
+
+    /// Encrypts a database written before the lock existed, in place. Does nothing if there's no
+    /// file or it's already encrypted. Returns true if it encrypted something.
+    pub fn encrypt_existing(path: &Path, key: &[u8; 32]) -> Result<bool> {
+        if !Self::is_plain(path) {
+            return Ok(false);
+        }
+        {
+            let conn = Connection::open(path)?;
+            // Encryption can't be added while the write-ahead log is in use.
+            conn.query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |_| Ok(())).ok();
+            conn.query_row("PRAGMA journal_mode = DELETE", [], |_| Ok(()))?;
+            apply_key(&conn, key, "rekey")?;
+        }
+        for ext in ["-wal", "-shm"] {
+            let mut p = path.as_os_str().to_owned();
+            p.push(ext);
+            let _ = std::fs::remove_file(p);
+        }
+        // Check it really opens with the key now.
+        Self::open_encrypted(path, key)?;
+        Ok(true)
     }
 
     pub fn open_in_memory() -> Result<Self> {
