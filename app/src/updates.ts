@@ -26,6 +26,13 @@ export function setAutoCheck(on: boolean) {
   }
 }
 
+/** Published releases can update themselves; builds made with Build Sompio.bat can't. */
+export async function updatesOn(): Promise<boolean> {
+  if (!inDesktopApp) return true;
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<boolean>("updates_on").catch(() => false);
+}
+
 export async function currentVersion(): Promise<string> {
   if (!inDesktopApp) return "0.1.0";
   const { getVersion } = await import("@tauri-apps/api/app");
@@ -55,6 +62,7 @@ export async function checkForUpdate(): Promise<UpdateInfo | null> {
       },
     };
   }
+  if (!(await updatesOn())) return null;
   const { check } = await import("@tauri-apps/plugin-updater");
   const update = await check();
   if (!update) return null;

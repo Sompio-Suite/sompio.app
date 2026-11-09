@@ -35,8 +35,8 @@ jobs:
       - name: Check updates are set up
         shell: bash
         run: |
-          if grep -q "SET_UP_UPDATES_FIRST" app/src-tauri/tauri.conf.json; then
-            echo "::error::Updates aren't set up yet. Run 'Set up updates.bat' once on your PC, then commit and push app/src-tauri/tauri.conf.json."
+          if grep -q "SET_UP_UPDATES_FIRST" app/src-tauri/tauri.release.conf.json; then
+            echo "::error::Updates aren't set up yet. Run 'Set up updates.bat' once on your PC, then commit and push app/src-tauri/tauri.release.conf.json."
             exit 1
           fi
       - name: Install interface packages
@@ -53,6 +53,8 @@ jobs:
           SOMPIO_TG_API_HASH: ${{ secrets.SOMPIO_TG_API_HASH }}
         with:
           projectPath: app
+          # Published releases switch updates on; local builds leave them off.
+          args: --config src-tauri/tauri.release.conf.json
           owner: ${{ vars.RELEASES_OWNER || github.repository_owner }}
           repo: ${{ vars.RELEASES_REPO || github.event.repository.name }}
           includeUpdaterJson: true

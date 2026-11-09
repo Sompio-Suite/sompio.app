@@ -30,8 +30,8 @@ rem 2. The app itself.
 echo Step 2 of 2: Sompio
 cd /d "%~dp0app"
 call npm.cmd install --no-audit --no-fund || goto :fail
-rem Test builds skip the update files; GitHub makes those for real releases.
-call npm.cmd run tauri build -- --config src-tauri/tauri.local.conf.json || goto :fail
+rem A plain local build: nothing here talks to GitHub. Updates are only switched on in published releases.
+call npm.cmd run tauri build || goto :fail
 
 cd /d "%~dp0"
 if not exist "Sompio for Windows" mkdir "Sompio for Windows"

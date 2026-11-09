@@ -98,13 +98,14 @@ reject every key you make.
 **Updates.** Installed copies check `latest.json` on the newest GitHub release every few hours (it can be turned
 off under Security) and show **Update now** in the sidebar. Updates are signed; the app refuses anything not signed
 with your update key. Set it up once with `Set up updates.bat`: it makes the key, writes its public half and the
-download address into `tauri.conf.json`, and shows you the private half to paste into the GitHub secret
+download address into `tauri.release.conf.json` (used only by the release workflow), and shows you the private half to paste into the GitHub secret
 `TAURI_SIGNING_PRIVATE_KEY`. Releases must be public for the app to fetch them. To keep the code private, make a
 separate public repository for releases, set the Actions variables `RELEASES_OWNER` and `RELEASES_REPO` and a
 `RELEASES_TOKEN` secret (a token that can write to that repository); the workflow publishes there instead.
 
 **Local builds.** `Build Sompio.bat` keeps compiled pieces in `%LOCALAPPDATA%\Sompio Build`, so a new copy of the
-project only rebuilds what changed. Local builds skip the update files.
+project only rebuilds what changed. Local builds don't use GitHub or `tauri.release.conf.json` at all: updates
+are simply off in them (Security says so), and you get a new version by running the script again.
 
 ## Licence keys
 

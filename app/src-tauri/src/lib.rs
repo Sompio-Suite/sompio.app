@@ -29,6 +29,14 @@ struct AppState {
 
 type CmdResult<T> = Result<T, String>;
 
+/// Whether this build can update itself (only published releases can).
+struct UpdatesOn(bool);
+
+#[tauri::command]
+fn updates_on(state: State<'_, UpdatesOn>) -> bool {
+    state.0
+}
+
 // The Sompio Lock. Argon2 takes about half a second on purpose, so these run off the UI thread.
 
 async fn with_vault<T, F>(state: &State<'_, AppState>, f: F) -> CmdResult<T>
@@ -558,7 +566,24 @@ fn move_from_veil(dir: &Path, db_path: &Path) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let context = tauri::generate_context!();
+    // Updates are only switched on in published releases (tauri.release.conf.json). A local
+    // build has no update address, so the updater isn't loaded at all.
+    let updates = context
+        .config()
+        .plugins
+        .0
+        .get("updater")
+        .and_then(|u| u.get("pubkey"))
+        .and_then(|k| k.as_str())
+        .is_some_and(|k| !k.is_empty() && k != "SET_UP_UPDATES_FIRST");
+    let mut builder = tauri::Builder::default();
+    if updates {
+        // Checks one small file, installs only versions signed with our update key.
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+    builder
+        .manage(UpdatesOn(updates))
         // A second launch (e.g. the shortcut clicked while Sompio sits in the tray) opens the window.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| calendar::show_main(app)))
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--autostart"])))
@@ -573,8 +598,6 @@ pub fn run() {
         )
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        // Updates: checks one small file on GitHub, installs only versions signed with our update key.
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
             // Local app data (not roaming): the database never syncs to other machines.
@@ -609,6 +632,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             has_data,
+            updates_on,
             lock_status,
             lock_setup,
             lock_unlock,
@@ -714,6 +738,6 @@ pub fn run() {
             vault::vault_autotype_choose,
             vault::vault_autotype_now,
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running Sompio");
 }

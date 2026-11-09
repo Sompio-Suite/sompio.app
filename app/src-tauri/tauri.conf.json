@@ -45,17 +45,6 @@
       }
     },
     "publisher": "Sompio",
-    "createUpdaterArtifacts": true
-  },
-  "plugins": {
-    "updater": {
-      "pubkey": "SET_UP_UPDATES_FIRST",
-      "endpoints": [
-        "https://github.com/OWNER/REPO/releases/latest/download/latest.json"
-      ],
-      "windows": {
-        "installMode": "passive"
-      }
-    }
+    "createUpdaterArtifacts": false
   }
 }

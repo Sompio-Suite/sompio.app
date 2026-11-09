@@ -6,7 +6,8 @@ cd /d "%~dp0"
 echo Sompio updates: one-time setup
 echo ==============================
 echo.
-echo This makes the key that signs Sompio updates, and tells the app where to look for them.
+echo This makes the key that signs Sompio updates, and tells published releases where to look for them.
+echo You only need it when you start publishing. Build Sompio.bat never needs it.
 echo You only do this once.
 echo.
 
@@ -39,10 +40,10 @@ if exist "%KEY%" (
 
 rem Put the public half of the key and the download address into the app's settings.
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$c = Get-Content -Raw 'src-tauri\tauri.conf.json' | ConvertFrom-Json;" ^
+  "$c = Get-Content -Raw 'src-tauri\tauri.release.conf.json' | ConvertFrom-Json;" ^
   "$c.plugins.updater.pubkey = (Get-Content -Raw '%KEY%.pub').Trim();" ^
   "$c.plugins.updater.endpoints = @('https://github.com/%OWNER%/%REPO%/releases/latest/download/latest.json');" ^
-  "[IO.File]::WriteAllText((Resolve-Path 'src-tauri\tauri.conf.json'), ($c | ConvertTo-Json -Depth 20))" || goto :fail
+  "[IO.File]::WriteAllText((Resolve-Path 'src-tauri\tauri.release.conf.json'), ($c | ConvertTo-Json -Depth 20))" || goto :fail
 
 echo.
 echo Done. Two things left, both on github.com:
@@ -51,7 +52,7 @@ echo  1. In your Sompio code repository: Settings, Secrets and variables, Action
 echo     Name: TAURI_SIGNING_PRIVATE_KEY
 echo     Value: everything in the Notepad window that opens now. Then close Notepad.
 echo.
-echo  2. Commit and push the change to app\src-tauri\tauri.conf.json.
+echo  2. Commit and push the change to app\src-tauri\tauri.release.conf.json.
 echo.
 echo The key file is in %KEYDIR%. Back it up with your licence signing key. Never share it:
 echo whoever has it can push updates to every Sompio user.

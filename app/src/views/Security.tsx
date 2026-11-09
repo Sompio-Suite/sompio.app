@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, passwordProblem, pickPicture, type LockStatus } from "../api";
 import Icon from "../Icon";
-import { autoCheckEnabled, checkForUpdate, currentVersion, setAutoCheck, type UpdateInfo } from "../updates";
+import { autoCheckEnabled, checkForUpdate, currentVersion, setAutoCheck, updatesOn, type UpdateInfo } from "../updates";
 
 interface Props {
   status: LockStatus;
@@ -16,8 +16,10 @@ export default function Security({ status, idleMinutes, onIdleMinutes, onLockNow
   const [version, setVersion] = useState("");
   const [auto, setAuto] = useState(autoCheckEnabled());
   const [updateNote, setUpdateNote] = useState<string | null>(null);
+  const [canUpdate, setCanUpdate] = useState(true);
   useEffect(() => {
     currentVersion().then(setVersion).catch(() => {});
+    updatesOn().then(setCanUpdate);
   }, []);
   const checkNow = async () => {
     setUpdateNote("Checking…");
@@ -115,18 +117,27 @@ export default function Security({ status, idleMinutes, onIdleMinutes, onLockNow
 
       <section className="setting">
         <h3>Updates</h3>
-        <p className="muted">
-          You have Sompio {version}. To find out about new versions, Sompio downloads one small version file from GitHub every few
-          hours. Nothing about you or your data is sent. Updates are signed, and Sompio only installs ones signed by us.
-        </p>
-        <label className="check">
-          <input type="checkbox" checked={auto} onChange={(e) => { setAuto(e.target.checked); setAutoCheck(e.target.checked); }} />
-          Check for updates automatically
-        </label>
-        <div className="toolbar">
-          <button onClick={checkNow}>Check now</button>
-          {updateNote && <span className="small muted">{updateNote}</span>}
-        </div>
+        {canUpdate ? (
+          <>
+            <p className="muted">
+              You have Sompio {version}. To find out about new versions, Sompio downloads one small version file every few
+              hours. Nothing about you or your data is sent. Updates are signed, and Sompio only installs ones signed by us.
+            </p>
+            <label className="check">
+              <input type="checkbox" checked={auto} onChange={(e) => { setAuto(e.target.checked); setAutoCheck(e.target.checked); }} />
+              Check for updates automatically
+            </label>
+            <div className="toolbar">
+              <button onClick={checkNow}>Check now</button>
+              {updateNote && <span className="small muted">{updateNote}</span>}
+            </div>
+          </>
+        ) : (
+          <p className="muted">
+            You have Sompio {version}, a test build made on this PC. It doesn't look for updates or go online for them.
+            To get a newer version, run Build Sompio.bat again.
+          </p>
+        )}
       </section>
 
       <section className="setting">
