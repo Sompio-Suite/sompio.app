@@ -132,11 +132,11 @@ export default function App() {
     <div className="shell">
       <nav className="rail" aria-label="Sections">
         <div className="brand">
-          <svg className="brand-mark" viewBox="0 0 26 26" aria-hidden>
-            <rect width="26" height="26" rx="8" />
-            <path d="M5 18.5 10.2 11l3 4 2.8-3.8 5 7.3" />
+          <svg className="brand-mark" viewBox="0 0 120 120" aria-hidden>
+            <path className="sun-top" d="M14 56 A36 36 0 0 1 86 56 Z" />
+            <path className="sun-bottom" d="M34 64 A36 36 0 0 0 106 64 Z" />
           </svg>
-          <span className="brand-name">Sompio</span>
+          <span className="brand-name">sompio</span>
         </div>
         {navButton("overview", "Overview", "grid")}
         <div className="rail-group">
