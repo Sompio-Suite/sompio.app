@@ -11,9 +11,9 @@ interface Props {
 }
 
 const APP_PASSWORD_HELP: Record<string, string> = {
-  gmail: "Gmail needs 2-Step Verification turned on. Then open App passwords in your Google Account, create one called Veil, and paste the 16 letters here.",
-  yahoo: "In Yahoo's Account security page, choose Generate app password, call it Veil, and paste it here.",
-  icloud: "Sign in at account.apple.com, open Sign-In and Security, then App-Specific Passwords. Create one called Veil and paste it here.",
+  gmail: "Gmail needs 2-Step Verification turned on. Then open App passwords in your Google Account, create one called Sompio, and paste the 16 letters here.",
+  yahoo: "In Yahoo's Account security page, choose Generate app password, call it Sompio, and paste it here.",
+  icloud: "Sign in at account.apple.com, open Sign-In and Security, then App-Specific Passwords. Create one called Sompio and paste it here.",
   gmx: "In GMX settings, turn on POP3 & IMAP access, and use an app password if you have two-factor sign-in on.",
   fastmail: "In Fastmail, open Settings, Privacy & Security, then Manage app passwords. Create one with IMAP access.",
   other: "Use your provider's IMAP server (it usually starts with imap.) and an app password if they offer them.",
@@ -69,7 +69,7 @@ export default function EmailConnect({ onSynced, onStatus }: Props) {
           <strong>Email</strong>
           <span className="small muted">
             {status.connected
-              ? `Connected as ${status.address}${connectedName ? ` (${connectedName})` : ""}. Veil reads your Sent folder and can move emails to Trash.`
+              ? `Connected as ${status.address}${connectedName ? ` (${connectedName})` : ""}. Sompio reads your Sent folder and can move emails to Trash.`
               : "Check everything you've sent for personal details. Gmail, Yahoo, iCloud and most other providers."}
           </span>
         </div>
@@ -151,9 +151,9 @@ export default function EmailConnect({ onSynced, onStatus }: Props) {
             <button type="button" className="quiet" onClick={() => setOpen(false)}>Cancel</button>
           </div>
           <p className="small faint">
-            An app password only opens your mail, can't change your account, and you can revoke it any time. Veil keeps it
+            An app password only opens your mail, can't change your account, and you can revoke it any time. Sompio keeps it
             in Windows Credential Manager and only talks to your mail server. Outlook.com and Hotmail need Microsoft
-            sign-in, which Veil doesn't support yet.
+            sign-in, which Sompio doesn't support yet.
           </p>
         </form>
       )}

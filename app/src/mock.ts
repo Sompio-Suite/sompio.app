@@ -11,7 +11,7 @@ const KINDS: Record<KindKey, [string, number, string]> = {
   credential: ["Passwords, tokens & keys", 3, "Change this password or revoke this token now. Deleting the message doesn't undo the leak, because others may already have seen it."],
   card: ["Payment cards", 3, "Contact your bank to block or replace this card, then delete the message."],
   iban: ["Bank accounts (IBAN)", 3, "An IBAN alone can't empty your account, but scammers use it to sound convincing. Delete the message unless you share this account number publicly anyway."],
-  watch_term: ["Your watch terms", 3, "You told Veil this is sensitive. Decide whether this message needs to go."],
+  watch_term: ["Your watch terms", 3, "You told Sompio this is sensitive. Decide whether this message needs to go."],
   address: ["Street addresses", 3, "Delete the message unless you're fine with everyone in this chat knowing this address."],
   phone: ["Phone numbers", 2, "Delete the message if you don't want this number linked to your Discord account."],
   email: ["Email addresses", 2, "Check whether you want this address linked to your Discord account. If it's a public work address, mark it as not a problem everywhere."],
@@ -171,6 +171,25 @@ const reset = () => {
 };
 const discordSource = (): SourceView => ({ platform: "discord", label: "Discord", origin: "C:\\Users\\you\\Downloads\\package.zip", imported_at: Date.now(), channels: baseChannels.length, messages: baseMessages.length });
 
+// Licences in the browser preview: a 14-day trial that started 3 days ago; any long SOMPIO- key adds 30 suite days.
+const DAY = 86_400_000;
+const trialStart = Date.now() - 3 * DAY;
+const mockKeys: { key: string; at: number }[] = [];
+function licenceStatus() {
+  const now = Date.now();
+  const trialEnd = trialStart + 14 * DAY;
+  let end = trialEnd;
+  for (const k of mockKeys) end = Math.max(end, k.at) + 30 * DAY;
+  const paid = mockKeys.length > 0;
+  return {
+    apps: ["clean", "calendar", "vault", "voice"].map((app) => ({
+      app, name: app[0].toUpperCase() + app.slice(1), active: end > now, ends_at: end, trial_only: !paid,
+    })),
+    keys: mockKeys.map((k, i) => ({ serial: `a1b2c3d4e5f6070${i}`, label: "Sompio Suite", days: 30, activated_at: k.at, test: true, invalid: false })).reverse(),
+    trial_ends_at: trialEnd, clock_behind: false, now,
+  };
+}
+
 let mail = { connected: false, address: null as string | null, provider: null as string | null };
 let myNames: string[] = [];
 let tg = { has_app_key: false, connected: false, name: null as string | null, waiting_for: null as null | "code" | "password" };
@@ -216,6 +235,16 @@ const handlers: Record<string, (a: any) => unknown> = {
   email_delete: ({ id }) => { statuses.set(id, "deleted"); return summary(); },
   my_names: () => [...myNames],
   set_my_names: ({ names }) => { myNames = names; },
+  licence_status: () => licenceStatus(),
+  licence_add: async ({ key }) => {
+    await wait(300);
+    const k = String(key).trim().toUpperCase();
+    if (!k.startsWith("SOMPIO")) throw "That doesn't look like a Sompio key. Keys start with SOMPIO-.";
+    if (k.replace(/[^A-Z0-9]/g, "").length < 120) throw "That key is shorter than it should be. Copy it again, all of it.";
+    if (mockKeys.some((m) => m.key === k)) throw "This key is already added on this device.";
+    mockKeys.push({ key: k, at: Date.now() });
+    return { label: "Sompio Suite", days: 30, test: true, status: licenceStatus() };
+  },
   has_data: () => loaded,
   is_demo: () => demo,
   load_demo: async () => { reset(); await wait(300); loaded = true; demo = true; sources = [discordSource()]; },
@@ -337,7 +366,7 @@ const handlers: Record<string, (a: any) => unknown> = {
   watch_terms: () => terms,
   export_flagged: () => new Set(findings.map((f) => f.msg.id)).size,
   wipe_data: () => reset(),
-  data_location: () => "C:\\Users\\you\\AppData\\Local\\app.veil.desktop\\veil.db",
+  data_location: () => "C:\\Users\\you\\AppData\\Local\\app.sompio.desktop\\sompio.db",
 };
 
 export const mockBackend = {

@@ -38,7 +38,7 @@ export default function Settings({ scan, demo, onScan, onLeave }: Props) {
       <section className="setting">
         <h3>Your data on this computer</h3>
         <p className="muted">
-          {demo ? "Sample data loaded" : "Last import"} {dateTime(importedAt)}. Veil keeps a copy of what it read, your review
+          {demo ? "Sample data loaded" : "Last import"} {dateTime(importedAt)}. Sompio keeps a copy of what it read, your review
           progress and your watch terms in one file:
         </p>
         <code>{location}</code>
@@ -48,11 +48,11 @@ export default function Settings({ scan, demo, onScan, onLeave }: Props) {
       </section>
 
       <section className="setting">
-        <h3>Things you told Veil never to flag</h3>
+        <h3>Things you told Sompio never to flag</h3>
         {ignored > 0 ? (
           <>
             <p className="muted">
-              {plural(ignored, "item is", "items are")} on the never-flag list. Veil keeps only a fingerprint of each, not the
+              {plural(ignored, "item is", "items are")} on the never-flag list. Sompio keeps only a fingerprint of each, not the
               text itself. Clearing the list brings them back on the next scan.
             </p>
             <div><button onClick={clearIgnored} disabled={busy}>Clear the list and scan again</button></div>

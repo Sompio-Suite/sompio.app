@@ -2,7 +2,7 @@
 //!
 //! Signing in uses an app password (Gmail, Yahoo, iCloud and others hand these out in their
 //! security settings), never the account's real password. It is kept in the OS credential store.
-//! Veil only opens the Sent folder read-only ("EXAMINE") while reading, so nothing gets marked
+//! Sompio only opens the Sent folder read-only ("EXAMINE") while reading, so nothing gets marked
 //! as read, and it only touches a message when the person asks it to delete one.
 //!
 //! Records use the email's Message-ID, the same ID a Google Takeout import uses, so review
@@ -14,7 +14,7 @@ use imap::{ClientBuilder, Connection, Session};
 use imap_proto::NameAttribute;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use veil_core::{gmail_link, parse_sent_mail, LiveChannel, LiveMessage};
+use sompio_clean::{gmail_link, parse_sent_mail, LiveChannel, LiveMessage};
 
 const KEY_ACCOUNT: &str = "email.account";
 /// Only the first part of each email is downloaded: the text comes first, attachments after.
@@ -71,7 +71,7 @@ fn friendly(e: impl std::fmt::Display) -> anyhow::Error {
     } else if l.contains("timed out") || l.contains("refused") || l.contains("unreachable") {
         anyhow!("Couldn't reach the mail server. Check your internet connection and try again.")
     } else if l.contains("certificate") || l.contains("tls") {
-        anyhow!("The mail server's security certificate couldn't be verified, so Veil didn't connect.")
+        anyhow!("The mail server's security certificate couldn't be verified, so Sompio didn't connect.")
     } else {
         anyhow!("Email: {s}")
     }

@@ -79,7 +79,7 @@ export default function TelegramConnect({ onSynced, onStatus }: Props) {
           <strong>Telegram</strong>
           <span className="small muted">
             {step === "connected"
-              ? `Connected as ${status.name ?? "your account"}. Veil reads the messages you sent and can delete them for you.`
+              ? `Connected as ${status.name ?? "your account"}. Sompio reads the messages you sent and can delete them for you.`
               : "Connect your account to check and delete your own messages without exporting first."}
           </span>
         </div>
@@ -131,7 +131,7 @@ export default function TelegramConnect({ onSynced, onStatus }: Props) {
             <input type="text" inputMode="tel" autoComplete="tel" value={f.phone} onChange={set("phone")} placeholder="+31 6 12345678" />
           </label>
           <div><button className="primary" disabled={busy || f.phone.length < 8}>Send me a code</button></div>
-          <p className="small faint">Telegram sends the code to your Telegram app. Your number goes to Telegram only; Veil doesn't keep it.</p>
+          <p className="small faint">Telegram sends the code to your Telegram app. Your number goes to Telegram only; Sompio doesn't keep it.</p>
         </form>
       )}
 
@@ -159,7 +159,7 @@ export default function TelegramConnect({ onSynced, onStatus }: Props) {
             <input type="password" autoComplete="current-password" value={f.password} onChange={set("password")} autoFocus />
           </label>
           <div><button className="primary" disabled={busy || !f.password}>Connect</button></div>
-          <p className="small faint">Sent to Telegram to finish logging in. Veil never stores it.</p>
+          <p className="small faint">Sent to Telegram to finish logging in. Sompio never stores it.</p>
         </form>
       )}
 

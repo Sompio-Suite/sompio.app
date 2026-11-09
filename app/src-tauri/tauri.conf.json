@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Veil",
+  "productName": "Sompio",
   "version": "0.1.0",
-  "identifier": "app.veil.desktop",
+  "identifier": "app.sompio.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Veil",
+        "title": "Sompio",
         "width": 1240,
         "height": 820,
         "minWidth": 900,
@@ -45,6 +45,6 @@
         "installMode": "currentUser"
       }
     },
-    "publisher": "Veil"
+    "publisher": "Sompio"
   }
 }

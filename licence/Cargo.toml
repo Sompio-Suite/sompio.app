@@ -1,0 +1,15 @@
+[package]
+name = "sompio-licence"
+version = "0.1.0"
+edition = "2021"
+description = "Offline licence keys for Sompio Suite: signed by us, checked on the device without going online."
+
+[dependencies]
+anyhow = "1"
+ed25519-dalek = "2"
+getrandom = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+tempfile = "3"

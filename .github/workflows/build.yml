@@ -1,4 +1,4 @@
-# Builds Veil for Windows on every push, and on demand from the Actions tab.
+# Builds Sompio for Windows on every push, and on demand from the Actions tab.
 # The finished installer and portable .exe appear as a download under the run's "Artifacts".
 name: Build
 
@@ -18,13 +18,17 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: |
-            core -> target
+            clean -> target
+            licence -> target
             connect -> target
       - name: Run engine tests
-        working-directory: core
+        working-directory: clean
         run: cargo test
       - name: Run connector tests
         working-directory: connect
+        run: cargo test
+      - name: Run licence tests
+        working-directory: licence
         run: cargo test
 
   windows:
@@ -49,19 +53,19 @@ jobs:
         working-directory: app
         run: npx tauri build
         env:
-          # Veil's own Telegram app key, from the repository's secrets (Settings > Secrets > Actions).
-          VEIL_TG_API_ID: ${{ secrets.VEIL_TG_API_ID }}
-          VEIL_TG_API_HASH: ${{ secrets.VEIL_TG_API_HASH }}
+          # Sompio's own Telegram app key, from the repository's secrets (Settings > Secrets > Actions).
+          SOMPIO_TG_API_ID: ${{ secrets.SOMPIO_TG_API_ID }}
+          SOMPIO_TG_API_HASH: ${{ secrets.SOMPIO_TG_API_HASH }}
       - name: Collect files
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force out | Out-Null
           Copy-Item app/src-tauri/target/release/bundle/nsis/*.exe out/
           Copy-Item app/src-tauri/target/release/bundle/msi/*.msi out/
-          Copy-Item app/src-tauri/target/release/veil.exe out/Veil-portable.exe
+          Copy-Item app/src-tauri/target/release/sompio.exe out/Sompio-portable.exe
           Get-ChildItem out
       - uses: actions/upload-artifact@v4
         with:
-          name: Veil-windows
+          name: Sompio-windows
           path: out/*
           if-no-files-found: error

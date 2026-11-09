@@ -54,7 +54,7 @@ function YourNames() {
         <div className="text">
           <strong>Your names</strong>
           <span className="small muted">
-            WhatsApp, Facebook and Instagram exports include everyone's messages. Veil only keeps yours, so it needs to
+            WhatsApp, Facebook and Instagram exports include everyone's messages. Sompio only keeps yours, so it needs to
             know the names you appear under. Usually it works this out itself; add names here if an import says it couldn't.
           </span>
         </div>
@@ -186,7 +186,7 @@ export default function Sources({ demo, onScan, onChanged }: Props) {
           </div>
         </div>
         {sources.length > 0 && (
-          <p className="small faint">Removing a source deletes Veil's copy of it. Your decisions are kept in case you add it again.</p>
+          <p className="small faint">Removing a source deletes Sompio's copy of it. Your decisions are kept in case you add it again.</p>
         )}
       </section>
 
@@ -211,7 +211,7 @@ export default function Sources({ demo, onScan, onChanged }: Props) {
           }}
         />
         <p className="small faint">
-          Connected accounts are the only time Veil goes online, and then only to that platform or mail server, when you
+          Connected accounts are the only time Sompio goes online, and then only to that platform or mail server, when you
           sync or delete.
         </p>
       </section>

@@ -1,22 +1,86 @@
-//! The desktop shell. It only passes requests from the UI to veil-core and back.
+//! The desktop shell. It only passes requests from the UI to sompio-clean and back.
 //! Every command runs off the UI thread so the window never freezes.
 
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter, Manager, State};
-use veil_core::{
+use sompio_clean::{
     ChannelView, FindingView, FindingsPage, ImportSummary, MessageView, MessagesPage, ScanOptions,
     ScanSummary, SearchPage, SourceView, Stats, StatusFilter, Store,
 };
 
 struct AppState {
     db_path: PathBuf,
+    /// The licence keys entered on this PC, and the trial
+    licences: Licences,
     /// The Telegram connection. Only does anything after the person connects an account.
-    telegram: tokio::sync::Mutex<veil_connect::telegram::Telegram>,
+    telegram: tokio::sync::Mutex<sompio_connect::telegram::Telegram>,
     /// The email connection (IMAP). Blocking, so it always runs on a background thread.
-    email: std::sync::Arc<veil_connect::email::Email>,
+    email: std::sync::Arc<sompio_connect::email::Email>,
 }
 
 type CmdResult<T> = Result<T, String>;
+
+// Licences: which apps are unlocked. Checked offline against the public key built into the app.
+
+use sompio_licence::{App, Book};
+
+struct Licences {
+    path: PathBuf,
+    book: std::sync::Mutex<Book>,
+    public: Option<ed25519_dalek::VerifyingKey>,
+}
+
+fn clock() -> i64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0)
+}
+
+impl Licences {
+    fn load(path: PathBuf) -> Self {
+        let mut book = Book::load(&path);
+        book.start_trial(clock());
+        let _ = book.save(&path);
+        Self { path, book: std::sync::Mutex::new(book), public: sompio_licence::public_key().ok() }
+    }
+
+    fn public(&self) -> CmdResult<&ed25519_dalek::VerifyingKey> {
+        self.public.as_ref().ok_or_else(|| "This copy of Sompio has no licence key built in. Build it again with Build Sompio.bat.".to_string())
+    }
+
+    fn status(&self) -> CmdResult<sompio_licence::Status> {
+        let public = self.public()?;
+        let mut book = self.book.lock().map_err(|e| e.to_string())?;
+        let st = book.status(clock(), public);
+        let _ = book.save(&self.path); // remembers the latest time seen
+        Ok(st)
+    }
+
+    /// Refuses actions that change things when the app isn't unlocked. Looking stays possible.
+    fn require(&self, app: App) -> CmdResult<()> {
+        if self.status()?.apps.iter().any(|a| a.app == app && a.active) {
+            Ok(())
+        } else {
+            Err(format!(
+                "Your Sompio {} access has ended. Add a key under Licences to continue. Everything already here stays readable.",
+                app.name()
+            ))
+        }
+    }
+}
+
+#[tauri::command]
+fn licence_status(state: State<'_, AppState>) -> CmdResult<sompio_licence::Status> {
+    state.licences.status()
+}
+
+#[tauri::command]
+fn licence_add(state: State<'_, AppState>, key: String) -> CmdResult<sompio_licence::Added> {
+    let l = &state.licences;
+    let public = l.public()?;
+    let mut book = l.book.lock().map_err(|e| e.to_string())?;
+    let added = book.add(&key, clock(), public).map_err(|e| e.to_string())?;
+    book.save(&l.path).map_err(|e| format!("Couldn't save the key: {e}"))?;
+    Ok(added)
+}
 
 /// Opens the database on a background thread, runs `f`, and reports errors as plain text.
 async fn with_store<T, F>(db: PathBuf, f: F) -> CmdResult<T>
@@ -40,8 +104,9 @@ async fn has_data(state: State<'_, AppState>) -> CmdResult<bool> {
 
 #[tauri::command]
 async fn import_package(app: AppHandle, state: State<'_, AppState>, path: String) -> CmdResult<ImportSummary> {
+    state.licences.require(App::Clean)?;
     with_store(state.db_path.clone(), move |s| {
-        veil_core::import_package(s, Path::new(&path), &mut |p| {
+        sompio_clean::import_package(s, Path::new(&path), &mut |p| {
             let _ = app.emit("import-progress", &p);
         })
     })
@@ -50,9 +115,10 @@ async fn import_package(app: AppHandle, state: State<'_, AppState>, path: String
 
 #[tauri::command]
 async fn scan_folders(app: AppHandle, state: State<'_, AppState>, folders: Vec<String>) -> CmdResult<ImportSummary> {
+    state.licences.require(App::Clean)?;
     with_store(state.db_path.clone(), move |s| {
         let folders: Vec<PathBuf> = folders.into_iter().map(PathBuf::from).collect();
-        veil_core::scan_folders(s, &folders, &mut |p| {
+        sompio_clean::scan_folders(s, &folders, &mut |p| {
             let _ = app.emit("import-progress", &p);
         })
     })
@@ -72,6 +138,7 @@ async fn remove_source(state: State<'_, AppState>, platform: String) -> CmdResul
 /// Moves a file found by the PC scan to the Recycle Bin.
 #[tauri::command]
 async fn recycle_file(state: State<'_, AppState>, id: i64) -> CmdResult<(String, ScanSummary)> {
+    state.licences.require(App::Clean)?;
     with_store(state.db_path.clone(), move |s| {
         let path = s.recycle_file(id)?;
         Ok((path, s.scan_summary()?))
@@ -79,7 +146,7 @@ async fn recycle_file(state: State<'_, AppState>, id: i64) -> CmdResult<(String,
     .await
 }
 
-/// Opens File Explorer with the file selected. Only paths Veil itself found can be shown.
+/// Opens File Explorer with the file selected. Only paths Sompio itself found can be shown.
 #[tauri::command]
 async fn show_in_folder(state: State<'_, AppState>, id: i64) -> CmdResult<()> {
     let path = with_store(state.db_path.clone(), move |s| s.file_path_for(id)).await?;
@@ -90,7 +157,7 @@ async fn show_in_folder(state: State<'_, AppState>, id: i64) -> CmdResult<()> {
 // ---------------------------------------------------------------------------------
 // Telegram (live connection)
 
-use veil_connect::telegram::{LoginStep, Status as TgStatus, SyncProgress};
+use sompio_connect::telegram::{LoginStep, Status as TgStatus, SyncProgress};
 
 fn text_err(e: anyhow::Error) -> String {
     format!("{e:#}")
@@ -126,9 +193,10 @@ async fn tg_disconnect(state: State<'_, AppState>) -> CmdResult<()> {
     state.telegram.lock().await.disconnect().await.map_err(text_err)
 }
 
-/// Downloads your own Telegram messages and replaces the Telegram data in Veil with them.
+/// Downloads your own Telegram messages and replaces the Telegram data in Sompio with them.
 #[tauri::command]
 async fn tg_sync(app: AppHandle, state: State<'_, AppState>) -> CmdResult<ImportSummary> {
+    state.licences.require(App::Clean)?;
     let channels = {
         let mut tg = state.telegram.lock().await;
         let app2 = app.clone();
@@ -138,12 +206,13 @@ async fn tg_sync(app: AppHandle, state: State<'_, AppState>) -> CmdResult<Import
         .await
         .map_err(text_err)?
     };
-    with_store(state.db_path.clone(), move |s| veil_core::import_live(s, "telegram", "Connected Telegram account", channels)).await
+    with_store(state.db_path.clone(), move |s| sompio_clean::import_live(s, "telegram", "Connected Telegram account", channels)).await
 }
 
 /// Deletes the message a finding is in, on Telegram, for everyone.
 #[tauri::command]
 async fn tg_delete(state: State<'_, AppState>, id: i64) -> CmdResult<ScanSummary> {
+    state.licences.require(App::Clean)?;
     let (platform, uid) = with_store(state.db_path.clone(), move |s| s.delete_target(id)).await?;
     if platform != "telegram" {
         return Err("This item isn't a Telegram message.".into());
@@ -158,7 +227,7 @@ async fn tg_delete(state: State<'_, AppState>, id: i64) -> CmdResult<ScanSummary
 
 // Email
 
-use veil_connect::email::{Email, Provider, Status as EmailStatus, SyncProgress as EmailProgress};
+use sompio_connect::email::{Email, Provider, Status as EmailStatus, SyncProgress as EmailProgress};
 
 async fn with_email<T, F>(state: &State<'_, AppState>, f: F) -> CmdResult<T>
 where
@@ -173,7 +242,7 @@ where
 
 #[tauri::command]
 fn email_providers() -> Vec<Provider> {
-    veil_connect::email::PROVIDERS.to_vec()
+    sompio_connect::email::PROVIDERS.to_vec()
 }
 
 #[tauri::command]
@@ -194,18 +263,20 @@ async fn email_disconnect(state: State<'_, AppState>) -> CmdResult<()> {
 /// Reads the Sent folder and replaces the email data with it.
 #[tauri::command]
 async fn email_sync(app: AppHandle, state: State<'_, AppState>) -> CmdResult<ImportSummary> {
+    state.licences.require(App::Clean)?;
     let channels = with_email(&state, move |e| {
         e.fetch_sent(&mut |p: EmailProgress| {
             let _ = app.emit("email-progress", &p);
         })
     })
     .await?;
-    with_store(state.db_path.clone(), move |s| veil_core::import_live(s, "email", "Connected email account", channels)).await
+    with_store(state.db_path.clone(), move |s| sompio_clean::import_live(s, "email", "Connected email account", channels)).await
 }
 
 /// Moves the sent email a finding is in to the mailbox's Trash.
 #[tauri::command]
 async fn email_delete(state: State<'_, AppState>, id: i64) -> CmdResult<ScanSummary> {
+    state.licences.require(App::Clean)?;
     let (platform, uid) = with_store(state.db_path.clone(), move |s| s.delete_target(id)).await?;
     if platform != "email" {
         return Err("This item isn't an email.".into());
@@ -264,8 +335,9 @@ async fn search(
 
 #[tauri::command]
 async fn run_scan(app: AppHandle, state: State<'_, AppState>, watch_terms: Vec<String>) -> CmdResult<ScanSummary> {
+    state.licences.require(App::Clean)?;
     with_store(state.db_path.clone(), move |s| {
-        veil_core::run_scan(s, &ScanOptions { watch_terms }, &mut |done, total| {
+        sompio_clean::run_scan(s, &ScanOptions { watch_terms }, &mut |done, total| {
             let _ = app.emit("scan-progress", (done, total));
         })
     })
@@ -290,7 +362,7 @@ async fn findings(
     same_as: Option<i64>,
 ) -> CmdResult<FindingsPage> {
     with_store(state.db_path.clone(), move |s| {
-        let filter = veil_core::FindingsFilter {
+        let filter = sompio_clean::FindingsFilter {
             kind: kind.as_deref(),
             platform: platform.as_deref(),
             status: StatusFilter::parse(&status),
@@ -305,7 +377,7 @@ async fn findings(
 
 /// Everywhere the value in a finding appears, within one status list.
 #[tauri::command]
-async fn group_info(state: State<'_, AppState>, id: i64, status: String) -> CmdResult<veil_core::GroupInfo> {
+async fn group_info(state: State<'_, AppState>, id: i64, status: String) -> CmdResult<sompio_clean::GroupInfo> {
     with_store(state.db_path.clone(), move |s| s.group_info(id, StatusFilter::parse(&status))).await
 }
 
@@ -365,7 +437,7 @@ async fn clear_ignored(state: State<'_, AppState>) -> CmdResult<usize> {
 
 #[tauri::command]
 async fn load_demo(state: State<'_, AppState>) -> CmdResult<()> {
-    with_store(state.db_path.clone(), |s| veil_core::load_demo(s)).await
+    with_store(state.db_path.clone(), |s| sompio_clean::load_demo(s)).await
 }
 
 #[tauri::command]
@@ -393,6 +465,18 @@ fn data_location(state: State<'_, AppState>) -> String {
     state.db_path.display().to_string()
 }
 
+/// Testers ran this app as "Veil" before it became Sompio. Brings their Clean data along once.
+fn move_from_veil(dir: &Path, db_path: &Path) {
+    if db_path.exists() {
+        return;
+    }
+    if let Some(old) = dir.parent().map(|p| p.join("app.veil.desktop").join("veil.db")) {
+        if old.exists() {
+            let _ = std::fs::copy(&old, db_path);
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -402,16 +486,21 @@ pub fn run() {
             // Local app data (not roaming): the database never syncs to other machines.
             let dir = app.path().app_local_data_dir()?;
             std::fs::create_dir_all(&dir)?;
-            let secrets = std::sync::Arc::new(veil_connect::KeyringStore::new("Veil"));
+            let secrets = std::sync::Arc::new(sompio_connect::KeyringStore::new("Sompio"));
+            let db_path = dir.join("clean.db");
+            move_from_veil(&dir, &db_path);
             app.manage(AppState {
-                db_path: dir.join("veil.db"),
-                telegram: tokio::sync::Mutex::new(veil_connect::telegram::Telegram::new(secrets.clone())),
-                email: std::sync::Arc::new(veil_connect::email::Email::new(secrets)),
+                licences: Licences::load(dir.join("licences.json")),
+                db_path,
+                telegram: tokio::sync::Mutex::new(sompio_connect::telegram::Telegram::new(secrets.clone())),
+                email: std::sync::Arc::new(sompio_connect::email::Email::new(secrets)),
             });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             has_data,
+            licence_status,
+            licence_add,
             import_package,
             scan_folders,
             sources,
@@ -458,5 +547,5 @@ pub fn run() {
             data_location,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Veil");
+        .expect("error while running Sompio");
 }

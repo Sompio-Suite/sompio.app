@@ -1,0 +1,84 @@
+import type { LicenceStatus, ScanSummary } from "../api";
+import { date, n, plural } from "../format";
+import Icon from "../Icon";
+import { accessText, SUITE } from "../licence";
+import type { View } from "../App";
+
+interface Props {
+  licence: LicenceStatus | null;
+  scan: ScanSummary | null;
+  cleanReady: boolean;
+  onGo: (v: View) => void;
+}
+
+export default function Overview({ licence, scan, cleanReady, onGo }: Props) {
+  const now = licence?.now ?? Date.now();
+  const trialOnly = licence?.apps.every((a) => a.trial_only) ?? false;
+  const anyActive = licence?.apps.some((a) => a.active) ?? false;
+
+  return (
+    <div className="page">
+      <div className="page-head">
+        <div>
+          <h1>Sompio Suite</h1>
+          <p className="muted">Private tools that keep your data on this PC, locked to you.</p>
+        </div>
+      </div>
+
+      {licence && trialOnly && anyActive && licence.trial_ends_at && (
+        <div className="notice">
+          <Icon name="sparkle" />
+          <div>
+            <strong>You're on the free trial until {date(licence.trial_ends_at)}.</strong>
+            <span>Everything is unlocked. Add a key before then to keep going; nothing you add here is lost either way.</span>
+          </div>
+          <button onClick={() => onGo("licences")}>Add a key</button>
+        </div>
+      )}
+      {licence && !anyActive && (
+        <div className="notice warn">
+          <Icon name="lock" />
+          <div>
+            <strong>Your access has ended.</strong>
+            <span>Everything you added is still here and readable. Add a key to keep cleaning and syncing.</span>
+          </div>
+          <button className="primary" onClick={() => onGo("licences")}>Add a key</button>
+        </div>
+      )}
+
+      <div className="suite-grid">
+        {SUITE.map((app) => {
+          const access = accessText(licence?.apps.find((a) => a.app === app.key), now);
+          return (
+            <article key={app.key} className={`suite-card${app.ready ? "" : " soon"}`}>
+              <div className="suite-card-top">
+                <span className="suite-icon"><Icon name={app.icon} /></span>
+                <div>
+                  <h2>{app.name}</h2>
+                  <span className={`access access-${app.ready ? access.tone : "none"}`}>{app.ready ? access.text : app.when}</span>
+                </div>
+              </div>
+              <p>{app.line}</p>
+              {app.key === "clean" && cleanReady && scan && scan.open > 0 && (
+                <p className="small"><strong>{plural(scan.open, "thing", "things")} to review</strong> from {n(scan.scanned)} scanned.</p>
+              )}
+              <div className="suite-card-foot">
+                {app.ready ? (
+                  <button className="primary" onClick={() => onGo("home")}>{cleanReady ? "Open Clean" : "Set up Clean"}</button>
+                ) : (
+                  <button onClick={() => onGo(app.key as View)}>See what's planned</button>
+                )}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      <section className="promise">
+        <div><Icon name="lock" /><strong>Stays on this PC</strong><span>No account is needed to use the apps. Your data is never uploaded.</span></div>
+        <div><Icon name="ticket" /><strong>Keys, not logins</strong><span>A key unlocks what you bought. It's checked here, offline.</span></div>
+        <div><Icon name="check" /><strong>Never held hostage</strong><span>When a key runs out, everything stays readable and exportable.</span></div>
+      </section>
+    </div>
+  );
+}

@@ -27,7 +27,7 @@ interface Batch { label: string; done: number; total: number; failed: number }
 
 const loadGrouped = () => {
   try {
-    return localStorage.getItem("veil.review.grouped") !== "0";
+    return localStorage.getItem("sompio.review.grouped") !== "0";
   } catch {
     return true;
   }
@@ -112,7 +112,7 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
   }, [tab, kind, platform, grouped, sameAs, listVersion]);
   useEffect(() => {
     try {
-      localStorage.setItem("veil.review.grouped", grouped ? "1" : "0");
+      localStorage.setItem("sompio.review.grouped", grouped ? "1" : "0");
     } catch {
       /* not available: the setting just isn't remembered */
     }
@@ -403,7 +403,7 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
   };
 
   const exportList = async () => {
-    const path = await pickSavePath("veil-flagged-items.csv");
+    const path = await pickSavePath("sompio-flagged-items.csv");
     if (!path) return;
     const count = await api.exportFlagged(path);
     setToast({ text: `Saved ${plural(count, "item", "items")} with links. The file has no message text in it.` });

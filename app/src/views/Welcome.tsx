@@ -50,15 +50,15 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
   return (
     <div className="welcome">
       <div className="welcome-inner">
-        <div className="brand" style={{ padding: 0 }}>
-          <span className="brand-mark" aria-hidden /> Veil
+        <div className="eyebrow">
+          <Icon name="review" size={16} /> Sompio Clean
         </div>
         <div className="lede">
           <h1>
             See what your chats and files say about <span className="redact">y••</span>.
           </h1>
           <p className="muted">
-            Veil reads your data exports from Discord, WhatsApp, Instagram, Facebook, TikTok, Snapchat, Reddit, Telegram, X,
+            Sompio reads your data exports from Discord, WhatsApp, Instagram, Facebook, TikTok, Snapchat, Reddit, Telegram, X,
             LinkedIn and Gmail, and the folders on this PC you choose. It
             shows you where you've shared things like your phone number, address or a password, and helps you clean up.
           </p>
@@ -121,11 +121,11 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
         <div className="promises">
           <div>
             <h3><Icon name="lock" size={16} />Works offline</h3>
-            <p>Veil never connects to the internet. No account, no analytics, no tracking.</p>
+            <p>Clean reads exports on this PC. It only goes online if you connect an account, and then only to that service. No analytics, no tracking.</p>
           </div>
           <div>
-            <h3><Icon name="lock" size={16} />No logins</h3>
-            <p>Veil doesn't ask for your passwords or tokens. It only reads the files you give it.</p>
+            <h3><Icon name="lock" size={16} />No logins needed</h3>
+            <p>Exports work without signing in anywhere. Connecting an account is optional.</p>
           </div>
           <div>
             <h3><Icon name="lock" size={16} />Gone when you say so</h3>

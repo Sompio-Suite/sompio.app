@@ -1,11 +1,11 @@
 //! Live connections to people's own accounts.
 //!
-//! This is the only part of Veil that talks to the network, and it is kept apart from
-//! veil-core on purpose: the engine stays offline, and a connector only runs after the
+//! This is the only part of Sompio that talks to the network, and it is kept apart from
+//! sompio-clean on purpose: the engine stays offline, and a connector only runs after the
 //! person connects an account themselves. Each connector talks only to its own platform.
 //!
 //! Secrets (login sessions, app keys) live in the operating system's credential store
-//! (Windows Credential Manager), never in Veil's database or in plain files.
+//! (Windows Credential Manager), never in Sompio's database or in plain files.
 
 pub mod email;
 pub mod telegram;

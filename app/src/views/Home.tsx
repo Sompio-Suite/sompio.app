@@ -47,7 +47,7 @@ export default function Home({ scan, onReview, onGo, onOpen }: Props) {
         )}
         <p className="muted">
           {scanned && urgent > 0 && <>{plural(urgent, "of them is", "of them are")} worth fixing soon. </>}
-          Veil checked {stats.messages > 0 && plural(stats.messages, "message", "messages")}
+          Sompio checked {stats.messages > 0 && plural(stats.messages, "message", "messages")}
           {stats.messages > 0 && stats.files > 0 && " and "}
           {stats.files > 0 && plural(stats.files, "file", "files")} from {stats.sources.map((s) => platformName[s.platform]).join(", ")}.
         </p>
@@ -80,7 +80,7 @@ export default function Home({ scan, onReview, onGo, onOpen }: Props) {
               <span className="step-icon"><Icon name="search" /></span>
               <span className="step-text">
                 <strong>Add your name and street as watch terms</strong>
-                <span>Patterns can't recognise your real name. Tell Veil what to look for and it checks everything again.</span>
+                <span>Patterns can't recognise your real name. Tell Sompio what to look for and it checks everything again.</span>
               </span>
               <span className="step-go"><Icon name="arrow" /></span>
             </button>

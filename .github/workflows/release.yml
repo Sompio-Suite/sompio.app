@@ -31,12 +31,12 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VEIL_TG_API_ID: ${{ secrets.VEIL_TG_API_ID }}
-          VEIL_TG_API_HASH: ${{ secrets.VEIL_TG_API_HASH }}
+          SOMPIO_TG_API_ID: ${{ secrets.SOMPIO_TG_API_ID }}
+          SOMPIO_TG_API_HASH: ${{ secrets.SOMPIO_TG_API_HASH }}
         with:
           projectPath: app
           tagName: v__VERSION__
-          releaseName: Veil v__VERSION__
+          releaseName: Sompio v__VERSION__
           releaseDraft: true
           releaseBody: |
             Download the file ending in **x64-setup.exe** below and run it. No account, no internet connection needed after install.

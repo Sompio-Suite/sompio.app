@@ -1,4 +1,4 @@
-// Typed bridge to the Rust side. Shapes mirror veil-core's structs.
+// Typed bridge to the Rust side. Shapes mirror sompio-clean's structs.
 // Outside the desktop app (plain `npm run dev` in a browser) a mock with fake
 // data is used, so the UI can be worked on without building Rust.
 
@@ -83,6 +83,12 @@ export interface EmailProvider { id: string; name: string; host: string; help_ur
 export interface EmailStatus { connected: boolean; address: string | null; provider: string | null }
 export interface EmailProgress { done: number; total: number }
 
+export type AppKey = "clean" | "calendar" | "vault" | "voice";
+export interface AppStatus { app: AppKey; name: string; active: boolean; ends_at: number | null; trial_only: boolean }
+export interface KeyView { serial: string; label: string; days: number; activated_at: number; test: boolean; invalid: boolean }
+export interface LicenceStatus { apps: AppStatus[]; keys: KeyView[]; trial_ends_at: number | null; clock_behind: boolean; now: number }
+export interface Added { label: string; days: number; test: boolean; status: LicenceStatus }
+
 export const inDesktopApp = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 type Invoke = <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
@@ -100,6 +106,8 @@ export const listen = async <T,>(event: string, cb: (payload: T) => void) => (aw
 
 export const api = {
   hasData: () => call<boolean>("has_data"),
+  licenceStatus: () => call<LicenceStatus>("licence_status"),
+  licenceAdd: (key: string) => call<Added>("licence_add", { key }),
   tgStatus: () => call<TgStatus>("tg_status"),
   tgSetAppKey: (apiId: string, apiHash: string) => call<void>("tg_set_app_key", { apiId, apiHash }),
   tgStartLogin: (phone: string) => call<void>("tg_start_login", { phone }),

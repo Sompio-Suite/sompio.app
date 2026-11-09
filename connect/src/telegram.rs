@@ -1,14 +1,14 @@
 //! Telegram, through its official API (the same one Telegram's own apps use).
 //!
 //! - Logging in: phone number, then the code Telegram sends, then the cloud password if one is set.
-//!   Veil never stores the phone number or password; only Telegram's session key is kept,
+//!   Sompio never stores the phone number or password; only Telegram's session key is kept,
 //!   in the OS credential store, and "Disconnect" logs that session out on Telegram's side too.
 //! - Syncing: for every chat, asks Telegram for the messages *you* sent (a server-side filter),
 //!   so other people's messages are never downloaded.
 //! - Deleting: removes your message for everyone, where Telegram allows it.
 //!
 //! Using the API needs an "app key" (api_id + api_hash) from my.telegram.org. A release build
-//! can carry Veil's own key (VEIL_TG_API_ID / VEIL_TG_API_HASH at compile time); otherwise the
+//! can carry Sompio's own key (SOMPIO_TG_API_ID / SOMPIO_TG_API_HASH at compile time); otherwise the
 //! person enters their own once.
 
 use crate::SecretStore;
@@ -21,7 +21,7 @@ use grammers_session::{BoxFuture, Session, SessionData};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use veil_core::{LiveChannel, LiveMessage};
+use sompio_clean::{LiveChannel, LiveMessage};
 
 const KEY_SESSION: &str = "telegram.session";
 const KEY_APP: &str = "telegram.app";
@@ -169,8 +169,8 @@ pub struct Telegram {
 }
 
 fn built_in_key() -> Option<AppKey> {
-    let id = option_env!("VEIL_TG_API_ID")?.parse().ok()?;
-    let hash = option_env!("VEIL_TG_API_HASH")?.to_string();
+    let id = option_env!("SOMPIO_TG_API_ID")?.parse().ok()?;
+    let hash = option_env!("SOMPIO_TG_API_HASH")?.to_string();
     Some(AppKey { api_id: id, api_hash: hash })
 }
 
@@ -182,7 +182,7 @@ fn friendly(e: impl std::fmt::Display) -> anyhow::Error {
     } else if s.contains("PHONE_CODE_EXPIRED") {
         "That code has expired. Start again to get a new one."
     } else if s.contains("FLOOD_WAIT") || s.contains("FLOOD") {
-        "Telegram asked Veil to slow down. Wait a few minutes and try again."
+        "Telegram asked Sompio to slow down. Wait a few minutes and try again."
     } else if s.contains("API_ID_INVALID") {
         "Telegram didn't accept the app key. Check the api_id and api_hash from my.telegram.org."
     } else if s.contains("AUTH_KEY_UNREGISTERED") || s.contains("SESSION_REVOKED") {
@@ -245,7 +245,7 @@ impl Telegram {
         self.peers.clear();
     }
 
-    /// Reports the connection without going online: Veil only contacts Telegram when the
+    /// Reports the connection without going online: Sompio only contacts Telegram when the
     /// person logs in, syncs or deletes.
     pub async fn status(&mut self) -> Result<Status> {
         let has_app_key = self.app_key()?.is_some();
@@ -274,7 +274,7 @@ impl Telegram {
             self.disconnect_local();
             self.store.delete(KEY_SESSION)?;
             self.store.delete(KEY_NAME)?;
-            bail!("Telegram ended this login, so Veil has disconnected. Connect again to continue.");
+            bail!("Telegram ended this login, so Sompio has disconnected. Connect again to continue.");
         }
         Ok(client)
     }
@@ -389,7 +389,7 @@ impl Telegram {
         Ok(out)
     }
 
-    /// Deletes one of your messages for everyone. `uid` is Veil's "telegram:<chat>/<message>".
+    /// Deletes one of your messages for everyone. `uid` is Sompio's "telegram:<chat>/<message>".
     pub async fn delete_message(&mut self, uid: &str) -> Result<()> {
         let (chat, msg) = parse_uid(uid)?;
         let client = self.authorized_client().await?;

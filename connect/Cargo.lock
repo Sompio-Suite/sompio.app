@@ -2164,6 +2164,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "sompio-clean"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "csv",
+ "mail-parser",
+ "regex",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2",
+ "trash",
+ "zip",
+]
+
+[[package]]
+name = "sompio-connect"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "grammers-client",
+ "grammers-mtsender",
+ "grammers-session",
+ "imap",
+ "imap-proto",
+ "keyring",
+ "native-tls",
+ "serde",
+ "serde_json",
+ "sompio-clean",
+ "tokio",
+]
+
+[[package]]
 name = "sqlite-wasm-rs"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2439,40 +2473,6 @@ name = "vcpkg"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
-
-[[package]]
-name = "veil-connect"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "grammers-client",
- "grammers-mtsender",
- "grammers-session",
- "imap",
- "imap-proto",
- "keyring",
- "native-tls",
- "serde",
- "serde_json",
- "tokio",
- "veil-core",
-]
-
-[[package]]
-name = "veil-core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "csv",
- "mail-parser",
- "regex",
- "rusqlite",
- "serde",
- "serde_json",
- "sha2",
- "trash",
- "zip",
-]
 
 [[package]]
 name = "version_check"
