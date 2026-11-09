@@ -28,11 +28,10 @@
   "bundle": {
     "active": true,
     "targets": [
-      "nsis",
-      "msi"
+      "nsis"
     ],
     "category": "Utility",
-    "shortDescription": "Find personal information in your Discord history, offline.",
+    "shortDescription": "Sompio Suite: private tools that keep your data on your PC.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -45,6 +44,18 @@
         "installMode": "currentUser"
       }
     },
-    "publisher": "Sompio"
+    "publisher": "Sompio",
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "SET_UP_UPDATES_FIRST",
+      "endpoints": [
+        "https://github.com/OWNER/REPO/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

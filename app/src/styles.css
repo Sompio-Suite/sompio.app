@@ -591,3 +591,12 @@ code.path { display: block; padding: 0.6rem 0.8rem; border-radius: var(--r-s); b
   #recovery-sheet, #recovery-sheet * { visibility: visible; }
   #recovery-sheet { position: absolute; left: 0; top: 0; width: 100%; background: #fff; color: #000; }
 }
+
+/* Update available */
+.update-card {
+  display: grid; gap: 0.35rem; margin: 0.5rem 0; padding: 0.85rem; border-radius: var(--r-m);
+  background: var(--raised); border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line-strong));
+  font-size: var(--t-xs); color: var(--ink-2);
+}
+.update-card strong { color: var(--ink); font-size: var(--t-s); }
+.update-card button { justify-content: center; margin-top: 0.2rem; }

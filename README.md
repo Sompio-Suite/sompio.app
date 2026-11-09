@@ -45,6 +45,17 @@ the website) and run it. GitHub builds that file on its own Windows machines:
 The release workflow refuses to build while `public.key` is still the development key, because that build would
 reject every key you make.
 
+**Updates.** Installed copies check `latest.json` on the newest GitHub release every few hours (it can be turned
+off under Security) and show **Update now** in the sidebar. Updates are signed; the app refuses anything not signed
+with your update key. Set it up once with `Set up updates.bat`: it makes the key, writes its public half and the
+download address into `tauri.conf.json`, and shows you the private half to paste into the GitHub secret
+`TAURI_SIGNING_PRIVATE_KEY`. Releases must be public for the app to fetch them. To keep the code private, make a
+separate public repository for releases, set the Actions variables `RELEASES_OWNER` and `RELEASES_REPO` and a
+`RELEASES_TOKEN` secret (a token that can write to that repository); the workflow publishes there instead.
+
+**Local builds.** `Build Sompio.bat` keeps compiled pieces in `%LOCALAPPDATA%\Sompio Build`, so a new copy of the
+project only rebuilds what changed. Local builds skip the update files.
+
 ## Licence keys
 
 A key holds which apps it unlocks, for how many days, the day it was made and a random serial, signed with

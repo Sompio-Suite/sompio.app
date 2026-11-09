@@ -32,20 +32,37 @@ jobs:
             echo "::error::licence/public.key is still the development key, so this build would refuse every key you make. Run Build Sompio.bat once on your PC, then commit and push licence/public.key."
             exit 1
           fi
+      - name: Check updates are set up
+        shell: bash
+        run: |
+          if grep -q "SET_UP_UPDATES_FIRST" app/src-tauri/tauri.conf.json; then
+            echo "::error::Updates aren't set up yet. Run 'Set up updates.bat' once on your PC, then commit and push app/src-tauri/tauri.conf.json."
+            exit 1
+          fi
       - name: Install interface packages
         working-directory: app
         run: npm ci
       - uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Releases can go to a separate public repository (vars RELEASES_OWNER / RELEASES_REPO, secret
+          # RELEASES_TOKEN), so the code can stay private while the app can still fetch updates.
+          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN || secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
           SOMPIO_TG_API_ID: ${{ secrets.SOMPIO_TG_API_ID }}
           SOMPIO_TG_API_HASH: ${{ secrets.SOMPIO_TG_API_HASH }}
         with:
           projectPath: app
+          owner: ${{ vars.RELEASES_OWNER || github.repository_owner }}
+          repo: ${{ vars.RELEASES_REPO || github.event.repository.name }}
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true
           tagName: v__VERSION__
           releaseName: Sompio v__VERSION__
           releaseDraft: true
           releaseBody: |
-            Download the file ending in **x64-setup.exe** below and run it. No account, no internet connection needed after install.
+            Already using Sompio? It offers this update by itself: look for **Update now** in the sidebar.
+
+            New here? Download the file ending in **x64-setup.exe** below and run it.
 
             Windows may show "Windows protected your PC" because the app isn't code-signed yet. Click **More info**, then **Run anyway**.

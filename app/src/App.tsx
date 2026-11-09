@@ -14,6 +14,7 @@ import Upcoming from "./views/Upcoming";
 import LockScreen from "./views/LockScreen";
 import Security from "./views/Security";
 import { SUITE, accessText } from "./licence";
+import { autoCheckEnabled, checkForUpdate, dueForCheck, type UpdateInfo } from "./updates";
 
 /** Suite pages, then Clean's pages. */
 export type View =
@@ -60,6 +61,27 @@ export default function App() {
     api.licenceStatus().then(setLicence).catch(() => {});
   }, []);
   const unlocked = lock?.unlocked ?? false;
+
+  // Updates: checked quietly at start and every few hours, if the person hasn't turned it off.
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
+  const [installing, setInstalling] = useState<number | null | "error">(null);
+  useEffect(() => {
+    const run = () => {
+      if (autoCheckEnabled() && dueForCheck()) checkForUpdate().then(setUpdate).catch(() => {});
+    };
+    run();
+    const t = window.setInterval(run, 3_600_000);
+    return () => window.clearInterval(t);
+  }, []);
+  const installUpdate = async () => {
+    if (!update) return;
+    setInstalling(0);
+    try {
+      await update.install((p) => setInstalling(p));
+    } catch {
+      setInstalling("error");
+    }
+  };
   useEffect(() => {
     if (!unlocked) return;
     refresh();
@@ -203,6 +225,17 @@ export default function App() {
         <div className="rail-spacer" />
         {navButton("security", "Security", "lock")}
         {navButton("licences", "Licences", "ticket")}
+        {update && (
+          <div className="update-card" role="status">
+            <strong>Sompio {update.version} is ready</strong>
+            {installing === null && <span>Your data stays as it is.</span>}
+            {typeof installing === "number" && <span>Downloading{installing ? ` ${installing}%` : "…"}. Sompio restarts by itself.</span>}
+            {installing === "error" && <span>The update didn't install. Try again later.</span>}
+            <button className="primary" disabled={typeof installing === "number"} onClick={installUpdate}>
+              {typeof installing === "number" ? "Updating…" : "Update now"}
+            </button>
+          </div>
+        )}
         <div className="rail-foot">
           <Icon name="lock" size={16} />
           {connected.length > 0 ? (
@@ -213,7 +246,7 @@ export default function App() {
           ) : (
             <div>
               <strong>Offline</strong>
-              Nothing you add here leaves this PC.
+              Your data never leaves this PC.
             </div>
           )}
         </div>
@@ -243,6 +276,7 @@ export default function App() {
             onIdleMinutes={setIdleMinutes}
             onLockNow={lockNow}
             onChanged={async () => setLock(await api.lockStatus())}
+            onUpdateFound={setUpdate}
           />
         )}
         {(view === "calendar" || view === "vault" || view === "voice") && <Upcoming app={SUITE.find((a) => a.key === view)!} />}

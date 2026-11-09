@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, passwordProblem, pickPicture, type LockStatus } from "../api";
 import Icon from "../Icon";
+import { autoCheckEnabled, checkForUpdate, currentVersion, setAutoCheck, type UpdateInfo } from "../updates";
 
 interface Props {
   status: LockStatus;
@@ -8,9 +9,26 @@ interface Props {
   onIdleMinutes: (m: number) => void;
   onLockNow: () => void;
   onChanged: () => void;
+  onUpdateFound: (u: UpdateInfo | null) => void;
 }
 
-export default function Security({ status, idleMinutes, onIdleMinutes, onLockNow, onChanged }: Props) {
+export default function Security({ status, idleMinutes, onIdleMinutes, onLockNow, onChanged, onUpdateFound }: Props) {
+  const [version, setVersion] = useState("");
+  const [auto, setAuto] = useState(autoCheckEnabled());
+  const [updateNote, setUpdateNote] = useState<string | null>(null);
+  useEffect(() => {
+    currentVersion().then(setVersion).catch(() => {});
+  }, []);
+  const checkNow = async () => {
+    setUpdateNote("Checking…");
+    try {
+      const u = await checkForUpdate();
+      onUpdateFound(u);
+      setUpdateNote(u ? `Sompio ${u.version} is available. Use "Update now" in the sidebar.` : "You have the latest version.");
+    } catch {
+      setUpdateNote("Couldn't reach the update server. Check your internet connection and try again.");
+    }
+  };
   const [old, setOld] = useState("");
   const [pw, setPw] = useState("");
   const [again, setAgain] = useState("");
@@ -94,6 +112,22 @@ export default function Security({ status, idleMinutes, onIdleMinutes, onLockNow
       </section>
 
       {note && <div className={note.ok ? "success" : "error"} role="status">{note.text}</div>}
+
+      <section className="setting">
+        <h3>Updates</h3>
+        <p className="muted">
+          You have Sompio {version}. To find out about new versions, Sompio downloads one small version file from GitHub every few
+          hours. Nothing about you or your data is sent. Updates are signed, and Sompio only installs ones signed by us.
+        </p>
+        <label className="check">
+          <input type="checkbox" checked={auto} onChange={(e) => { setAuto(e.target.checked); setAutoCheck(e.target.checked); }} />
+          Check for updates automatically
+        </label>
+        <div className="toolbar">
+          <button onClick={checkNow}>Check now</button>
+          {updateNote && <span className="small muted">{updateNote}</span>}
+        </div>
+      </section>
 
       <section className="setting">
         <h3>Coming to the lock</h3>

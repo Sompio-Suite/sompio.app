@@ -1,12 +1,14 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The only permissions the window has: talk to Sompio's own commands, listen for progress events, open the system file pickers, and open message links on the platforms Sompio reads (and the pages where email providers hand out app passwords) in the browser. No shell, no file system, no HTTP.",
+  "description": "The only permissions the window has: talk to Sompio's own commands, listen for progress events, open the system file pickers, and open message links on the platforms Sompio reads (and the pages where email providers hand out app passwords) in the browser. Check for and install signed Sompio updates, and restart afterwards. No shell, no file system, no HTTP.",
   "windows": ["main"],
   "permissions": [
     "core:default",
     "dialog:allow-open",
     "dialog:allow-save",
+    "updater:default",
+    "process:allow-restart",
     {
       "identifier": "opener:allow-open-url",
       "allow": [

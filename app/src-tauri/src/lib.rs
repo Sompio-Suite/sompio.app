@@ -547,6 +547,9 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        // Updates: checks one small file on GitHub, installs only versions signed with our update key.
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             // Local app data (not roaming): the database never syncs to other machines.
             let dir = app.path().app_local_data_dir()?;
