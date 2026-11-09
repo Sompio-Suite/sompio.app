@@ -81,6 +81,11 @@ Self-hosted voice and chat with channels, like TeamSpeak (`voice/`).
 - **Audio**: in the window with WebCodecs: Opus at 48 kHz in 20 ms frames (~50 kbit/s), with the browser
   engine's echo cancellation, noise suppression and gain control; voice activation with a level meter, or
   push-to-talk on a global key (works while a game has focus); per-person volume; a small jitter buffer.
+- **Hosting from the app**: the server runs while Sompio is open. Sompio asks the router to open the port with
+  UPnP (`voice/src/upnp.rs`) and says plainly what happened: open to everyone (with the address to send), no
+  router answered, the router refused, or the connection is shared (carrier-grade NAT, 100.64.0.0/10, where no
+  port can be opened at home). The mapping is closed again when the server stops or Sompio quits. The
+  always-on option is the Linux server on a VPS.
 - Joining servers is free; hosting from the app needs Voice on the key.
 
 The server stores only channels, roles and bans: no chat history and no recordings.
@@ -97,6 +102,15 @@ answer to a stored random challenge opens a copy of the picture's secret, which 
 usual, so password changes keep working and several keys can be added (add a spare). Recovery makes a new
 picture, so keys are added again after it. The protocol code is tested against a simulated YubiKey; it hasn't
 met a real one in this repository's tests.
+
+## Testing and problem reports
+
+`How to test Sompio.txt` is the guide for testers; Build Sompio.bat puts it in `Sompio for Windows\For testers`
+with the setup file (and without the Key Maker). Problems are written to `problems.log` in the app's data folder
+(`%LOCALAPPDATA%\app.sompio.desktop`): crashes in the Rust side (panic hook), errors and crashed screens in the
+window (a crashed screen shows "Reload Sompio" instead of an empty window). Error messages only, never data;
+rotated at 512 KB; nothing is sent anywhere. Security, "Something wrong?" copies the version, Windows version and
+last log lines for a bug report.
 
 ## Samples
 

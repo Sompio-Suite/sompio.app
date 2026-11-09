@@ -138,13 +138,15 @@ export default function Security({ status, idleMinutes, onIdleMinutes, onLockNow
           </>
         ) : (
           <p className="muted">
-            You have Sompio {version}, a test build made on this PC. It doesn't look for updates or go online for them.
-            To get a newer version, run Build Sompio.bat again.
+            You have Sompio {version}, a test version. It doesn't look for updates or go online for them. Newer test
+            versions come from whoever gave you this one: install them over this one and your data stays.
           </p>
         )}
       </section>
 
       <YubiKeys status={status} onChanged={onChanged} />
+
+      <ReportProblem />
 
       <section className="setting">
         <h3>Coming to the lock</h3>
@@ -237,6 +239,62 @@ function YubiKeys({ status, onChanged }: { status: LockStatus; onChanged: () => 
         </div>
       )}
       {note && <div className={note.ok ? "success" : "error"} role="status">{note.text}</div>}
+    </section>
+  );
+}
+
+/** Problems are written to a local file only. Nothing is sent anywhere: the person decides what to share. */
+function ReportProblem() {
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [manual, setManual] = useState<string | null>(null);
+  const copy = async () => {
+    setManual(null);
+    let text = "";
+    try {
+      const d = await api.appDetails();
+      text = [
+        `Sompio ${d.version}`,
+        `System: ${d.os}`,
+        "",
+        "What I did:",
+        "",
+        "What happened:",
+        "",
+        "Last lines of the problems log:",
+        ...(d.recent.length ? d.recent : ["(empty)"]),
+      ].join("\n");
+    } catch (e) {
+      setNote({ ok: false, text: String(e) });
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setNote({ ok: true, text: "Copied. Paste it into your message and fill in what you did and what happened." });
+    } catch {
+      // Clipboard not available: show it to copy by hand
+      setNote(null);
+      setManual(text);
+    }
+  };
+  return (
+    <section className="setting">
+      <h3>Something wrong?</h3>
+      <p className="muted">
+        When something goes wrong, Sompio writes a short line about it to a problems log on this PC. It holds error
+        messages only, never your passwords, messages or files, and nothing is sent anywhere. To report a problem, copy
+        the details below and send them along with what you were doing.
+      </p>
+      <div className="toolbar">
+        <button onClick={copy}>Copy details for a bug report</button>
+        <button className="quiet" onClick={() => api.openProblemsFolder().catch((e) => setNote({ ok: false, text: String(e) }))}>Open the problems log</button>
+      </div>
+      {note && <div className={note.ok ? "success" : "error"} role="status">{note.text}</div>}
+      {manual && (
+        <label className="field">
+          <span>Select all of this (Ctrl+A, Ctrl+C) and paste it into your message</span>
+          <textarea readOnly rows={8} className="mono small" value={manual} onFocus={(e) => e.currentTarget.select()} />
+        </label>
+      )}
     </section>
   );
 }

@@ -227,6 +227,8 @@ function Lobby({ saved, busy, note, canHost, onAddKey, onSave, onConnect }: {
   const [hostName, setHostName] = useState("My Sompio server");
   const [port, setPort] = useState(9987);
   const [hostError, setHostError] = useState<string | null>(null);
+  const [opening, setOpening] = useState(false);
+  const [starting, setStarting] = useState(false);
   useEffect(() => { api.voiceHostStatus().then(setHosted).catch(() => {}); }, []);
   const nick = name.trim() || "Guest";
 
@@ -278,9 +280,15 @@ function Lobby({ saved, busy, note, canHost, onAddKey, onSave, onConnect }: {
             </>
           ) : hosted ? (
             <>
-              <p className="small muted">{hosted.name} is running while Sompio is open. Friends on your network connect to the address below; for friends elsewhere, forward UDP port {hosted.port} on your router, or run the server on a VPS.</p>
+              <p className="small muted">{hosted.name} is running while Sompio is open.</p>
+              <div className={`reach reach-${hosted.reach}`}>
+                <strong>{hosted.reach === "open" ? "Friends anywhere can join" : "Friends on your network can join"}</strong>
+                <span className="small">{hosted.reach_note}</span>
+                {hosted.reach !== "open" && hosted.reach !== "shared" && <button className="small-btn" onClick={async () => { setOpening(true); try { setHosted(await api.voiceHostOpenPort()); } finally { setOpening(false); } }}>{opening ? "Asking the router…" : "Try the router again"}</button>}
+              </div>
               <dl className="entry-meta small">
-                {hosted.lan && <><dt>Address</dt><dd className="mono selectable">{hosted.lan}{hosted.port !== 9987 ? `:${hosted.port}` : ""}</dd></>}
+                {hosted.public && <><dt>Send friends</dt><dd className="mono selectable">{hosted.public}</dd></>}
+                {hosted.lan && <><dt>{hosted.public ? "At home" : "Address"}</dt><dd className="mono selectable">{hosted.lan}{hosted.port !== 9987 ? `:${hosted.port}` : ""}</dd></>}
                 <dt>Fingerprint</dt><dd className="mono selectable">{hosted.fingerprint}</dd>
                 {hosted.admin_key && <><dt>Admin key</dt><dd className="mono selectable">{hosted.admin_key}</dd></>}
               </dl>
@@ -292,13 +300,14 @@ function Lobby({ saved, busy, note, canHost, onAddKey, onSave, onConnect }: {
             </>
           ) : (
             <>
-              <p className="small muted">Good for a quick session or friends at home. It runs while Sompio is open.</p>
+              <p className="small muted">Your PC becomes the server. Sompio asks your router to open the port, so friends elsewhere can join too. It runs while Sompio is open.</p>
               <div className="field-row">
                 <label className="field grow"><span>Server name</span><input type="text" value={hostName} onChange={(e) => setHostName(e.target.value)} /></label>
                 <label className="field"><span>UDP port</span><input type="number" min={1024} max={65535} value={port} onChange={(e) => setPort(Number(e.target.value))} /></label>
               </div>
               {hostError && <div className="error">{hostError}</div>}
-              <div className="toolbar"><button onClick={async () => { setHostError(null); try { setHosted(await api.voiceHostStart(port, hostName)); } catch (e) { setHostError(String(e)); } }}>Start a server</button></div>
+              <div className="toolbar"><button disabled={starting} onClick={async () => { setHostError(null); setStarting(true); try { setHosted(await api.voiceHostStart(port, hostName)); } catch (e) { setHostError(String(e)); } finally { setStarting(false); } }}>{starting ? "Starting, and asking your router to open the port…" : "Start a server"}</button></div>
+              <p className="small faint">Windows may ask whether Sompio may use the network. Allow it for private networks.</p>
             </>
           )}
           <h3 className="small muted">Your own server, always on</h3>

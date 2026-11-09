@@ -4,6 +4,7 @@
 mod calendar;
 mod vault;
 mod samples;
+mod problems;
 mod voice;
 
 use std::path::{Path, PathBuf};
@@ -663,6 +664,7 @@ pub fn run() {
             // Local app data (not roaming): the database never syncs to other machines.
             let dir = app.path().app_local_data_dir()?;
             std::fs::create_dir_all(&dir)?;
+            problems::start(&dir);
             let secrets = std::sync::Arc::new(sompio_connect::KeyringStore::new("Sompio"));
             move_from_veil(&dir, &dir.join("clean.db"));
             app.manage(AppState {
@@ -821,7 +823,17 @@ pub fn run() {
             voice::voice_host_start,
             voice::voice_host_stop,
             voice::voice_host_status,
+            voice::voice_host_open_port,
+            problems::log_problem,
+            problems::app_details,
+            problems::open_problems_folder,
         ])
-        .run(context)
-        .expect("error while running Sompio");
+        .build(context)
+        .expect("error while running tauri application")
+        .run(|app, event| {
+            // Close the port the router opened for a hosted voice server
+            if let tauri::RunEvent::Exit = event {
+                voice::on_exit(app);
+            }
+        });
 }

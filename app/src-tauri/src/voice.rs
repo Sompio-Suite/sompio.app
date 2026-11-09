@@ -18,6 +18,8 @@ pub struct VoiceState {
     voice_out: Mutex<Option<mpsc::UnboundedSender<(u16, Vec<u8>)>>>,
     hosted: tokio::sync::Mutex<Option<sompio_voice::server::Running>>,
     hosted_info: Mutex<Option<Hosted>>,
+    /// The port the router opened for it, closed again when the server stops
+    opened: tokio::sync::Mutex<Option<sompio_voice::upnp::Opened>>,
     ptt: Mutex<Option<tauri_plugin_global_shortcut::Shortcut>>,
 }
 
@@ -190,6 +192,48 @@ pub struct Hosted {
     name: String,
     /// This PC's address on the local network, for friends in the same house
     lan: Option<String>,
+    /// The address friends elsewhere use, when the router opened the port
+    public: Option<String>,
+    /// "open", "no_router", "refused" or "shared"
+    reach: String,
+    reach_note: String,
+}
+
+async fn open_port(state: &State<'_, AppState>, port: u16, lan: Option<&str>) -> (Option<String>, String, String) {
+    use sompio_voice::upnp::{open, Reach};
+    let Some(ip) = lan.and_then(|l| l.parse().ok()) else {
+        return (None, "no_router".into(), "This PC isn't on a home network Sompio can see.".into());
+    };
+    let with_port = |ip: std::net::IpAddr| if port == sompio_voice::proto::DEFAULT_PORT { ip.to_string() } else { format!("{ip}:{port}") };
+    match open(port, ip).await {
+        Reach::Open(o) => {
+            let public = with_port(o.external);
+            *state.voice.opened.lock().await = Some(o);
+            (Some(public), "open".into(), "Your router opened the port. Friends anywhere can join with this address.".into())
+        }
+        Reach::NoRouter => (None, "no_router".into(), format!("Your router didn't answer (UPnP may be off). Friends on your network can join; for others, turn on UPnP in the router or forward UDP port {port} to this PC.")),
+        Reach::Refused { external, reason } => (
+            None,
+            "refused".into(),
+            format!("Your router wouldn't open the port ({reason}). Forward UDP port {port} to this PC in the router's settings{}.", external.map(|e| format!("; friends then use {}", with_port(e))).unwrap_or_default()),
+        ),
+        Reach::Shared { .. } => (None, "shared".into(), "Your internet provider shares one public address between customers, so no port can be opened from home. Friends on your network can join; for others, run the server on a VPS.".into()),
+    }
+}
+
+/// Tries the router again (after turning on UPnP, say).
+#[tauri::command]
+pub async fn voice_host_open_port(state: State<'_, AppState>) -> CmdResult<Hosted> {
+    let mut info = state.voice.hosted_info.lock().map_err(err)?.clone().ok_or("No server is running on this PC.")?;
+    if let Some(o) = state.voice.opened.lock().await.take() {
+        o.close().await;
+    }
+    let (public, reach, note) = open_port(&state, info.port, info.lan.as_deref()).await;
+    info.public = public;
+    info.reach = reach;
+    info.reach_note = note;
+    *state.voice.hosted_info.lock().map_err(err)? = Some(info.clone());
+    Ok(info)
 }
 
 fn lan_ip() -> Option<String> {
@@ -208,8 +252,15 @@ pub async fn voice_host_start(state: State<'_, AppState>, port: u16, name: Strin
     }
     let dir = state.vault.data_dir().join("voice-server");
     let r = sompio_voice::server::start(sompio_voice::server::Options { data_dir: dir, port, name, public: true }).await.map_err(err)?;
-    let info = Hosted { port: r.addr.port(), fingerprint: r.fingerprint.clone(), admin_key: r.first_admin_key.clone(), name: r.name.clone(), lan: lan_ip() };
+    let lan = lan_ip();
+    let port = r.addr.port();
+    let mut info = Hosted { port, fingerprint: r.fingerprint.clone(), admin_key: r.first_admin_key.clone(), name: r.name.clone(), lan: lan.clone(), public: None, reach: String::new(), reach_note: String::new() };
     *hosted = Some(r);
+    drop(hosted);
+    let (public, reach, note) = open_port(&state, port, lan.as_deref()).await;
+    info.public = public;
+    info.reach = reach;
+    info.reach_note = note;
     *state.voice.hosted_info.lock().map_err(err)? = Some(info.clone());
     Ok(info)
 }
@@ -218,6 +269,9 @@ pub async fn voice_host_start(state: State<'_, AppState>, port: u16, name: Strin
 pub async fn voice_host_stop(state: State<'_, AppState>) -> CmdResult<()> {
     let r = state.voice.hosted.lock().await.take();
     state.voice.hosted_info.lock().map_err(err)?.take();
+    if let Some(o) = state.voice.opened.lock().await.take() {
+        o.close().await;
+    }
     if let Some(r) = r {
         r.stop().await;
     }
@@ -227,4 +281,17 @@ pub async fn voice_host_stop(state: State<'_, AppState>) -> CmdResult<()> {
 #[tauri::command]
 pub fn voice_host_status(state: State<'_, AppState>) -> CmdResult<Option<Hosted>> {
     Ok(state.voice.hosted_info.lock().map_err(err)?.clone())
+}
+
+/// Sompio is quitting: close the router port and stop a hosted server.
+pub fn on_exit(app: &AppHandle) {
+    let Some(state) = app.try_state::<AppState>() else { return };
+    tauri::async_runtime::block_on(async {
+        if let Some(o) = state.voice.opened.lock().await.take() {
+            o.close().await;
+        }
+        if let Some(r) = state.voice.hosted.lock().await.take() {
+            let _ = tokio::time::timeout(std::time::Duration::from_secs(2), r.stop()).await;
+        }
+    });
 }

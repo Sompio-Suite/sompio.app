@@ -49,7 +49,8 @@ export const voiceHandlers: Record<string, (a: any) => unknown> = {
     if (msg.type === "use_privilege_key") setTimeout(() => emit("voice-event", { type: "error", message: "That key isn't valid on this server, or was used already." }), 50);
   },
   voice_ping: () => 24,
-  voice_host_start: ({ port, name }) => ({ port, fingerprint: "1F0B:9C2E:44A1:7D3E:BB10:6E02:C9A4:3F77", admin_key: "HE39-U4M6-6CKN-7W9B-QYTP", name, lan: "192.168.1.23" }),
+  voice_host_start: ({ port, name }) => ({ port, fingerprint: "1F0B:9C2E:44A1:7D3E:BB10:6E02:C9A4:3F77", admin_key: "HE39-U4M6-6CKN-7W9B-QYTP", name, lan: "192.168.1.23", public: "81.204.37.12", reach: "open", reach_note: "Your router opened the port. Friends anywhere can join with this address." }),
+  voice_host_open_port: () => ({}),
   voice_host_stop: () => undefined,
   voice_host_status: () => null,
 };

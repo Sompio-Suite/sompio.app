@@ -163,7 +163,10 @@ export default function Vault({ readOnly, onAddKey }: Props) {
             {entries && entries.length > 0 && <div className="list-foot small faint">{plural(entries.length, "entry", "entries")} · double-click to copy a password</div>}
           </section>
 
-          <section className="panel entry-detail" aria-label="Entry">
+          <section className="panel entry-detail" aria-label="Entry" ref={(el) => {
+            // In a narrow window the entry sits under the list: bring it into view when one is picked
+            if (el && detail && window.innerWidth <= 1150 && el.dataset.shown !== detail.id) { el.dataset.shown = detail.id; el.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+          }}>
             {detail ? (
               <EntryView
                 key={detail.id}

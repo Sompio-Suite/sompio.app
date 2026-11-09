@@ -1,0 +1,101 @@
+HOW TO TEST SOMPIO
+==================
+
+Thank you for testing! This is a test version of Sompio 0.6.0 for Windows 10 and 11.
+Everything you put in it stays on your PC. Nothing is sent to us, and there's no account.
+
+
+1. INSTALLING
+-------------
+Run Sompio_0.6.0_x64-setup.exe.
+
+Windows will probably show a blue "Windows protected your PC" box. That's because this test
+version isn't signed with a Microsoft certificate yet (the real release will be). To go on:
+click "More info", then "Run anyway".
+
+When Sompio starts, set up the Sompio Lock:
+  - Choose a password.
+  - Save your key picture somewhere you'll find it again (not only on this PC is best).
+  - Write down or print the recovery code.
+You get a 14-day trial of everything. No licence key is needed for testing.
+
+Please use made-up data while testing, not your real passwords or messages. The Samples page
+in the menu has made-up data for everything (see step 2).
+
+
+2. THE SAMPLES PAGE
+-------------------
+Open "Samples" in the menu on the left. It has:
+  - Clean: open Clean with ready-made sample data, or save sample exports from Discord,
+    Reddit, Telegram, X, Facebook, Instagram, TikTok, Snapchat, LinkedIn, WhatsApp and Gmail.
+  - Calendar: sample reminders (the first pop-up comes within a minute), plus sample files.
+  - Vault: sample entries (2FA codes, weak and reused passwords, auto-type tests), plus KeePass
+    files and CSV exports to import. The KeePass sample password is: sample-password
+  - Voice: how to try a server on your own PC.
+Sample files are saved to Documents\Sompio samples, and that folder opens for you.
+
+
+3. WHAT TO TRY
+--------------
+Lock
+  - Lock Sompio (Security page, or wait for the idle timer) and unlock it again.
+  - Try a wrong password, and unlocking with the recovery code.
+  - If you have a YubiKey: Security, "Add a YubiKey", then unlock with it.
+
+Clean
+  - Open it with sample data and go through Overview, Review, Messages, Sources and Settings.
+  - Import the sample exports under Sources, and try "Scan a folder on this PC" on the
+    "Sample PC folder".
+  - Add a watch term (in the sample, try "Sam Rivers"), mark things, delete things.
+
+Calendar
+  - Add sample reminders and wait for the pop-ups. Do they show up on time, without taking
+    over what you're typing?
+  - Close the window: Sompio keeps running in the tray, and reminders keep coming, even when
+    it's locked.
+  - Make your own reminders, edit them, import the sample schedule files.
+
+Vault
+  - Add sample entries. Copy a username, password and 2FA code. The clipboard clears itself.
+  - Health check, password generator, earlier versions of an entry, attachments.
+  - Auto-type: open Notepad and press Ctrl+Alt+A. Sompio picks the "Notepad" sample entry
+    and types it in. The test login page in the sample files works the same way. (The shortcut
+    can be changed in Vault, "Auto-type, import and export".)
+  - Import the sample KeePass files and CSV exports. Export, and open the export in KeePassXC
+    if you have it.
+
+Voice (best with two or more people)
+  - Voice, "Start a server". Windows will ask whether Sompio may use the network: allow it
+    (Private networks is enough on a home network; tick Public too if friends join from outside).
+  - The page tells you whether your router opened the port by itself:
+      "Friends anywhere can join"  - send them the address it shows.
+      Otherwise                     - friends on the same network can join the "At home"
+                                      address; for friends outside, the page explains what to do.
+  - Join your own server, use the admin key it shows, then try channels, passwords, chat,
+    push-to-talk, mute, kick and ban.
+  - Joining someone else's server needs no licence.
+
+
+4. REPORTING A PROBLEM
+----------------------
+When something goes wrong, Sompio writes a short line about it to a problems log on your PC.
+It only holds error messages, never your passwords, messages or files.
+
+To report a problem:
+  1. Open Security (in the menu) and scroll to "Something wrong?".
+  2. Click "Copy details for a bug report". That copies the Sompio version, your Windows
+     version and the last lines of the problems log.
+  3. Paste it in your message, and add what you did and what happened.
+     A screenshot helps a lot (Windows key + Shift + S).
+
+If Sompio won't start at all, the log is here (paste this into the File Explorer address bar):
+  %LOCALAPPDATA%\app.sompio.desktop\problems.log
+
+
+5. NEWER TEST VERSIONS AND REMOVING SOMPIO
+------------------------------------------
+To update, run the new setup file over the old one. Your data stays.
+
+To remove Sompio: Windows Settings, Apps, Sompio, Uninstall. Your encrypted data stays in
+%LOCALAPPDATA%\app.sompio.desktop unless you tick the box to delete it. Delete that folder to
+remove everything.

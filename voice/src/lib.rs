@@ -6,3 +6,4 @@ pub mod bookmarks;
 pub mod client;
 pub mod proto;
 pub mod server;
+pub mod upnp;

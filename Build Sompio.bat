@@ -45,6 +45,11 @@ copy /y "%CARGO_TARGET_DIR%\release\sompio.exe" "Sompio for Windows\Sompio.exe" 
 copy /y "%CARGO_TARGET_DIR%\release\sompio-keymaker.exe" "Sompio for Windows\Sompio Key Maker.exe" >nul
 copy /y "%CARGO_TARGET_DIR%\release\sompio-voice-server.exe" "Sompio for Windows\Sompio Voice Server.exe" >nul
 for %%f in ("%CARGO_TARGET_DIR%\release\bundle\nsis\*-setup.exe") do copy /y "%%f" "Sompio for Windows\" >nul
+rem Everything a tester needs, and nothing they shouldn't have (no Key Maker)
+if exist "Sompio for Windows\For testers" rmdir /s /q "Sompio for Windows\For testers"
+mkdir "Sompio for Windows\For testers"
+for %%f in ("%CARGO_TARGET_DIR%\release\bundle\nsis\*-setup.exe") do copy /y "%%f" "Sompio for Windows\For testers\" >nul
+copy /y "How to test Sompio.txt" "Sompio for Windows\For testers\" >nul
 
 echo.
 echo Done. In the folder that opens:
@@ -52,6 +57,7 @@ echo   Sompio.exe              runs Sompio straight away
 echo   Sompio_..._setup.exe    installs it with a Start menu shortcut (this is what testers get)
 echo   Sompio Key Maker.exe    makes licence keys. Keep this one to yourself.
 echo   Sompio Voice Server.exe a voice server for a Windows PC (Linux: the "Sompio Voice server for Linux" folder)
+echo   For testers\            the setup file and "How to test Sompio.txt". Zip this folder and send it.
 echo.
 echo Your signing key is in %APPDATA%\Sompio Key Maker. Back it up, never share it.
 explorer "Sompio for Windows"

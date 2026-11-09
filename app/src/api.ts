@@ -198,7 +198,10 @@ export type VoiceConnectResult =
   | { kind: "connected"; fingerprint: string; welcome: VoiceServerMsg }
   | { kind: "new_server"; fingerprint: string; name: string }
   | { kind: "changed"; expected: string; got: string };
-export interface VoiceHosted { port: number; fingerprint: string; admin_key: string | null; name: string; lan: string | null }
+export interface VoiceHosted {
+  port: number; fingerprint: string; admin_key: string | null; name: string; lan: string | null;
+  public: string | null; reach: "open" | "no_router" | "refused" | "shared"; reach_note: string;
+}
 
 export const inDesktopApp = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
@@ -351,6 +354,10 @@ export const api = {
   voiceHostStart: (port: number, name: string) => call<VoiceHosted>("voice_host_start", { port, name }),
   voiceHostStop: () => call<void>("voice_host_stop"),
   voiceHostStatus: () => call<VoiceHosted | null>("voice_host_status"),
+  voiceHostOpenPort: () => call<VoiceHosted>("voice_host_open_port"),
+  logProblem: (text: string) => call<void>("log_problem", { text }),
+  appDetails: () => call<{ version: string; os: string; log: string; recent: string[] }>("app_details"),
+  openProblemsFolder: () => call<void>("open_problems_folder"),
   vaultAddAttachment: (id: string, path: string) => call<string>("vault_add_attachment", { id, path }),
   vaultSaveAttachment: (id: string, name: string, path: string) => call<void>("vault_save_attachment", { id, name, path }),
   vaultRemoveAttachment: (id: string, name: string) => call<void>("vault_remove_attachment", { id, name }),
