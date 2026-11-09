@@ -2,6 +2,7 @@
 //! Every command runs off the UI thread so the window never freezes.
 
 mod calendar;
+mod vault;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -22,6 +23,8 @@ struct AppState {
     email: std::sync::Arc<sompio_connect::email::Email>,
     /// Reminders: what's coming up and what's on screen. Kept in memory so they run while locked.
     calendar: calendar::Calendar,
+    /// The password vault while it's open, and auto-type
+    passwords: vault::VaultState,
 }
 
 type CmdResult<T> = Result<T, String>;
@@ -80,6 +83,7 @@ fn lock_forget_picture(state: State<'_, AppState>) -> CmdResult<()> {
 #[tauri::command]
 fn lock_lock(state: State<'_, AppState>) {
     state.vault.lock();
+    state.passwords.close();
 }
 
 // Licences: which apps are unlocked. Checked offline against the public key built into the app.
@@ -147,6 +151,10 @@ fn licence_add(state: State<'_, AppState>, key: String) -> CmdResult<sompio_lice
 type DbKey = (PathBuf, zeroize::Zeroizing<[u8; 32]>);
 
 impl AppState {
+    fn passwords_shortcut(&self) -> String {
+        vault::shortcut(&self.passwords)
+    }
+
     /// Clean's encrypted database and its key, or an error while Sompio is locked.
     fn db(&self) -> CmdResult<DbKey> {
         self.vault.clean_db().map_err(|e| e.to_string())
@@ -554,6 +562,15 @@ pub fn run() {
         // A second launch (e.g. the shortcut clicked while Sompio sits in the tray) opens the window.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| calendar::show_main(app)))
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--autostart"])))
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, _shortcut, event| {
+                    if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        vault::on_shortcut(app);
+                    }
+                })
+                .build(),
+        )
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         // Updates: checks one small file on GitHub, installs only versions signed with our update key.
@@ -571,7 +588,12 @@ pub fn run() {
                 telegram: tokio::sync::Mutex::new(sompio_connect::telegram::Telegram::new(secrets.clone())),
                 email: std::sync::Arc::new(sompio_connect::email::Email::new(secrets)),
                 calendar: calendar::Calendar::new(),
+                passwords: vault::VaultState::new(&dir),
             });
+            let shortcut = app.state::<AppState>().passwords_shortcut();
+            if let Err(e) = vault::register_shortcut(app.handle(), "", &shortcut) {
+                eprintln!("{e}");
+            }
             calendar::tray(app.handle())?;
             calendar::start(app.handle().clone());
             Ok(())
@@ -661,6 +683,36 @@ pub fn run() {
             calendar::cal_paused,
             calendar::cal_autostart,
             calendar::cal_set_autostart,
+            vault::vault_groups,
+            vault::vault_entries,
+            vault::vault_entry,
+            vault::vault_reveal,
+            vault::vault_totp,
+            vault::vault_copy,
+            vault::vault_copy_text,
+            vault::vault_add_entry,
+            vault::vault_update_entry,
+            vault::vault_delete_entry,
+            vault::vault_restore_entry,
+            vault::vault_restore_version,
+            vault::vault_move_entry,
+            vault::vault_empty_bin,
+            vault::vault_add_group,
+            vault::vault_rename_group,
+            vault::vault_move_group,
+            vault::vault_delete_group,
+            vault::vault_generate,
+            vault::vault_strength,
+            vault::vault_health,
+            vault::vault_import_kdbx,
+            vault::vault_import_csv,
+            vault::vault_export_kdbx,
+            vault::vault_export_csv,
+            vault::vault_settings,
+            vault::vault_set_settings,
+            vault::vault_autotype_matches,
+            vault::vault_autotype_choose,
+            vault::vault_autotype_now,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Sompio");

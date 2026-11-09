@@ -415,6 +415,7 @@ pub fn tray(app: &AppHandle) -> tauri::Result<()> {
         }
         "lock" => {
             app.state::<AppState>().vault.lock();
+            app.state::<AppState>().passwords.close();
             let _ = app.emit("locked", ());
         }
         "quit" => app.exit(0),

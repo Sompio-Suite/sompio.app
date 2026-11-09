@@ -548,31 +548,34 @@ function PopupSettings({ settings, run }: { settings: CalSettings; run: Run }) {
 
 function PacksDialog({ mineId, onClose, run }: { mineId: number; onClose: () => void; run: Run }) {
   const [added, setAdded] = useState<string[]>([]);
+  const card = (p: (typeof PACKS)[number]) => (
+    <article key={p.id} className={`pack${p.id === "privacy" ? " featured" : ""}`}>
+      <div>
+        <strong>{p.name}</strong>
+        <span className="small muted">{p.line}</span>
+        <ul className="small">
+          {p.rows.map((r) => <li key={r.title}><span className="faint">{r.days}, {r.time.replace(/^every (\d+) min /, "every $1 min, ")}</span> {r.title}</li>)}
+        </ul>
+      </div>
+      <button
+        className={p.id === "privacy" ? "primary" : ""}
+        disabled={added.includes(p.id)}
+        onClick={() => run(() => api.calAddRows(mineId, p.rows), `${p.name} added.`).then(() => setAdded([...added, p.id]))}
+      >
+        {added.includes(p.id) ? "Added" : "Add"}
+      </button>
+    </article>
+  );
   return (
     <dialog className="sheet wide" ref={(d) => { if (d && !d.open) d.showModal(); }} onClose={onClose} aria-labelledby="packs-title">
       <div className="sheet-body">
         <h2 id="packs-title">Routines</h2>
-        <p className="muted">Each adds a few ordinary reminders to your schedule. Change or remove them afterwards like any other.</p>
-        <div className="packs">
-          {PACKS.map((p) => (
-            <article key={p.id} className={`pack${p.id === "privacy" ? " featured" : ""}`}>
-              <div>
-                <strong>{p.name}</strong>
-                <span className="small muted">{p.line}</span>
-                <ul className="small">
-                  {p.rows.map((r) => <li key={r.title}><span className="faint">{r.days}, {r.time.replace(/^every (\d+) min /, "every $1 min, ")}</span> {r.title}</li>)}
-                </ul>
-              </div>
-              <button
-                className={p.id === "privacy" ? "primary" : ""}
-                disabled={added.includes(p.id)}
-                onClick={() => run(() => api.calAddRows(mineId, p.rows), `${p.name} added.`).then(() => setAdded([...added, p.id]))}
-              >
-                {added.includes(p.id) ? "Added" : "Add"}
-              </button>
-            </article>
-          ))}
-        </div>
+        <p className="muted">Small habits that keep your accounts, files and data in order. Each adds a few ordinary reminders you can change or remove afterwards.</p>
+        <div className="packs">{PACKS.filter((p) => !p.everyday).map(card)}</div>
+        <details className="everyday">
+          <summary className="small muted">Everyday reminders</summary>
+          <div className="packs">{PACKS.filter((p) => p.everyday).map(card)}</div>
+        </details>
         <div className="toolbar end"><button onClick={(e) => (e.currentTarget.closest("dialog") as HTMLDialogElement).close()}>Done</button></div>
       </div>
     </dialog>

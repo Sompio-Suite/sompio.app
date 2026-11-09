@@ -1,6 +1,7 @@
 // Fake backend for working on the UI in a plain browser. Never used inside the desktop app.
 // It mimics the Rust side closely enough to click through every screen.
 import { calendarHandlers } from "./mockCalendar";
+import { vaultHandlers } from "./mockVault";
 import type { ChannelView, FindingView, KindKey, MessageView, Page, Platform, ScanSummary, Segment, SourceView, Stats, Status } from "./api";
 
 const words = "anyone up for raid tonight the boss was rough need a healer brb dinner that patch broke my ui see you later nice drop gg honestly no idea what happened lol".split(" ");
@@ -399,7 +400,7 @@ const handlers: Record<string, (a: any) => unknown> = {
   data_location: () => "C:\\Users\\you\\AppData\\Local\\app.sompio.desktop\\sompio.db",
 };
 
-Object.assign(handlers, calendarHandlers);
+Object.assign(handlers, calendarHandlers, vaultHandlers);
 
 export const mockBackend = {
   invoke: async <T,>(cmd: string, args?: Record<string, unknown>): Promise<T> => {

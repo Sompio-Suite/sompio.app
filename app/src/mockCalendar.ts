@@ -19,12 +19,12 @@ const schedules: Sched[] = [
   {
     view: base(1, "My schedule", true, PALETTE[0]),
     rows: [
-      row("Every day", "08:00", "Breakfast", "Eat something before the screen.", 15),
-      row("Weekdays", "every 60 min 10:00-17:00", "Stand up", "Stretch for a minute."),
-      row("Weekdays", "12:30", "Lunch", "Away from the screen."),
-      row("Every day", "every 20 min 09:20-18:00", "Eye break", "Look 6 metres away for 20 seconds."),
-      row("Monthly 1", "09:00", "Password check-up", "Change one old password and check for reused ones."),
-      row("Every day", "23:00", "Bedtime", "Screens off.", 30),
+      row("Weekdays", "09:00", "Plan the day", "Three things that matter today."),
+      row("Tue, Thu", "18:30", "Gym", "", 15),
+      row("2026-11-12", "14:00", "Dentist", "Bring the insurance card.", 30),
+      row("Sun", "20:00", "Back up your files", "Copy your important folders to the external drive."),
+      row("Monthly 1", "19:00", "Password check-up", "Change one old password, and check you don't use it anywhere else."),
+      row("Quarterly 1", "18:30", "Request fresh data exports", "Ask Discord, Google and Meta for a copy of your data."),
     ],
   },
   {
@@ -136,7 +136,7 @@ const toRow = (r: RowInput): Row => {
 
 // The pop-up preview: one reminder showing, so the #popup view has something to draw.
 const popups = [
-  { id: 1, snoozed: false, occurrence: occurrences(iso(new Date()), iso(new Date())).find((o) => o.title === "Stand up") ?? occurrences(iso(new Date()), iso(new Date()))[0] },
+  { id: 1, snoozed: false, occurrence: occurrences(iso(new Date()), iso(new Date())).find((o) => o.title === "Plan the day") ?? occurrences(iso(new Date()), iso(new Date()))[0] },
 ];
 
 export const calendarHandlers: Record<string, (a: any) => unknown> = {

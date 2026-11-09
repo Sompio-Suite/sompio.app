@@ -164,6 +164,17 @@ impl Vault {
         Ok((self.clean_db_path(), vault.derive("clean.db")))
     }
 
+    pub fn vault_db_path(&self) -> PathBuf {
+        self.dir.join("vault.kdbx")
+    }
+
+    /// The password vault's file and key. Fails while Sompio is locked.
+    pub fn vault_db(&self) -> Result<(PathBuf, Zeroizing<[u8; 32]>)> {
+        let guard = self.key.lock().map_err(|_| anyhow!("lock state unavailable"))?;
+        let vault = guard.as_ref().ok_or_else(|| anyhow!("Sompio is locked. Unlock it to continue."))?;
+        Ok((self.vault_db_path(), vault.derive("vault.kdbx")))
+    }
+
     pub fn calendar_db_path(&self) -> PathBuf {
         self.dir.join("calendar.db")
     }

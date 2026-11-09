@@ -46,15 +46,9 @@ export const SUITE: SuiteApp[] = [
     key: "vault",
     name: "Vault",
     icon: "key",
-    line: "Your passwords, in the KeePass format, typed in for you where you need them.",
-    ready: false,
-    when: "Coming later",
-    plans: [
-      "Opens and saves KeePass files, so you're never locked in",
-      "Auto-type with a shortcut, matched to the website you're on",
-      "Clean finds a password you once pasted in a chat and offers to save and change it",
-      "A monthly check for weak, reused and leaked passwords",
-    ],
+    line: "Your passwords in the KeePass format, typed in for you with one shortcut. Opens and saves KeePassXC files.",
+    ready: true,
+    plans: [],
   },
   {
     key: "voice",

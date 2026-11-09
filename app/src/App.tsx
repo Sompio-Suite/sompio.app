@@ -14,6 +14,7 @@ import Upcoming from "./views/Upcoming";
 import LockScreen from "./views/LockScreen";
 import Security from "./views/Security";
 import Calendar from "./views/Calendar";
+import Vault from "./views/Vault";
 import { SUITE, accessText } from "./licence";
 import { autoCheckEnabled, checkForUpdate, dueForCheck, type UpdateInfo } from "./updates";
 
@@ -150,6 +151,7 @@ export default function App() {
   const cleanAccess = licence?.apps.find((a) => a.app === "clean");
   const cleanLocked = licence != null && !cleanAccess?.active;
   const inClean = CLEAN_VIEWS.includes(view);
+  const vaultLocked = licence != null && !licence.apps.find((a) => a.app === "vault")?.active;
   const calendarLocked = licence != null && !licence.apps.find((a) => a.app === "calendar")?.active;
 
   const navButton = (id: View, label: string, icon: string, extra?: ReactNode, sub = false) => (
@@ -229,6 +231,7 @@ export default function App() {
           )}
         </div>
         {navButton("calendar", "Calendar", "calendar", calendarLocked ? <Icon name="lock" size={14} /> : undefined)}
+        {navButton("vault", "Vault", "key", vaultLocked ? <Icon name="lock" size={14} /> : undefined)}
         {SUITE.filter((a) => !a.ready).map((a) => navButton(a.key as View, a.name, a.icon, <span className="soon-dot" title={a.when} />))}
         <div className="rail-spacer" />
         {navButton("security", "Security", "lock")}
@@ -288,7 +291,8 @@ export default function App() {
           />
         )}
         {view === "calendar" && <Calendar readOnly={calendarLocked} onAddKey={() => setView("licences")} />}
-        {(view === "vault" || view === "voice") && <Upcoming app={SUITE.find((a) => a.key === view)!} />}
+        {view === "vault" && <Vault readOnly={vaultLocked} onAddKey={() => setView("licences")} />}
+        {view === "voice" && <Upcoming app={SUITE.find((a) => a.key === view)!} />}
         {inClean && cleanPage()}
       </main>
     </div>

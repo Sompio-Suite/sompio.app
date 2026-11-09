@@ -122,6 +122,37 @@ export interface PopupState {
 export type AlertModeKey = "mute" | "shout" | "hide";
 export const SOUNDS = ["Soft chime", "Warm bell", "Marimba", "Kalimba", "Glass", "Music box", "Rising", "Soft ping", "Water drop"];
 
+// Vault
+export interface VaultGroup { id: string; parent: string | null; name: string; depth: number; entries: number; recycle_bin: boolean }
+export interface VaultEntry {
+  id: string; group_id: string; group_path: string; title: string; username: string; url: string; tags: string[];
+  has_password: boolean; has_totp: boolean; expires: string | null; expired: boolean; modified: string | null; in_recycle_bin: boolean;
+}
+export interface VaultField { key: string; value: string | null; protected: boolean }
+export interface AutoTypeSettings { enabled: boolean; sequence: string; windows: string[] }
+export interface VaultHistory { index: number; modified: string | null; title: string; username: string; password_changed: boolean }
+export interface VaultEntryDetail extends VaultEntry {
+  notes: string; custom: VaultField[]; autotype: AutoTypeSettings; created: string | null; password_modified: string | null; history: VaultHistory[];
+}
+export interface VaultEntryInput {
+  group_id: string | null; title: string; username: string; password: string | null; url: string; notes: string; tags: string[];
+  expires: string | null; custom: { key: string; value: string | null; protected: boolean }[]; otp: string | null; autotype: AutoTypeSettings | null;
+}
+export interface Totp { code: string; remaining: number; period: number }
+export interface Strength { score: number; label: string; bits: number; crack_time: string; warning: string | null; suggestions: string[] }
+export interface PasswordRules { length: number; lower: boolean; upper: boolean; digits: boolean; symbols: boolean; no_lookalikes: boolean; every_kind: boolean; exclude: string }
+export interface PassphraseRules { words: number; separator: string; capitalize: boolean; number: boolean }
+export type HealthIssue =
+  | { kind: "weak"; score: number; label: string; hint: string | null }
+  | { kind: "reused"; count: number; others: string[] }
+  | { kind: "expired" }
+  | { kind: "old"; days: number }
+  | { kind: "no_password" };
+export interface HealthReport { checked: number; weak: number; reused: number; expired: number; old: number; score: number; items: { entry: VaultEntry; issues: HealthIssue[]; severity: number }[] }
+export interface VaultImport { entries: number; groups: number; skipped_attachments: number; group_id: string; warnings: string[] }
+export interface VaultSettings { shortcut: string; clear_seconds: number; lock_after_type: boolean }
+export interface AutoTypeMatch { entry: VaultEntry; sequence: string; because: string }
+
 export const inDesktopApp = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 type Invoke = <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
@@ -221,6 +252,37 @@ export const api = {
   calPaused: () => call<string | null>("cal_paused"),
   calAutostart: () => call<boolean>("cal_autostart"),
   calSetAutostart: (on: boolean) => call<void>("cal_set_autostart", { on }),
+  vaultGroups: () => call<VaultGroup[]>("vault_groups"),
+  vaultEntries: (group: string | null, search: string) => call<VaultEntry[]>("vault_entries", { group, search }),
+  vaultEntry: (id: string) => call<VaultEntryDetail>("vault_entry", { id }),
+  vaultReveal: (id: string, field: string, history: number | null = null) => call<string>("vault_reveal", { id, field, history }),
+  vaultTotp: (id: string) => call<Totp | null>("vault_totp", { id }),
+  vaultCopy: (id: string, field: string) => call<number>("vault_copy", { id, field }),
+  vaultCopyText: (text: string) => call<number>("vault_copy_text", { text }),
+  vaultAddEntry: (entry: VaultEntryInput) => call<string>("vault_add_entry", { entry }),
+  vaultUpdateEntry: (id: string, entry: VaultEntryInput) => call<void>("vault_update_entry", { id, entry }),
+  vaultDeleteEntry: (id: string) => call<boolean>("vault_delete_entry", { id }),
+  vaultRestoreEntry: (id: string) => call<void>("vault_restore_entry", { id }),
+  vaultRestoreVersion: (id: string, index: number) => call<void>("vault_restore_version", { id, index }),
+  vaultMoveEntry: (id: string, group: string) => call<void>("vault_move_entry", { id, group }),
+  vaultEmptyBin: () => call<number>("vault_empty_bin"),
+  vaultAddGroup: (parent: string | null, name: string) => call<string>("vault_add_group", { parent, name }),
+  vaultRenameGroup: (id: string, name: string) => call<void>("vault_rename_group", { id, name }),
+  vaultMoveGroup: (id: string, parent: string) => call<void>("vault_move_group", { id, parent }),
+  vaultDeleteGroup: (id: string) => call<void>("vault_delete_group", { id }),
+  vaultGenerate: (kind: "password" | "passphrase", password: PasswordRules | null, passphrase: PassphraseRules | null) =>
+    call<{ value: string; strength: Strength }>("vault_generate", { kind, password, passphrase }),
+  vaultStrength: (password: string) => call<Strength>("vault_strength", { password }),
+  vaultHealth: () => call<HealthReport>("vault_health"),
+  vaultImportKdbx: (path: string, password: string, keyfile: string | null) => call<VaultImport>("vault_import_kdbx", { path, password, keyfile }),
+  vaultImportCsv: (path: string) => call<VaultImport>("vault_import_csv", { path }),
+  vaultExportKdbx: (path: string, password: string) => call<void>("vault_export_kdbx", { path, password }),
+  vaultExportCsv: (path: string) => call<void>("vault_export_csv", { path }),
+  vaultSettings: () => call<VaultSettings>("vault_settings"),
+  vaultSetSettings: (settings: VaultSettings) => call<void>("vault_set_settings", { settings }),
+  vaultAutotypeMatches: () => call<{ window: string; matches: AutoTypeMatch[] }>("vault_autotype_matches"),
+  vaultAutotypeChoose: (id: string, sequence: string | null) => call<void>("vault_autotype_choose", { id, sequence }),
+  vaultAutotypeNow: (id: string) => call<void>("vault_autotype_now", { id }),
 };
 
 export async function pickScheduleFile(): Promise<string | null> {
@@ -359,3 +421,18 @@ export const openLabel = (p: Platform) =>
   p === "email" ? "Open in Gmail" : p === "discord" || p === "telegram" ? `Open in ${platformName[p]}` : `Open on ${platformName[p]}`;
 
 export const severityLabel = (s: number) => (s >= 3 ? "Fix now" : s === 2 ? "Worth a look" : "Low risk");
+
+type Filter = { name: string; extensions: string[] };
+/** Any file to open. */
+export async function pickOpen(title: string, filters: Filter[], demo = "C:\\Users\\you\\Downloads\\file"): Promise<string | null> {
+  if (!inDesktopApp) return demo;
+  const { open } = await import("@tauri-apps/plugin-dialog");
+  const picked = await open({ title, filters });
+  return typeof picked === "string" ? picked : null;
+}
+/** Where to save a file. */
+export async function pickSave(title: string, defaultPath: string, filters: Filter[]): Promise<string | null> {
+  if (!inDesktopApp) return defaultPath;
+  const { save } = await import("@tauri-apps/plugin-dialog");
+  return save({ title, defaultPath, filters });
+}

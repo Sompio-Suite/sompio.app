@@ -6,8 +6,8 @@ Private tools that keep your data on your PC, unlocked with a key instead of an 
 | --- | --- |
 | **Clean** | Built: finds and cleans up personal information in your exports and files (below) |
 | **Calendar** | Built: Desk Reminders rebuilt, encrypted, with privacy routines (below) |
-| **Vault** | Later: KeePass-compatible password manager |
-| **Voice** | Later: end-to-end encrypted voice rooms |
+| **Vault** | Built (round 1 of 3): KeePass-compatible password manager with auto-type (below) |
+| **Voice** | Next: TeamSpeak-style self-hosted voice server with channels, end-to-end encrypted |
 
 The plan lives in the "Sompio Suite plan" doc.
 
@@ -20,7 +20,8 @@ encrypted with the lock like everything else.
 - **Day, month, Next up:** today's reminders with how many are done, a month with dots for the special days (raids,
   check-ups, one-offs), and what's coming. Edit, skip one time, mute for a day or always, or remove.
 - **Routines:** Privacy check-ups (monthly password check-up, quarterly "request fresh data exports", sign out of old
-  sessions, check your recovery sheet), plus Desk Reminders' water, move, eye breaks, meals and bedtime.
+  sessions, check your recovery sheet), Backups, and Money and subscriptions. Desk Reminders' old wellness templates
+  (water, eye breaks…) sit folded away under "Everyday reminders" and aren't promoted.
 - **Schedules:** bring in a whole Desk Reminders folder (your schedule, `shared/`, colours, groups, quiet hours, sound),
   add a shared schedule file, or start one you organise and save it as a file to share. Groups (Tanks, Healers…)
   decide who gets a pop-up.
@@ -32,6 +33,33 @@ encrypted with the lock like everything else.
 
 Code: `calendar/` (format, engine, store, pop-up queue; all tested) and `app/src-tauri/src/calendar.rs` (commands,
 the reminder loop, the pop-up window and the tray).
+
+## Sompio Vault
+
+A password manager that keeps everything in a real KeePass file (`vault.kdbx`, KDBX 4), so you're never locked in.
+Inside Sompio the file opens with a key from the lock; "Save as KeePass file" makes a copy with a password of your
+choosing that KeePassXC, KeePass, KeeWeb and Strongbox open. Checked against KeePassXC 2.7.6 in both directions.
+
+Round 1 (built):
+- Folders, entries with title, username, password, website, notes, tags, expiry and your own extra fields (hidden or
+  not), recycle bin, the last 10 versions of every entry with "use this version", search.
+- 2FA codes (TOTP) from a setup key or otpauth:// link, as KeePassXC stores them.
+- Generator: passwords (length, character kinds, no look-alikes, excluded characters) and EFF-word passphrases, with
+  zxcvbn strength.
+- Health check: weak, reused, expired and old passwords, scored, offline.
+- Import: KeePass/KeePassXC files (password and/or key file), CSV from Bitwarden, Chrome/Edge/Brave, Firefox,
+  1Password, LastPass, Proton Pass, Dashlane, KeePassXC. Export: KeePass file, CSV.
+- Copy with auto-clear (default 20 s), kept out of Windows clipboard history and cloud clipboard.
+- Auto-type: a global shortcut (default Ctrl+Alt+A) types into the window in front, matched by window rules, the
+  entry title or the site name; a chooser when several fit. KeePass sequences ({USERNAME}{TAB}{PASSWORD}{ENTER},
+  {TOTP}, {S:Field}, {DELAY n}, {TAB n}, ^a…). "Type it" on an entry types into the window behind Sompio.
+- Reading, copying, typing, deleting and exporting keep working when a key runs out; adding and changing need one.
+
+Round 2: browser fill (aiming for the KeePassXC-Browser extension's protocol), attachments, merging databases,
+YubiKey challenge-response, leaked-password checks. Round 3: SSH agent, passkeys, Windows Hello quick unlock.
+
+Code: `vault/` (store, generator, health, CSV, auto-type parsing and matching; all tested) and
+`app/src-tauri/src/vault.rs` (commands, clipboard, global shortcut, keystrokes).
 
 ## The Sompio Lock
 
@@ -233,6 +261,7 @@ licence/           Licence keys: signing, offline checking, the trial, and Sompi
 lock/              The Sompio Lock: Argon2id, key wrapping, the key picture, recovery codes.
 suite/             Glue for the app: setup, unlock, recovery, each app's database key.
 calendar/          Sompio Calendar: the Desk Reminders format, the reminder engine, the encrypted store.
+vault/             Sompio Vault: KeePass files, generator, health check, CSV, auto-type sequences.
 vendor/            libsqlite3-sys with SQLite3 Multiple Ciphers in place of plain SQLite.
 app/
   src-tauri/         the desktop shell: passes UI requests to the libraries, nothing else

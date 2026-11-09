@@ -1,6 +1,6 @@
 import type { RowInput } from "./api";
 
-export interface Pack { id: string; name: string; line: string; rows: RowInput[] }
+export interface Pack { id: string; name: string; line: string; rows: RowInput[]; everyday?: boolean }
 
 /** Ready-made routines. Each adds plain reminders to your schedule that you can change afterwards. */
 export const PACKS: Pack[] = [
@@ -18,25 +18,43 @@ export const PACKS: Pack[] = [
     ],
   },
   {
-    id: "water",
+    id: "backups",
+    name: "Backups",
+    line: "So a lost or locked PC doesn't take your files with it.",
+    rows: [
+      { days: "Sun", time: "20:00", title: "Back up your files", text: "Copy your important folders to an external drive or encrypted backup." },
+      { days: "Monthly 5", time: "19:30", title: "Test a backup", text: "Open one file from your backup to make sure it actually works." },
+    ],
+  },
+  {
+    id: "accounts",
+    name: "Money and subscriptions",
+    line: "Spot charges and accounts you don't recognise.",
+    rows: [
+      { days: "Monthly 3", time: "19:00", title: "Check your bank statement", text: "Look for charges you don't recognise." },
+      { days: "Quarterly 5", time: "19:00", title: "Review subscriptions and accounts", text: "Cancel what you don't use, and delete accounts you no longer need." },
+    ],
+  },
+  {
+    id: "water", everyday: true,
     name: "Drink water",
     line: "Every hour through the day.",
     rows: [{ days: "Every day", time: "every 60 min 09:00-21:00", title: "Drink water", text: "Have a glass of water (250 ml)." }],
   },
   {
-    id: "move",
+    id: "move", everyday: true,
     name: "Move",
     line: "Get up once an hour.",
     rows: [{ days: "Every day", time: "every 60 min 10:30-20:30", title: "Move", text: "Stand up, stretch, walk around for a minute." }],
   },
   {
-    id: "eyes",
+    id: "eyes", everyday: true,
     name: "Eye breaks",
     line: "The 20-20-20 rule while you're at the screen.",
     rows: [{ days: "Weekdays", time: "every 20 min 09:20-18:00", title: "Eye break", text: "Look at something 6 metres away for 20 seconds." }],
   },
   {
-    id: "meals",
+    id: "meals", everyday: true,
     name: "Meals",
     line: "Breakfast, lunch and dinner, with a heads-up before each.",
     rows: [
@@ -46,7 +64,7 @@ export const PACKS: Pack[] = [
     ],
   },
   {
-    id: "bed",
+    id: "bed", everyday: true,
     name: "Bedtime",
     line: "Wind down, with half an hour's warning.",
     rows: [{ days: "Every day", time: "23:00", title: "Bedtime", text: "Screens off. Sleep well.", notice: 30 }],
