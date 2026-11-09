@@ -19,7 +19,7 @@ const make = (group: string, title: string, username: string, url: string, passw
   d: {
     id: `e${seq++}`, group_id: group, group_path: "", title, username, url, tags: [], has_password: !!password, has_totp: !!otp,
     expires: null, expired: false, modified: ago(changedDaysAgo), in_recycle_bin: false, notes: "", custom: [],
-    autotype: { enabled: true, sequence: "", windows: [] }, created: ago(400), password_modified: ago(changedDaysAgo), history: [], ...extra,
+    autotype: { enabled: true, sequence: "", windows: [] }, created: ago(400), password_modified: ago(changedDaysAgo), history: [], attachments: [], ...extra,
   },
   password, otp, secrets: {}, history: [],
 });
@@ -51,6 +51,7 @@ const summary = (i: Item): VaultEntry => {
 };
 const detail = (i: Item): VaultEntryDetail => ({
   ...i.d, ...summary(i),
+  attachments: (i as Item & { files?: { name: string; size: number }[] }).files ?? [],
   history: i.history.map((h, n) => ({ index: n, modified: h.modified, title: i.d.title, username: i.d.username, password_changed: true })),
 });
 const find = (id: string) => { const i = items.find((x) => x.d.id === id); if (!i) throw "That entry no longer exists."; return i; };
@@ -165,6 +166,16 @@ export const vaultHandlers: Record<string, (a: any) => unknown> = {
   vault_autotype_matches: () => ({ window: "Battle.net Login", matches: [{ entry: summary(items[0]), sequence: "{PASSWORD}{ENTER}", because: "window rule" }, { entry: summary(items[1]), sequence: "{USERNAME}{TAB}{PASSWORD}{ENTER}", because: "title" }] }),
   vault_autotype_choose: () => undefined,
   vault_autotype_now: () => undefined,
+  vault_add_attachment: ({ id, path }) => {
+    const i = find(id) as Item & { files?: { name: string; size: number }[] };
+    const name = String(path).split(/[\\/]/).pop()!;
+    i.files = [...(i.files ?? []).filter((f) => f.name !== name), { name, size: 48_213 }];
+    return name;
+  },
+  vault_save_attachment: () => undefined,
+  vault_remove_attachment: ({ id, name }) => { const i = find(id) as Item & { files?: { name: string }[] }; i.files = (i.files ?? []).filter((f) => f.name !== name); },
+  vault_merge_kdbx: ({ password }) => { if (!password) throw "Enter the file's password, or choose its key file."; return { added: 1, updated: 2, moved: 0, deleted: 0, warnings: [] }; },
+  vault_check_leaks: () => items.filter((i) => ["hunter22", "password1"].includes(i.password)).map((i) => ({ entry: summary(i), seen: i.password === "password1" ? 2_418_984 : 1_337 })),
   vault_add_samples: () => {
     const g = { id: `g${seq++}`, parent: ROOT, name: "Samples", depth: 1, entries: 0, recycle_bin: false };
     groups.splice(1, 0, g);

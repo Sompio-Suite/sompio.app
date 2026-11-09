@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, listen, type Totp, type VaultEntry, type VaultEntryDetail, type VaultGroup } from "../api";
+import { api, listen, pickOpen, pickSave, type Totp, type VaultEntry, type VaultEntryDetail, type VaultGroup } from "../api";
 import Icon from "../Icon";
 import { dateTime, plural } from "../format";
 import VaultEntryDialog from "./VaultEntryDialog";
@@ -317,6 +317,30 @@ function EntryView({ d, groups, readOnly, onCopied, onError, onEdit, run, onGone
 
       {d.tags.length > 0 && <div className="day-picks">{d.tags.map((t) => <span key={t} className="chip plain">{t}</span>)}</div>}
       {d.notes && <div className="entry-notes selectable">{d.notes}</div>}
+
+      {(d.attachments.length > 0 || !readOnly) && !d.in_recycle_bin && (
+        <div className="attachments">
+          <span className="kv-label">Files</span>
+          {d.attachments.map((a) => (
+            <div key={a.name} className="attachment">
+              <Icon name="folder" size={16} />
+              <span className="grow">{a.name}</span>
+              <span className="small faint num">{a.size < 1024 ? `${a.size} B` : a.size < 1048576 ? `${Math.round(a.size / 1024)} KB` : `${(a.size / 1048576).toFixed(1)} MB`}</span>
+              <button className="small-btn ghost" onClick={async () => {
+                const p = await pickSave("Save the file", a.name, []);
+                if (p) run(() => api.vaultSaveAttachment(d.id, a.name, p), "Saved. That copy isn't encrypted, so delete it when you're done.");
+              }}>Save</button>
+              {!readOnly && <button className="small-btn ghost danger" onClick={() => run(() => api.vaultRemoveAttachment(d.id, a.name), "File removed. The earlier version of the entry still has it.")}>Remove</button>}
+            </div>
+          ))}
+          {!readOnly && (
+            <button className="small-btn" onClick={async () => {
+              const p = await pickOpen("Choose a file to keep in this entry", [], "C:\\Users\\you\\Documents\\recovery-codes.txt");
+              if (p) run(async () => { const n = await api.vaultAddAttachment(d.id, p); return n; }, "File added. It's encrypted with the vault; you can delete the original.");
+            }}><Icon name="plus" size={14} />Attach a file</button>
+          )}
+        </div>
+      )}
 
       <div className="toolbar">
         {d.in_recycle_bin ? (

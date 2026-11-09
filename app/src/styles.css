@@ -864,3 +864,9 @@ input.shortcut-input { width: 13rem; text-align: center; cursor: pointer; }
 .sample-files { display: grid; gap: 0.4rem; background: var(--sunken); border-radius: var(--r-m); padding: 0.8rem 1rem; }
 .sample-files ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.25rem; }
 .muted-card { opacity: 0.7; }
+.attachments { display: grid; gap: 0.4rem; justify-items: start; }
+.attachment { display: flex; align-items: center; gap: 0.6rem; width: 100%; padding: 0.4rem 0.6rem; border-radius: var(--r-s); background: var(--sunken); font-size: var(--t-s); }
+.attachment .grow { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.leak-check { padding: 1.1rem 1.25rem; display: grid; gap: 0.8rem; justify-items: start; }
+.leak-check > div:first-child { display: grid; gap: 0.3rem; max-width: 80ch; }
+.leak-check .health-list { width: 100%; }

@@ -72,6 +72,24 @@ pub struct HistoryView {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct AttachmentView {
+    pub name: String,
+    pub size: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct MergeSummary {
+    pub added: usize,
+    pub updated: usize,
+    pub moved: usize,
+    pub deleted: usize,
+    pub warnings: Vec<String>,
+}
+
+/// Files kept inside an entry are limited, so the vault stays quick to open and save.
+pub const MAX_ATTACHMENT: usize = 25 * 1024 * 1024;
+
+#[derive(Debug, Clone, Serialize)]
 pub struct EntryDetail {
     #[serde(flatten)]
     pub summary: EntrySummary,
@@ -81,6 +99,7 @@ pub struct EntryDetail {
     pub created: Option<String>,
     pub password_modified: Option<String>,
     pub history: Vec<HistoryView>,
+    pub attachments: Vec<AttachmentView>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -417,6 +436,8 @@ impl Vault {
             })
             .unwrap_or_default();
         let password_modified = self.password_modified(&e);
+        let mut attachments: Vec<AttachmentView> = e.attachments_named().map(|(n, a)| AttachmentView { name: n.to_string(), size: a.data.get().len() }).collect();
+        attachments.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
         Ok(EntryDetail {
             summary: self.summary(&e),
             notes: field(&e, fields::NOTES).to_string(),
@@ -429,6 +450,7 @@ impl Vault {
             created: iso(e.times.creation),
             password_modified: iso(password_modified),
             history,
+            attachments,
         })
     }
 
@@ -757,6 +779,88 @@ impl Vault {
         self.save()
     }
 
+    /// Keeps a file inside the entry (encrypted with the rest of the vault). Same name replaces.
+    pub fn add_attachment(&mut self, id: &str, name: &str, data: Vec<u8>) -> Result<()> {
+        let name = name.trim();
+        if name.is_empty() {
+            bail!("The file needs a name.");
+        }
+        if data.len() > MAX_ATTACHMENT {
+            bail!("That file is over 25 MB. Keep big files elsewhere and note where in the entry.");
+        }
+        let eid = parse_entry_id(id)?;
+        {
+            let mut e = self.db.entry_mut(eid).ok_or_else(|| anyhow!("That entry no longer exists."))?;
+            e.edit_tracking(|t| {
+                t.add_attachment(name.to_string(), Value::protected(data));
+            });
+        }
+        self.trim_history(eid);
+        self.save()
+    }
+
+    pub fn remove_attachment(&mut self, id: &str, name: &str) -> Result<()> {
+        let eid = parse_entry_id(id)?;
+        {
+            let mut e = self.db.entry_mut(eid).ok_or_else(|| anyhow!("That entry no longer exists."))?;
+            e.edit_tracking(|t| t.as_mut().remove_attachment_by_name(name));
+        }
+        self.trim_history(eid);
+        self.save()
+    }
+
+    pub fn attachment(&self, id: &str, name: &str) -> Result<Zeroizing<Vec<u8>>> {
+        let e = self.entry_ref(id)?;
+        let a = e.attachment_by_name(name).ok_or_else(|| anyhow!("That file is no longer in this entry."))?;
+        Ok(Zeroizing::new(a.data.get().clone()))
+    }
+
+    /// Brings in changes from another copy of this vault (one you exported and edited in
+    /// KeePassXC, say). Entries are matched by their ID; the newer version of each wins and the
+    /// older one goes into its history. A KeePass file that isn't a copy of this vault comes in
+    /// as new entries.
+    pub fn merge_kdbx(&mut self, bytes: &[u8], password: &str, keyfile: Option<&[u8]>) -> Result<MergeSummary> {
+        let other = Database::parse(bytes, user_key(password, keyfile)?).map_err(|e| match e {
+            keepass::db::DatabaseOpenError::Key(_) => anyhow!("The password or key file isn't right for this file."),
+            other => anyhow!("This file couldn't be opened as a KeePass database: {other}"),
+        })?;
+        // A different database has a different top folder: bring it in as its own folder.
+        if other.root().id() != self.db.root().id() {
+            let label = other.meta.database_name.clone().filter(|n| !n.trim().is_empty()).unwrap_or_else(|| "Merged".into());
+            let gid = {
+                let mut root = self.db.root_mut();
+                let mut g = root.add_group();
+                g.name = label;
+                g.id()
+            };
+            let mut s = ImportSummary::default();
+            self.copy_tree(other.root(), gid, other.recycle_bin().map(|b| b.id()), &mut s);
+            self.save()?;
+            return Ok(MergeSummary {
+                added: s.entries,
+                warnings: vec!["This file isn't a copy of your vault, so everything in it came in as new entries in its own folder.".into()],
+                ..Default::default()
+            });
+        }
+        let log = self.db.merge(&other).map_err(|e| anyhow!("The merge stopped: {e}"))?;
+        // The merge's own warnings are technical (timestamps, IDs); they aren't shown.
+        let mut m = MergeSummary::default();
+        for ev in &log.events {
+            if let keepass::db::merge::MergeEventTarget::Entry(_) = ev.target {
+                match ev.event_type {
+                    keepass::db::merge::MergeEventType::Created => m.added += 1,
+                    keepass::db::merge::MergeEventType::Updated => m.updated += 1,
+                    keepass::db::merge::MergeEventType::LocationUpdated => m.moved += 1,
+                    keepass::db::merge::MergeEventType::Deleted => m.deleted += 1,
+                    _ => {}
+                }
+            }
+        }
+        self.ensure_recycle_bin();
+        self.save()?;
+        Ok(m)
+    }
+
     /// Every entry outside the recycle bin, for the health check and auto-type.
     pub(crate) fn live_entries(&self) -> impl Iterator<Item = keepass::db::EntryRef<'_>> + '_ {
         self.db.iter_all_entries().filter(|e| !self.in_bin(e.parent().id()))
@@ -776,7 +880,9 @@ impl Vault {
             n.times = e.times.clone();
             n.autotype = e.autotype.clone();
             n.override_url = e.override_url.clone();
-            s.skipped_attachments += e.attachments().count();
+            for (name, a) in e.attachments_named() {
+                n.add_attachment(name.to_string(), a.data.clone());
+            }
             s.entries += 1;
         }
         for k in src.groups() {
@@ -812,9 +918,6 @@ impl Vault {
         let mut s = ImportSummary { group_id: gid.uuid().to_string(), ..Default::default() };
         let skip = other.recycle_bin().map(|b| b.id());
         self.copy_tree(other.root(), gid, skip, &mut s);
-        if s.skipped_attachments > 0 {
-            s.warnings.push(format!("{} attached files weren't brought over. Attachments come in a later version.", s.skipped_attachments));
-        }
         self.save()?;
         Ok(s)
     }
@@ -948,8 +1051,80 @@ mod tests {
         assert_eq!(other.iter_all_entries().count(), 1);
         assert!(v.import_kdbx(&bytes, "wrong", None, "x").is_err());
         let s = v.import_kdbx(&bytes, "correct horse battery", None, "From laptop").unwrap();
+        assert_eq!(s.skipped_attachments, 0);
         assert_eq!((s.entries, s.groups), (1, 1), "the bin isn't copied");
         assert_eq!(v.entries(None, "proton").unwrap().len(), 2);
         assert!(v.entries(None, "proton").unwrap().iter().any(|e| e.group_path == "From laptop / Mail"));
+    }
+}
+
+#[cfg(test)]
+mod round2 {
+    use super::*;
+
+    fn vault(dir: &Path) -> Vault {
+        Vault::open(&dir.join("vault.kdbx"), &[6u8; 32]).unwrap()
+    }
+
+    #[test]
+    fn attachments_survive_save_export_and_import() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut v = vault(dir.path());
+        let id = v.add_entry(&EntryInput { title: "Passport".into(), ..Default::default() }).unwrap();
+        v.add_attachment(&id, "scan.pdf", b"%PDF-1.7 fake".to_vec()).unwrap();
+        v.add_attachment(&id, "notes.txt", b"hello".to_vec()).unwrap();
+        assert!(v.add_attachment(&id, "big.bin", vec![0; MAX_ATTACHMENT + 1]).is_err());
+        let d = v.entry(&id).unwrap();
+        assert_eq!(d.attachments.iter().map(|a| a.name.as_str()).collect::<Vec<_>>(), ["notes.txt", "scan.pdf"]);
+        drop(v);
+        let mut v = vault(dir.path());
+        assert_eq!(&*v.attachment(&id, "scan.pdf").unwrap(), b"%PDF-1.7 fake");
+        v.remove_attachment(&id, "notes.txt").unwrap();
+        assert_eq!(v.entry(&id).unwrap().attachments.len(), 1);
+        let out = dir.path().join("x.kdbx");
+        v.export_kdbx(&out, "export-password", None).unwrap();
+        let mut w = Vault::open(&dir.path().join("w.kdbx"), &[1u8; 32]).unwrap();
+        w.import_kdbx(&std::fs::read(&out).unwrap(), "export-password", None, "x").unwrap();
+        let wid = w.entries(None, "passport").unwrap()[0].id.clone();
+        assert_eq!(&*w.attachment(&wid, "scan.pdf").unwrap(), b"%PDF-1.7 fake");
+    }
+
+    #[test]
+    fn merge_brings_back_changes_from_a_copy() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut v = vault(dir.path());
+        let a = v.add_entry(&EntryInput { title: "Mail".into(), password: Some("old".into()), ..Default::default() }).unwrap();
+        let out = dir.path().join("copy.kdbx");
+        v.export_kdbx(&out, "copy-password", None).unwrap();
+        // Edit the copy elsewhere: change Mail, add Bank
+        let mut copy = Database::parse(&std::fs::read(&out).unwrap(), user_key("copy-password", None).unwrap()).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(1100));
+        {
+            let mut e = copy.entry_mut(parse_entry_id(&a).unwrap()).unwrap();
+            e.edit_tracking(|t| t.set_protected(fields::PASSWORD, "new-from-laptop"));
+        }
+        {
+            let mut root = copy.root_mut();
+            let mut n = root.add_entry();
+            n.set_unprotected(fields::TITLE, "Bank");
+        }
+        let mut buf = Vec::new();
+        copy.save(&mut buf, user_key("copy-password", None).unwrap()).unwrap();
+        let m = v.merge_kdbx(&buf, "copy-password", None).unwrap();
+        assert_eq!((m.added, m.updated), (1, 1));
+        assert_eq!(&*v.reveal(&a, fields::PASSWORD).unwrap(), "new-from-laptop");
+        assert_eq!(v.entry(&a).unwrap().history.len(), 1, "the old version is kept");
+        // Merging again changes nothing
+        let again = v.merge_kdbx(&buf, "copy-password", None).unwrap();
+        assert_eq!((again.added, again.updated), (0, 0));
+        // A foreign file comes in as its own folder
+        let mut other = Database::new();
+        other.meta.database_name = Some("Other".into());
+        other.root_mut().add_entry().set_unprotected(fields::TITLE, "Foreign");
+        let mut b2 = Vec::new();
+        other.save(&mut b2, user_key("pw-pw-pw-pw", None).unwrap()).unwrap();
+        let f = v.merge_kdbx(&b2, "pw-pw-pw-pw", None).unwrap();
+        assert_eq!(f.added, 1);
+        assert_eq!(v.entries(None, "foreign").unwrap()[0].group_path, "Other");
     }
 }

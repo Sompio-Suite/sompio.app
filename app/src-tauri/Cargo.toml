@@ -1,6 +1,6 @@
 [package]
 name = "sompio"
-version = "0.3.0"
+version = "0.4.0"
 description = "Sompio Suite: offline privacy tools."
 edition = "2021"
 
@@ -30,6 +30,7 @@ sompio-calendar = { path = "../../calendar" }
 sompio-vault = { path = "../../vault" }
 enigo = "0.6"
 arboard = "3"
+ureq = "3"
 active-win-pos-rs = "0.9"
 tauri-plugin-global-shortcut = "2"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }

@@ -65,6 +65,11 @@ pub fn add_sample_entries(v: &mut Vault) -> Result<String> {
     now.autotype = Some(AutoTypeSettings { enabled: true, sequence: "{PASSWORD}{ENTER}".into(), windows: vec!["Battle.net*".into()] });
     v.update_entry(&id, &now)?;
 
+    let mut doc = e("Passport (attached file)", "", "", "");
+    doc.notes = "A file kept inside the entry, encrypted with the vault. Use Save to get it back out.".into();
+    let doc_id = v.add_entry(&inside(doc, &top))?;
+    v.add_attachment(&doc_id, "passport-details.txt", b"SAMPLE ONLY\r\nName: Alex Rivers\r\nDocument: XX1234567 (made up)\r\nValid until: 2031-05-01\r\n".to_vec())?;
+
     let mut wifi = e("Home Wi-Fi (a note)", "", "orbit-candle-meadow-tusk", "");
     wifi.notes = "Guest network: Sompio-Guest\nRouter admin is on the sticker.".into();
     v.add_entry(&inside(wifi, &top))?;
@@ -162,7 +167,8 @@ mod tests {
         let mut v = Vault::open(&dir.path().join("v.kdbx"), &[9u8; 32]).unwrap();
         let top = add_sample_entries(&mut v).unwrap();
         let all = v.entries(Some(&top), "").unwrap();
-        assert_eq!(all.len(), 10);
+        assert_eq!(all.len(), 11);
+        assert!(all.iter().any(|x| !v.entry(&x.id).unwrap().attachments.is_empty()));
         assert!(all.iter().any(|e| e.has_totp) && all.iter().any(|e| e.expired));
         let h = crate::health::report(&v);
         assert!(h.weak >= 1 && h.reused >= 2 && h.expired >= 1);

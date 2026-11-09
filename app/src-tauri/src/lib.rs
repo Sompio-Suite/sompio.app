@@ -739,6 +739,11 @@ pub fn run() {
             vault::vault_autotype_choose,
             vault::vault_autotype_now,
             vault::vault_add_samples,
+            vault::vault_add_attachment,
+            vault::vault_save_attachment,
+            vault::vault_remove_attachment,
+            vault::vault_merge_kdbx,
+            vault::vault_check_leaks,
             samples::samples_write,
             samples::cal_add_samples,
         ])

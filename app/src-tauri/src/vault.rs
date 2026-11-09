@@ -309,6 +309,78 @@ pub async fn vault_export_csv(app: AppHandle, path: String) -> CmdResult<()> {
     with_vault(&app, move |v| Ok(std::fs::write(&path, sompio_vault::csvfile::export(v)?)?)).await
 }
 
+/// Keeps a file inside the entry.
+#[tauri::command]
+pub async fn vault_add_attachment(app: AppHandle, state: State<'_, AppState>, id: String, path: String) -> CmdResult<String> {
+    change(&app, &state, move |v| {
+        let p = Path::new(&path);
+        let name = p.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "file".into());
+        let meta = std::fs::metadata(p)?;
+        if meta.len() as usize > sompio_vault::store::MAX_ATTACHMENT {
+            anyhow::bail!("That file is over 25 MB. Keep big files elsewhere and note where in the entry.");
+        }
+        v.add_attachment(&id, &name, std::fs::read(p)?)?;
+        Ok(name)
+    })
+    .await
+}
+
+/// Saves a kept file back out to disk. Works without a licence.
+#[tauri::command]
+pub async fn vault_save_attachment(app: AppHandle, id: String, name: String, path: String) -> CmdResult<()> {
+    with_vault(&app, move |v| Ok(std::fs::write(&path, &*v.attachment(&id, &name)?)?)).await
+}
+
+#[tauri::command]
+pub async fn vault_remove_attachment(app: AppHandle, id: String, name: String) -> CmdResult<()> {
+    with_vault(&app, move |v| v.remove_attachment(&id, &name)).await
+}
+
+/// Brings in changes from another copy of the vault (or another KeePass file).
+#[tauri::command]
+pub async fn vault_merge_kdbx(app: AppHandle, state: State<'_, AppState>, path: String, password: String, keyfile: Option<String>) -> CmdResult<sompio_vault::store::MergeSummary> {
+    change(&app, &state, move |v| {
+        let bytes = std::fs::read(&path)?;
+        let key = keyfile.map(std::fs::read).transpose()?;
+        v.merge_kdbx(&bytes, &password, key.as_deref())
+    })
+    .await
+}
+
+/// Checks every password against known data breaches (Have I Been Pwned). Only the first 5
+/// characters of each password's hash are sent; the comparison happens on this PC. Runs only
+/// when the person presses the button.
+#[tauri::command]
+pub async fn vault_check_leaks(app: AppHandle) -> CmdResult<Vec<sompio_vault::leaks::Leak>> {
+    use sompio_vault::leaks;
+    let plan = with_vault(&app, |v| Ok(leaks::plan(v).prefixes)).await?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let agent: ureq::Agent = ureq::Agent::config_builder().timeout_global(Some(std::time::Duration::from_secs(20))).build().into();
+        let mut found = Vec::new();
+        for (prefix, hashes) in plan {
+            let body = agent
+                .get(&format!("{}{prefix}", leaks::RANGE_URL))
+                .header("Add-Padding", "true")
+                .header("User-Agent", "Sompio-Vault")
+                .call()
+                .map_err(|e| format!("Couldn't reach the breach check ({e}). Check your internet connection and try again."))?
+                .body_mut()
+                .read_to_string()
+                .map_err(|e| e.to_string())?;
+            for (rest, entries) in hashes {
+                let seen = leaks::count_in(&body, &rest);
+                if seen > 0 {
+                    found.extend(entries.into_iter().map(|entry| leaks::Leak { entry, seen }));
+                }
+            }
+        }
+        found.sort_by(|a, b| b.seen.cmp(&a.seen));
+        Ok(found)
+    })
+    .await
+    .map_err(err)?
+}
+
 /// Adds the "Samples" folder of made-up entries. Delete the folder to remove them.
 #[tauri::command]
 pub async fn vault_add_samples(app: AppHandle) -> CmdResult<String> {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   api, pickOpen, pickSave,
-  type HealthReport, type PassphraseRules, type PasswordRules, type Strength, type VaultSettings,
+  type HealthReport, type VaultLeak, type PassphraseRules, type PasswordRules, type Strength, type VaultSettings,
 } from "../api";
 import Icon from "../Icon";
 import { plural } from "../format";
@@ -111,7 +111,21 @@ const ISSUE_TEXT = {
 
 export function Health({ onOpen }: { onOpen: (id: string) => void }) {
   const [r, setR] = useState<HealthReport | null>(null);
+  const [leaks, setLeaks] = useState<VaultLeak[] | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [leakError, setLeakError] = useState<string | null>(null);
   useEffect(() => { api.vaultHealth().then(setR).catch(() => {}); }, []);
+  const checkLeaks = async () => {
+    setChecking(true);
+    setLeakError(null);
+    try {
+      setLeaks(await api.vaultCheckLeaks());
+    } catch (e) {
+      setLeakError(String(e));
+    } finally {
+      setChecking(false);
+    }
+  };
   if (!r) return <p className="muted">Checking your passwords…</p>;
   const tone = r.score >= 85 ? "ok" : r.score >= 60 ? "mid" : "bad";
   return (
@@ -124,7 +138,35 @@ export function Health({ onOpen }: { onOpen: (id: string) => void }) {
           <div><strong className="num">{r.old}</strong><span>older than a year</span></div>
           <div><strong className="num">{r.expired}</strong><span>expired</span></div>
         </div>
-        <p className="small muted">Checked {plural(r.checked, "password", "passwords")} on this PC. Nothing was sent anywhere. Checking against known leaks comes in a later version.</p>
+        <p className="small muted">Checked {plural(r.checked, "password", "passwords")} on this PC. Nothing was sent anywhere.</p>
+      </section>
+      <section className="panel leak-check">
+        <div>
+          <strong>Have any of your passwords been in a data breach?</strong>
+          <span className="small muted">
+            Sompio asks Have I Been Pwned, the breach list security teams use. Only the first 5 characters of a scrambled
+            fingerprint (SHA-1 hash) of each password are sent; the answer covers hundreds of passwords, and the match happens
+            on this PC. Your passwords never leave it. This is the only part of Vault that goes online, and only when you press the button.
+          </span>
+        </div>
+        <button className={leaks ? "" : "primary"} disabled={checking || r.checked === 0} onClick={checkLeaks}>{checking ? "Checking…" : leaks ? "Check again" : "Check for breaches"}</button>
+        {leakError && <div className="error">{leakError}</div>}
+        {leaks && leaks.length === 0 && <div className="success">None of your passwords show up in known breaches.</div>}
+        {leaks && leaks.length > 0 && (
+          <ul className="health-list">
+            {leaks.map((l) => (
+              <li key={l.entry.id}>
+                <button className="health-row" onClick={() => onOpen(l.entry.id)}>
+                  <Avatar title={l.entry.title} />
+                  <span className="health-name"><strong>{l.entry.title}</strong><span className="small muted">{l.entry.username || l.entry.group_path}</span></span>
+                  <span className="health-issues"><span className="issue issue-weak">Seen {l.seen.toLocaleString()} times in breaches</span></span>
+                  <Icon name="arrow" size={16} />
+                </button>
+              </li>
+            ))}
+            <li className="small muted">Change these first: attackers try breached passwords on every site.</li>
+          </ul>
+        )}
       </section>
       {r.items.length === 0 ? (
         <div className="notice"><Icon name="check" /><div><strong>Nothing to fix.</strong><span>Every password is strong, unique and up to date.</span></div></div>
@@ -180,7 +222,7 @@ function comboFrom(e: React.KeyboardEvent): string | null {
 export function VaultSettingsPanel({ readOnly, onDone }: { readOnly: boolean; onDone: (ok: boolean, text: string) => void }) {
   const [s, setS] = useState<VaultSettings | null>(null);
   const [capturing, setCapturing] = useState(false);
-  const [importing, setImporting] = useState<{ path: string; password: string; keyfile: string | null } | null>(null);
+  const [importing, setImporting] = useState<{ path: string; password: string; keyfile: string | null; merge: boolean } | null>(null);
   const [exporting, setExporting] = useState<{ password: string; again: string } | null>(null);
   const [csvWarn, setCsvWarn] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -247,12 +289,16 @@ export function VaultSettingsPanel({ readOnly, onDone }: { readOnly: boolean; on
       </section>
       <section className="setting">
         <h3>Bring passwords in</h3>
-        <p className="muted">Each import lands in its own folder, so nothing you have is overwritten.</p>
+        <p className="muted">Each import lands in its own folder, so nothing you have is overwritten. To work on your passwords on another PC with KeePassXC, save a KeePass file below, use it there, then "Merge changes from a copy" to bring the changes back.</p>
         <div className="toolbar">
           <button disabled={readOnly || busy} onClick={async () => {
             const p = await pickOpen("Choose a KeePass file", [{ name: "KeePass", extensions: ["kdbx", "kdb"] }], "C:\\Users\\you\\Documents\\Passwords.kdbx");
-            if (p) setImporting({ path: p, password: "", keyfile: null });
+            if (p) setImporting({ path: p, password: "", keyfile: null, merge: false });
           }}><Icon name="key" size={16} />KeePass or KeePassXC file</button>
+          <button disabled={readOnly || busy} title="For a copy of this vault you exported and changed elsewhere" onClick={async () => {
+            const p = await pickOpen("Choose the copy to merge", [{ name: "KeePass", extensions: ["kdbx"] }], "C:\\Users\\you\\Documents\\Sompio passwords.kdbx");
+            if (p) setImporting({ path: p, password: "", keyfile: null, merge: true });
+          }}>Merge changes from a copy</button>
           <button disabled={readOnly || busy} onClick={async () => {
             const p = await pickOpen("Choose a password export", [{ name: "CSV", extensions: ["csv"] }], "C:\\Users\\you\\Downloads\\bitwarden_export.csv");
             if (p) run(async () => { const r = await api.vaultImportCsv(p); return `Brought in ${plural(r.entries, "entry", "entries")}.${r.warnings.length ? ` ${r.warnings.length} rows couldn't be read.` : ""} Delete the CSV file now: it holds your passwords in plain text.`; });
@@ -260,13 +306,27 @@ export function VaultSettingsPanel({ readOnly, onDone }: { readOnly: boolean; on
         </div>
         <p className="small faint">CSV exports from Bitwarden, Chrome, Edge, Brave, Firefox, 1Password, LastPass, Proton Pass, Dashlane and KeePassXC work.</p>
         {importing && (
-          <form className="panel inset-form" onSubmit={(e) => { e.preventDefault(); const im = importing; run(async () => { const r = await api.vaultImportKdbx(im.path, im.password, im.keyfile); setImporting(null); return `Brought in ${plural(r.entries, "entry", "entries")} in ${plural(r.groups + 1, "folder", "folders")}.${r.warnings.length ? " " + r.warnings.join(" ") : ""}`; }); }}>
-            <span className="small">Opening <strong>{importing.path.split(/[\\/]/).pop()}</strong></span>
+          <form className="panel inset-form" onSubmit={(e) => {
+            e.preventDefault();
+            const im = importing;
+            run(async () => {
+              if (im.merge) {
+                const m = await api.vaultMergeKdbx(im.path, im.password, im.keyfile);
+                setImporting(null);
+                const parts = [m.added && `${plural(m.added, "new entry", "new entries")}`, m.updated && `${m.updated} updated`, m.moved && `${m.moved} moved`, m.deleted && `${m.deleted} deleted`].filter(Boolean);
+                return parts.length ? `Merged: ${parts.join(", ")}. Older versions are kept in each entry's history.${m.warnings.length ? " " + m.warnings.join(" ") : ""}` : "Nothing new in that copy.";
+              }
+              const r = await api.vaultImportKdbx(im.path, im.password, im.keyfile);
+              setImporting(null);
+              return `Brought in ${plural(r.entries, "entry", "entries")} in ${plural(r.groups + 1, "folder", "folders")}.${r.warnings.length ? " " + r.warnings.join(" ") : ""}`;
+            });
+          }}>
+            <span className="small">{importing.merge ? "Merging" : "Opening"} <strong>{importing.path.split(/[\\/]/).pop()}</strong>{importing.merge && ". Entries match by their ID; the newer version of each wins."}</span>
             <label className="field"><span>Its password</span><input type="password" autoFocus value={importing.password} onChange={(e) => setImporting({ ...importing, password: e.target.value })} /></label>
             <div className="inline-fields">
               <button type="button" className="small-btn" onClick={async () => { const k = await pickOpen("Choose the key file", [{ name: "Key file", extensions: ["keyx", "key", "*"] }]); if (k) setImporting({ ...importing, keyfile: k }); }}>{importing.keyfile ? "Key file chosen" : "It has a key file too"}</button>
             </div>
-            <div className="toolbar"><button className="primary" disabled={busy}>{busy ? "Opening…" : "Bring in"}</button><button type="button" className="quiet" onClick={() => setImporting(null)}>Cancel</button></div>
+            <div className="toolbar"><button className="primary" disabled={busy}>{busy ? "Opening…" : importing.merge ? "Merge" : "Bring in"}</button><button type="button" className="quiet" onClick={() => setImporting(null)}>Cancel</button></div>
           </form>
         )}
       </section>

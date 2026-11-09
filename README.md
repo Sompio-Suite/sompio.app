@@ -55,8 +55,23 @@ Round 1 (built):
   {TOTP}, {S:Field}, {DELAY n}, {TAB n}, ^a…). "Type it" on an entry types into the window behind Sompio.
 - Reading, copying, typing, deleting and exporting keep working when a key runs out; adding and changing need one.
 
-Round 2: browser fill (aiming for the KeePassXC-Browser extension's protocol), attachments, merging databases,
-YubiKey challenge-response, leaked-password checks. Round 3: SSH agent, passkeys, Windows Hello quick unlock.
+Round 2 (built so far):
+- Files inside entries (up to 25 MB each), kept in the KeePass file, so KeePassXC sees them too.
+- Merge changes from a copy: export, use it in KeePassXC elsewhere, merge back. Entries match by ID, the newer
+  version wins and the older goes into history (checked with real KeePassXC edits).
+- Breach check: Have I Been Pwned's range search. Only 5 characters of each password's SHA-1 are sent, only when
+  the person presses the button.
+
+Still to come in round 2: browser fill (aiming for the KeePassXC-Browser extension's protocol) and YubiKey.
+Round 3: SSH agent, passkeys, Windows Hello quick unlock.
+
+## Samples
+
+The Samples page (sidebar) has made-up data for every function: Clean's sample data, sample exports for all
+12 import types plus a folder for the PC scan, Calendar reminders that pop up within a minute plus a shared
+schedule and a Desk Reminders folder, Vault entries covering every feature plus KeePass files (one needs a key
+file; password `sample-password`), five CSV formats and a local login page for auto-type. Files are written to
+Documents\Sompio samples. Every sample is covered by a test that imports it.
 
 Code: `vault/` (store, generator, health, CSV, auto-type parsing and matching; all tested) and
 `app/src-tauri/src/vault.rs` (commands, clipboard, global shortcut, keystrokes).

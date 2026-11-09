@@ -133,7 +133,10 @@ export interface AutoTypeSettings { enabled: boolean; sequence: string; windows:
 export interface VaultHistory { index: number; modified: string | null; title: string; username: string; password_changed: boolean }
 export interface VaultEntryDetail extends VaultEntry {
   notes: string; custom: VaultField[]; autotype: AutoTypeSettings; created: string | null; password_modified: string | null; history: VaultHistory[];
+  attachments: { name: string; size: number }[];
 }
+export interface VaultMerge { added: number; updated: number; moved: number; deleted: number; warnings: string[] }
+export interface VaultLeak { entry: VaultEntry; seen: number }
 export interface VaultEntryInput {
   group_id: string | null; title: string; username: string; password: string | null; url: string; notes: string; tags: string[];
   expires: string | null; custom: { key: string; value: string | null; protected: boolean }[]; otp: string | null; autotype: AutoTypeSettings | null;
@@ -284,6 +287,11 @@ export const api = {
   vaultAutotypeChoose: (id: string, sequence: string | null) => call<void>("vault_autotype_choose", { id, sequence }),
   vaultAutotypeNow: (id: string) => call<void>("vault_autotype_now", { id }),
   vaultAddSamples: () => call<string>("vault_add_samples"),
+  vaultAddAttachment: (id: string, path: string) => call<string>("vault_add_attachment", { id, path }),
+  vaultSaveAttachment: (id: string, name: string, path: string) => call<void>("vault_save_attachment", { id, name, path }),
+  vaultRemoveAttachment: (id: string, name: string) => call<void>("vault_remove_attachment", { id, name }),
+  vaultMergeKdbx: (path: string, password: string, keyfile: string | null) => call<VaultMerge>("vault_merge_kdbx", { path, password, keyfile }),
+  vaultCheckLeaks: () => call<VaultLeak[]>("vault_check_leaks"),
   calAddSamples: () => call<number>("cal_add_samples"),
   samplesWrite: (which: "clean" | "calendar" | "vault") => call<{ folder: string; files: [string, string][] }>("samples_write", { which }),
 };
