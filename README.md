@@ -7,7 +7,7 @@ Private tools that keep your data on your PC, unlocked with a key instead of an 
 | **Clean** | Built: finds and cleans up personal information in your exports and files (below) |
 | **Calendar** | Built: Desk Reminders rebuilt, encrypted, with privacy routines (below) |
 | **Vault** | Built (round 1 of 3): KeePass-compatible password manager with auto-type (below) |
-| **Voice** | Next: TeamSpeak-style self-hosted voice server with channels, end-to-end encrypted |
+| **Voice** | Built (round 1): self-hosted voice server with channels, like TeamSpeak (below) |
 
 The plan lives in the "Sompio Suite plan" doc.
 
@@ -64,6 +64,29 @@ Round 2 (built so far):
 
 Still to come in round 2: browser fill (aiming for the KeePassXC-Browser extension's protocol) and YubiKey.
 Round 3: SSH agent, passkeys, Windows Hello quick unlock.
+
+## Sompio Voice
+
+Self-hosted voice and chat with channels, like TeamSpeak (`voice/`).
+
+- **Server** (`sompio-voice-server`, also hostable from the app): channel tree with sub-channels, channel
+  passwords and user limits, temporary channels (close when empty) and lasting ones, server password, roles
+  (admin, moderator, member) given with one-time admin keys like TeamSpeak's privilege keys, move, kick from
+  channel or server, ban, poke, channel/server/private chat, server name and welcome. Kept in one JSON file.
+  Linux: `voice/linux/install.sh` installs it as a systemd service (Debian 12 / Ubuntu 22.04 or newer).
+- **Connecting**: by IP or domain (an A record), default UDP port 9987. QUIC with TLS 1.3; the server's
+  self-signed certificate is pinned the first time (people compare the fingerprint the server prints), and a
+  changed one is refused with a warning. Each person has a separate identity key per server, derived from their
+  lock, so servers can't link them.
+- **Audio**: in the window with WebCodecs: Opus at 48 kHz in 20 ms frames (~50 kbit/s), with the browser
+  engine's echo cancellation, noise suppression and gain control; voice activation with a level meter, or
+  push-to-talk on a global key (works while a game has focus); per-person volume; a small jitter buffer.
+- Joining servers is free; hosting from the app needs Voice on the key.
+
+The server stores only channels, roles and bans: no chat history and no recordings.
+
+Not yet: end-to-end encryption (today the server relays audio and chat, encrypted to and from it, so whoever runs
+the server could in principle listen in, as with TeamSpeak), file transfer, and per-channel codec settings.
 
 ## YubiKey
 
@@ -288,6 +311,8 @@ lock/              The Sompio Lock: Argon2id, key wrapping, the key picture, rec
 suite/             Glue for the app: setup, unlock, recovery, each app's database key.
 calendar/          Sompio Calendar: the Desk Reminders format, the reminder engine, the encrypted store.
 vault/             Sompio Vault: KeePass files, generator, health check, CSV, auto-type sequences.
+voice/             Sompio Voice: the server, the client connection, the protocol; linux/ has the installer.
+hwkey/             YubiKey challenge-response over HID.
 vendor/            libsqlite3-sys with SQLite3 Multiple Ciphers in place of plain SQLite.
 app/
   src-tauri/         the desktop shell: passes UI requests to the libraries, nothing else

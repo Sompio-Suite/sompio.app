@@ -249,6 +249,18 @@ impl Vault {
         Ok((self.vault_db_path(), vault.derive("vault.kdbx")))
     }
 
+    /// Voice: the master identity (each server gets its own key made from it), and the key
+    /// and path for saved servers. Fails while Sompio is locked.
+    pub fn voice_keys(&self) -> Result<(Zeroizing<[u8; 32]>, Zeroizing<[u8; 32]>, PathBuf)> {
+        let guard = self.key.lock().map_err(|_| anyhow!("lock state unavailable"))?;
+        let vault = guard.as_ref().ok_or_else(|| anyhow!("Sompio is locked. Unlock it to continue."))?;
+        Ok((vault.derive("voice.identity"), vault.derive("voice.json"), self.dir.join("voice.dat")))
+    }
+
+    pub fn data_dir(&self) -> PathBuf {
+        self.dir.clone()
+    }
+
     pub fn calendar_db_path(&self) -> PathBuf {
         self.dir.join("calendar.db")
     }

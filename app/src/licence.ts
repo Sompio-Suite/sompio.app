@@ -54,14 +54,8 @@ export const SUITE: SuiteApp[] = [
     key: "voice",
     name: "Voice",
     icon: "mic",
-    line: "Voice rooms for your group, end-to-end encrypted. No ID, no phone number.",
-    ready: false,
-    when: "Coming later",
-    plans: [
-      "TeamSpeak-style rooms with low delay, built for gaming groups",
-      "End-to-end encrypted: the server passes voice along without hearing it",
-      "Run your own server, or use a room hosted by us",
-      "No ID, face scan or phone number to join",
-    ],
+    line: "Voice and chat on your own server, with channels like TeamSpeak. No ID, no phone number.",
+    ready: true,
+    plans: [],
   },
 ];

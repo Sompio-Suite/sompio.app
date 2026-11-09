@@ -119,9 +119,15 @@ export default function Samples({ cleanHasData, onCleanDemo, onGo }: Props) {
         {fileList("vault")}
       </section>
 
-      <section className="panel sample-card muted-card">
+      <section className="panel sample-card">
         <header><Icon name="mic" /><h2>Voice</h2></header>
-        <p className="small muted">A test server you can join comes with Voice.</p>
+        <div className="sample-row">
+          <div>
+            <strong>A test server on this PC</strong>
+            <span className="small muted">On the Voice page, "Start a server", then "Join it", and use the admin key it shows to try channels, passwords, roles, kick and ban. To hear each other, a second PC on your network joins the address it shows.</span>
+          </div>
+          <button onClick={() => onGo("voice")}>Open Voice</button>
+        </div>
       </section>
     </div>
   );

@@ -875,3 +875,72 @@ input.shortcut-input { width: 13rem; text-align: center; cursor: pointer; }
 .key-list .grow { flex: 1; display: grid; }
 .help-steps { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.3rem; }
 .lock-step .segmented { justify-self: start; width: auto; }
+
+/* ---------- Voice ---------- */
+.voice-page { gap: 1.25rem; max-width: 1400px; }
+.voice-lobby { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1rem; align-items: start; }
+.voice-card { padding: 1.25rem 1.4rem; display: grid; gap: 0.9rem; }
+.voice-card h2 { font-size: 1.15rem; }
+.voice-card h3 { margin-top: 0.4rem; }
+.bookmarks { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
+.bookmarks li { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.7rem; border-radius: var(--r-m); background: var(--sunken); }
+.bookmarks .grow { flex: 1; display: grid; min-width: 0; }
+.voice-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.voice-title { display: grid; gap: 0.15rem; }
+.voice-title h1 { font-size: 1.6rem; }
+.mic-light { width: 54px; height: 8px; border-radius: 4px; background: var(--sunken); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
+.mic-light span { display: block; height: 100%; background: var(--ink-3); transition: width 60ms linear; }
+.mic-light.on span { background: var(--ok); }
+.voice-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 1rem; }
+@media (max-width: 1000px) { .voice-layout { grid-template-columns: 1fr; } }
+.channel-tree { padding: 0.6rem 0.4rem; overflow: auto; min-height: 0; }
+.channel-tree ul { list-style: none; margin: 0; padding: 0; }
+.chan { display: flex; align-items: center; gap: 0.45rem; padding: 0.4rem 0.5rem; border-radius: var(--r-s); cursor: default; user-select: none; font-weight: 600; color: var(--ink-2); }
+.chan:hover { background: var(--sunken); }
+.chan.here { color: var(--ink); }
+.chan.here .chan-name::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 0.45rem; vertical-align: middle; }
+.chan-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chan-actions { margin-left: auto; display: flex; gap: 0.1rem; opacity: 0; }
+.chan:hover .chan-actions, .chan:focus-within .chan-actions { opacity: 1; }
+.people { margin: 0 0 0.2rem; }
+.person { display: flex; align-items: center; gap: 0.5rem; padding: 0.22rem 0.5rem; font-size: var(--t-s); border-radius: var(--r-s); }
+.person:hover { background: var(--sunken); }
+.talk-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line-strong); flex: none; transition: background 80ms, box-shadow 80ms; }
+.person.talking .talk-dot { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 30%, transparent); }
+.person-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person-menu { margin-left: auto; opacity: 0; }
+.person:hover .person-menu, .person:focus-within .person-menu { opacity: 1; }
+.flag.role-admin { color: var(--accent-text); }
+.flag.role-moderator { color: var(--ice); }
+.menu-slider { display: grid; gap: 0.2rem; padding: 0.4rem 0.7rem; }
+.menu-slider input { width: 100%; }
+.menu-note { padding: 0.35rem 0.7rem 0.2rem; border-top: 1px solid var(--line); margin-top: 0.2rem; }
+.tree-hint { padding: 0.6rem 0.6rem 0; }
+.chan-edit { margin: 0.3rem 0; }
+.chat { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.chat-tabs { display: flex; gap: 0.2rem; padding: 0.5rem 0.5rem 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.chat-tabs button { border: 0; border-radius: var(--r-s) var(--r-s) 0 0; background: none; padding: 0.45rem 0.8rem; font-weight: 600; color: var(--ink-2); }
+.chat-tabs button[aria-selected="true"] { background: var(--sunken); color: var(--ink); }
+.chat-tab-private { display: flex; align-items: center; }
+.chat-tab-private .quiet { padding: 0.2rem 0.4rem; }
+.chat-topic { padding: 0.5rem 0.9rem; border-bottom: 1px solid var(--line); }
+.chat-lines { flex: 1; overflow: auto; padding: 0.7rem 0.9rem; display: grid; align-content: start; gap: 0.35rem; }
+.chat-lines .line { display: flex; flex-direction: row; gap: 0.6rem; align-items: baseline; font-size: var(--t-s); line-height: 1.45; padding: 0; border: 0; background: none; }
+.chat-lines .line strong { flex: none; }
+.chat-lines .line.system { color: var(--ink-3); }
+.chat-lines .line.error { color: var(--risk-high); }
+.chat-lines .line.poke { color: var(--accent-text); }
+.chat-input { display: flex; gap: 0.5rem; padding: 0.7rem; border-top: 1px solid var(--line); }
+.chat-input input { flex: 1; }
+.level-meter { position: relative; height: 10px; border-radius: 5px; background: var(--sunken); overflow: hidden; }
+.level-meter .level { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ok); transition: width 60ms linear; }
+.level-meter .mark { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--accent); }
+.fingerprint { font-size: 1.15rem; letter-spacing: 0.05em; background: var(--sunken); padding: 0.8rem 1rem; border-radius: var(--r-m); text-align: center; color: var(--ice); }
+.voice-card .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; }
+.voice-card .field-row .field { min-width: 0; width: auto; }
+.voice-card input { min-width: 0; }
+.bookmarks li { flex-wrap: wrap; }
+input[type="number"] {
+  font: inherit; font-size: var(--t-m); color: inherit; background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--r-s); padding: 0.55rem 0.75rem; width: 100%; font-variant-numeric: tabular-nums;
+}

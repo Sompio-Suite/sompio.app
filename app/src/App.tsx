@@ -10,12 +10,12 @@ import Settings from "./views/Settings";
 import Sources from "./views/Sources";
 import Overview from "./views/Overview";
 import Licences from "./views/Licences";
-import Upcoming from "./views/Upcoming";
 import LockScreen from "./views/LockScreen";
 import Security from "./views/Security";
 import Calendar from "./views/Calendar";
 import Vault from "./views/Vault";
 import Samples from "./views/Samples";
+import Voice from "./views/Voice";
 import { SUITE, accessText } from "./licence";
 import { autoCheckEnabled, checkForUpdate, dueForCheck, type UpdateInfo } from "./updates";
 
@@ -152,6 +152,7 @@ export default function App() {
   const cleanAccess = licence?.apps.find((a) => a.app === "clean");
   const cleanLocked = licence != null && !cleanAccess?.active;
   const inClean = CLEAN_VIEWS.includes(view);
+  const voiceLocked = licence != null && !licence.apps.find((a) => a.app === "voice")?.active;
   const vaultLocked = licence != null && !licence.apps.find((a) => a.app === "vault")?.active;
   const calendarLocked = licence != null && !licence.apps.find((a) => a.app === "calendar")?.active;
 
@@ -223,6 +224,7 @@ export default function App() {
         {navButton("home", "Clean", "review", cleanLocked ? <Icon name="lock" size={14} /> : toReview > 0 && !inClean ? <span className="count" aria-label={`${toReview} to review`}>{n(toReview)}</span> : undefined)}
         {navButton("calendar", "Calendar", "calendar", calendarLocked ? <Icon name="lock" size={14} /> : undefined)}
         {navButton("vault", "Vault", "key", vaultLocked ? <Icon name="lock" size={14} /> : undefined)}
+        {navButton("voice", "Voice", "mic")}
         {SUITE.filter((a) => !a.ready).map((a) => navButton(a.key as View, a.name, a.icon, <span className="soon-dot" title={a.when} />))}
         <div className="rail-spacer" />
         {navButton("samples", "Samples", "sparkle")}
@@ -314,7 +316,7 @@ export default function App() {
             onGo={setView}
           />
         )}
-        {view === "voice" && <Upcoming app={SUITE.find((a) => a.key === view)!} />}
+        {view === "voice" && <Voice canHost={!voiceLocked} onAddKey={() => setView("licences")} />}
         {inClean && cleanPage()}
       </main>
     </div>

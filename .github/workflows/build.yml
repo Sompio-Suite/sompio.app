@@ -25,6 +25,7 @@ jobs:
             calendar -> target
             vault -> target
             hwkey -> target
+            voice -> target
             connect -> target
       - name: Run engine tests
         working-directory: clean
@@ -46,6 +47,9 @@ jobs:
         run: cargo test
       - name: Run YubiKey protocol tests
         working-directory: hwkey
+        run: cargo test
+      - name: Run voice server tests
+        working-directory: voice
         run: cargo test
       - name: Run vault tests
         working-directory: vault
