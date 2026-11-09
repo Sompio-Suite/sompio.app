@@ -25,6 +25,13 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: app/src-tauri -> target
+      - name: Check the licence key is yours
+        shell: bash
+        run: |
+          if grep -q "2b51fbc64627099647befc32bd63bddd1d74be5de905d795b4c95e5d784777f3" licence/public.key; then
+            echo "::error::licence/public.key is still the development key, so this build would refuse every key you make. Run Build Sompio.bat once on your PC, then commit and push licence/public.key."
+            exit 1
+          fi
       - name: Install interface packages
         working-directory: app
         run: npm ci

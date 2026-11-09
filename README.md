@@ -31,6 +31,20 @@ a chosen idle time. Nobody, including us, can reset a lost password together wit
 Not yet: YubiKey as the second key, Windows Hello for quick unlock, and the Telegram and email credentials still
 live in Windows Credential Manager rather than under the lock.
 
+## Releasing to customers
+
+Customers never build anything. They download `Sompio_<version>_x64-setup.exe` from a GitHub Release (linked from
+the website) and run it. GitHub builds that file on its own Windows machines:
+
+1. Once: run `Build Sompio.bat` on your PC, so `licence/public.key` holds the public half of your signing key.
+   Commit and push that file. It's public by design; the signing key itself stays in `%APPDATA%\Sompio Key Maker`.
+2. Each version: raise `"version"` in `app/src-tauri/tauri.conf.json`, push, then on GitHub open
+   **Actions › Release › Run workflow**. About 15 minutes later a draft release appears under **Releases** with the
+   installer attached. Download it, test it, then press **Publish**.
+
+The release workflow refuses to build while `public.key` is still the development key, because that build would
+reject every key you make.
+
 ## Licence keys
 
 A key holds which apps it unlocks, for how many days, the day it was made and a random serial, signed with
