@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  api, pickOpen, pickSave,
+  api, listen, pickOpen, pickSave,
   type HealthReport, type VaultLeak, type PassphraseRules, type PasswordRules, type Strength, type VaultSettings,
 } from "../api";
 import Icon from "../Icon";
 import { plural } from "../format";
+import { reloadIcons, useIcon } from "../vaultIcons";
 
 export function StrengthMeter({ s }: { s: Strength | null }) {
   if (!s) return null;
@@ -157,7 +158,7 @@ export function Health({ onOpen }: { onOpen: (id: string) => void }) {
             {leaks.map((l) => (
               <li key={l.entry.id}>
                 <button className="health-row" onClick={() => onOpen(l.entry.id)}>
-                  <Avatar title={l.entry.title} />
+                  <Avatar title={l.entry.title} icon={l.entry.icon} />
                   <span className="health-name"><strong>{l.entry.title}</strong><span className="small muted">{l.entry.username || l.entry.group_path}</span></span>
                   <span className="health-issues"><span className="issue issue-weak">Seen {l.seen.toLocaleString()} times in breaches</span></span>
                   <Icon name="arrow" size={16} />
@@ -175,7 +176,7 @@ export function Health({ onOpen }: { onOpen: (id: string) => void }) {
           {r.items.map((it) => (
             <li key={it.entry.id}>
               <button className="health-row" onClick={() => onOpen(it.entry.id)}>
-                <Avatar title={it.entry.title} />
+                <Avatar title={it.entry.title} icon={it.entry.icon} />
                 <span className="health-name"><strong>{it.entry.title}</strong><span className="small muted">{it.entry.username || it.entry.group_path}</span></span>
                 <span className="health-issues">
                   {it.issues.map((x, i) => (
@@ -196,15 +197,14 @@ export function Health({ onOpen }: { onOpen: (id: string) => void }) {
   );
 }
 
-/** A letter on a colour from the title, standing in for a site icon (no icon downloads). */
-export function Avatar({ title, big = false }: { title: string; big?: boolean }) {
-  const hues = [210, 150, 265, 25, 185, 330, 45, 0];
-  let h = 0;
-  for (const c of title.toLowerCase()) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  const hue = hues[h % hues.length];
-  return (
-    <span className={`avatar${big ? " big" : ""}`} style={{ background: `hsl(${hue} 45% 30%)`, color: `hsl(${hue} 70% 85%)` }} aria-hidden>
-      {(title.trim()[0] ?? "?").toUpperCase()}
+/** The entry's website icon, or a key when it has none. */
+export function Avatar({ title, icon = null, big = false }: { title: string; icon?: string | null; big?: boolean }) {
+  const src = useIcon(icon);
+  return src ? (
+    <img className={`avatar img${big ? " big" : ""}`} src={src} alt="" aria-hidden title={title} />
+  ) : (
+    <span className={`avatar none${big ? " big" : ""}`} aria-hidden title={title}>
+      <Icon name="key" size={big ? 20 : 13} />
     </span>
   );
 }
@@ -226,6 +226,7 @@ export function VaultSettingsPanel({ readOnly, onDone }: { readOnly: boolean; on
   const [exporting, setExporting] = useState<{ password: string; again: string } | null>(null);
   const [csvWarn, setCsvWarn] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [iconProgress, setIconProgress] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => { api.vaultSettings().then(setS).catch(() => {}); }, []);
   if (!s) return null;
@@ -276,6 +277,29 @@ export function VaultSettingsPanel({ readOnly, onDone }: { readOnly: boolean; on
           {s.shortcut && <button className="small-btn ghost" onClick={() => save({ ...s, shortcut: "" })}>Turn off</button>}
         </div>
         <label className="check"><input type="checkbox" checked={s.lock_after_type} onChange={(e) => save({ ...s, lock_after_type: e.target.checked })} /><span>Lock Sompio after auto-typing</span></label>
+      </section>
+      <section className="setting">
+        <h3>Website icons</h3>
+        <label className="check">
+          <input type="checkbox" checked={s.auto_icons} onChange={(e) => save({ ...s, auto_icons: e.target.checked })} />
+          <span>
+            Get an entry's icon from its website when you save it
+            <small className="muted"> Sompio asks only the entry's own website, like opening it in a browser. No icon service in between, and nothing about you or your passwords is sent.</small>
+          </span>
+        </label>
+        <div className="toolbar">
+          <button disabled={readOnly || busy} onClick={() => run(async () => {
+            const un = await listen<[number, number]>("vault-icons-progress", ([d, t]) => setIconProgress(t ? `${d} of ${t}` : null));
+            try {
+              const [found, total] = await api.vaultFetchAllIcons();
+              await reloadIcons();
+              return total === 0 ? "Every entry with a website already has an icon." : found === total ? `Found icons for all ${total} entries.` : `Found icons for ${found} of ${total} entries. For the others, open the entry, click Icon, and give another address or a picture.`;
+            } finally {
+              un();
+              setIconProgress(null);
+            }
+          })}>Get icons for all entries{iconProgress ? ` (${iconProgress})` : ""}</button>
+        </div>
       </section>
       <section className="setting">
         <h3>Copying</h3>

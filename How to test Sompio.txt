@@ -1,13 +1,13 @@
 HOW TO TEST SOMPIO
 ==================
 
-Thank you for testing! This is a test version of Sompio 0.7.0 for Windows 10 and 11.
+Thank you for testing! This is a test version of Sompio 0.7.1 for Windows 10 and 11.
 Everything you put in it stays on your PC. Nothing is sent to us, and there's no account.
 
 
 1. INSTALLING
 -------------
-Run Sompio_0.7.0_x64-setup.exe.
+Run Sompio_0.7.1_x64-setup.exe.
 
 Windows will probably show a blue "Windows protected your PC" box. That's because this test
 version isn't signed with a Microsoft certificate yet (the real release will be). To go on:
@@ -28,9 +28,9 @@ in the menu has made-up data for everything (see step 2).
 2. THE SAMPLES PAGE
 -------------------
 Open "Samples" in the menu on the left. It has:
+  - Calendar: sample reminders (the first pop-up comes within a minute), plus sample files.
   - Clean: open Clean with ready-made sample data, or save sample exports from Discord,
     Reddit, Telegram, X, Facebook, Instagram, TikTok, Snapchat, LinkedIn, WhatsApp and Gmail.
-  - Calendar: sample reminders (the first pop-up comes within a minute), plus sample files.
   - Vault: sample entries (2FA codes, weak and reused passwords, auto-type tests), plus KeePass
     files and CSV exports to import. The KeePass sample password is: sample-password
 Sample files are saved to Documents\Sompio samples, and that folder opens for you.
@@ -43,6 +43,13 @@ Lock
   - Try a wrong password, and unlocking with the recovery code.
   - If you have a YubiKey: Security, "Add a YubiKey", then unlock with it.
 
+Calendar
+  - Add sample reminders and wait for the pop-ups. Do they show up on time, without taking
+    over what you're typing?
+  - Close the window: Sompio keeps running in the tray, and reminders keep coming, even when
+    it's locked.
+  - Make your own reminders, edit them, import the sample schedule files.
+
 Clean
   - Open it with sample data. Findings shows everything found in one list: bank accounts,
     card numbers, passwords, addresses, phone numbers and more. Pick a type on the left,
@@ -52,13 +59,6 @@ Clean
     "Sample PC folder".
   - Add a watch term (in the sample, try "Sam Rivers"), mark things, delete things.
 
-Calendar
-  - Add sample reminders and wait for the pop-ups. Do they show up on time, without taking
-    over what you're typing?
-  - Close the window: Sompio keeps running in the tray, and reminders keep coming, even when
-    it's locked.
-  - Make your own reminders, edit them, import the sample schedule files.
-
 Vault
   - Add sample entries. It works like KeePassXC: folders on the left, entries in a table you
     can sort by clicking the column names, the selected entry underneath.
@@ -66,6 +66,10 @@ Vault
     2FA code, Ctrl+U opens the website, Ctrl+Shift+V types it, Ctrl+K clones, Ctrl+E edits,
     Ctrl+F searches, Delete deletes. Drag an entry onto a folder to move it.
   - The clipboard clears itself after a copy.
+  - Website icons: when you save an entry with a website, Sompio gets the site's icon. If it
+    can't, the entry shows a key. Click "Icon" on an entry to get it from another address
+    (like blizzard.com for Battle.net), or choose a picture file. "Get icons for all entries"
+    is under "Auto-type, import and export".
   - Health check, password generator, earlier versions of an entry, attachments.
   - Auto-type: open Notepad and press Ctrl+Alt+A. Sompio picks the "Notepad" sample entry
     and types it in. The test login page in the sample files works the same way. (The shortcut

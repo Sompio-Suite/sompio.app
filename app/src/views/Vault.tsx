@@ -3,6 +3,7 @@ import { api, listen, openLink, pickOpen, pickSave, type Totp, type VaultEntry, 
 import Icon from "../Icon";
 import { dateTime, plural } from "../format";
 import VaultEntryDialog from "./VaultEntryDialog";
+import { reloadIcons } from "../vaultIcons";
 import { Avatar, Generator, Health, VaultSettingsPanel } from "./VaultTools";
 
 type Tab = "passwords" | "health" | "generator" | "settings";
@@ -29,7 +30,7 @@ export default function Vault({ readOnly, onAddKey }: Props) {
 
   const load = useCallback(async () => {
     try {
-      const [g, e] = await Promise.all([api.vaultGroups(), api.vaultEntries(group, search)]);
+      const [g, e] = await Promise.all([api.vaultGroups(), api.vaultEntries(group, search), reloadIcons()]);
       setGroups(g);
       setEntries(e);
     } catch (e) {
@@ -258,7 +259,7 @@ export default function Vault({ readOnly, onAddKey }: Props) {
                         onClick={() => setSelected(e.id)}
                         onDoubleClick={() => run(async () => copied(await api.vaultCopy(e.id, "Password"), "Password copied"))}
                       >
-                        <span className="c-title"><Avatar title={e.title} />{e.title}{e.has_totp && <span className="flag" title="Has 2FA codes">2FA</span>}{e.expired && <span className="flag bad">Expired</span>}</span>
+                        <span className="c-title"><Avatar title={e.title} icon={e.icon} />{e.title}{e.has_totp && <span className="flag" title="Has 2FA codes">2FA</span>}{e.expired && <span className="flag bad">Expired</span>}</span>
                         <span>{e.username}</span>
                         <span className="faint">{e.has_password ? "••••••••" : ""}</span>
                         <span className="faint">{e.url.replace(/^https?:\/\/(www\.)?/, "")}</span>
@@ -307,7 +308,22 @@ export default function Vault({ readOnly, onAddKey }: Props) {
           editing={editing === "new" ? null : editing}
           group={group}
           onClose={() => setEditing(null)}
-          onSaved={(id) => { setEditing(null); setSelected(id); setToast({ ok: true, text: "Saved." }); load(); api.vaultEntry(id).then(setDetail).catch(() => {}); }}
+          onSaved={async (id) => {
+            setEditing(null);
+            setSelected(id);
+            setToast({ ok: true, text: "Saved." });
+            await load();
+            const d = await api.vaultEntry(id).catch(() => null);
+            setDetail(d);
+            // A new website, or no icon yet: get it from the site, quietly, if that's switched on
+            const urlChanged = editing !== "new" && editing !== null && d && editing.url !== d.url;
+            if (d && d.url && (!d.icon || urlChanged)) {
+              const s = await api.vaultSettings().catch(() => null);
+              if (s?.auto_icons) {
+                api.vaultFetchIcon(id, null).then(() => load()).catch(() => {});
+              }
+            }
+          }}
         />
       )}
       {toast && <div className={`toast${toast.ok ? "" : " bad"}`} role="status">{toast.text}</div>}
@@ -340,6 +356,45 @@ function FolderMenu({ g, readOnly, onRename, onDelete }: { g: VaultGroup; readOn
         <div className="menu" role="menu" onMouseLeave={() => setOpen(false)}>
           <button role="menuitem" onClick={() => { setOpen(false); setName(g.name); }}>Rename</button>
           <button role="menuitem" onClick={() => { setOpen(false); onDelete(); }}>Move to the recycle bin</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Get the entry's icon from its website, another address (or a picture's own address), or a file. */
+function IconMenu({ d, run }: { d: VaultEntryDetail; run: (f: () => Promise<unknown>, ok?: string) => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [address, setAddress] = useState("");
+  const [busy, setBusy] = useState(false);
+  const go = async (f: () => Promise<unknown>, ok: string) => {
+    setBusy(true);
+    await run(f, ok);
+    setBusy(false);
+    setOpen(false);
+    setAddress("");
+  };
+  const site = d.url.replace(/^https?:\/\//, "").split("/")[0];
+  return (
+    <div className="menu-wrap icon-menu">
+      <button className="small-btn" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(!open)}>{busy ? "Getting the icon…" : "Icon ▾"}</button>
+      {open && (
+        <div className="menu icon-panel" role="dialog" aria-label="Entry icon">
+          <button disabled={busy || !d.url} onClick={() => go(() => api.vaultFetchIcon(d.id, null), "Icon added from the website.")}>
+            <Icon name="refresh" size={16} />{d.url ? `Get it from ${site}` : "No website on this entry"}
+          </button>
+          <form onSubmit={(e) => { e.preventDefault(); if (address.trim()) go(() => api.vaultFetchIcon(d.id, address.trim()), "Icon added."); }}>
+            <span className="small muted">From another website, or a picture's own address</span>
+            <div className="row">
+              <input type="text" placeholder="blizzard.com or https://…/icon.png" value={address} onChange={(e) => setAddress(e.target.value)} />
+              <button disabled={busy || !address.trim()}>Get</button>
+            </div>
+          </form>
+          <button disabled={busy} onClick={async () => {
+            const p = await pickOpen("Choose a picture for this entry", [{ name: "Picture", extensions: ["png", "ico", "jpg", "jpeg", "gif", "webp", "bmp"] }], "C:\\Users\\you\\Pictures\\icon.png");
+            if (p) go(() => api.vaultIconFromFile(d.id, p), "Icon added.");
+          }}><Icon name="folder" size={16} />Choose a picture file…</button>
+          {d.icon && <button className="danger" disabled={busy} onClick={() => go(() => api.vaultRemoveIcon(d.id), "Icon removed.")}><Icon name="trash" size={16} />Remove the icon</button>}
         </div>
       )}
     </div>
@@ -401,11 +456,12 @@ function EntryView({ d, groups, readOnly, onCopied, onError, onEdit, run, onGone
   return (
     <div className="entry-view">
       <header className="entry-head">
-        <Avatar title={d.title} big />
+        <Avatar title={d.title} icon={d.icon} big />
         <div>
           <h2>{d.title}</h2>
           <span className="small muted">{d.in_recycle_bin ? "In the recycle bin" : d.group_path || "Top folder"}</span>
         </div>
+        {!readOnly && !d.in_recycle_bin && <IconMenu d={d} run={run} />}
       </header>
       {d.expired && <div className="notice warn"><Icon name="clock" /><div><strong>This password has expired.</strong><span>Change it on the site, then save the new one here.</span></div></div>}
 

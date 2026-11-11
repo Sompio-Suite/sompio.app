@@ -27,18 +27,18 @@ export interface SuiteApp {
 
 export const SUITE: SuiteApp[] = [
   {
-    key: "clean",
-    name: "Clean",
-    icon: "review",
-    line: "Find personal details in your chats, posts, sent mail and files, and clean them up.",
-    ready: true,
-    plans: [],
-  },
-  {
     key: "calendar",
     name: "Calendar",
     icon: "calendar",
     line: "Your schedule and reminders, with regular privacy check-ups. Opens your Desk Reminders schedule as it is.",
+    ready: true,
+    plans: [],
+  },
+  {
+    key: "clean",
+    name: "Clean",
+    icon: "review",
+    line: "Find personal details in your chats, posts, sent mail and files, and clean them up.",
     ready: true,
     plans: [],
   },

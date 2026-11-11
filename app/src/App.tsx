@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, listen, type KindKey, type LicenceStatus, type LockStatus, type ScanSummary } from "./api";
 import { n } from "./format";
 import Icon, { type IconName } from "./Icon";
+import Logo from "./Logo";
 import Welcome from "./views/Welcome";
 import Home from "./views/Home";
 import Review from "./views/Review";
@@ -212,15 +213,12 @@ export default function App() {
     <div className="shell">
       <nav className="rail" aria-label="Sections">
         <div className="brand">
-          <svg className="brand-mark" viewBox="0 0 120 120" aria-hidden>
-            <path className="sun-top" d="M14 56 A36 36 0 0 1 86 56 Z" />
-            <path className="sun-bottom" d="M34 64 A36 36 0 0 0 106 64 Z" />
-          </svg>
+          <Logo size={28} />
           <span className="brand-name">sompio</span>
         </div>
         {navButton("overview", "Overview", "grid")}
-        {navButton("home", "Clean", "review", cleanLocked ? <Icon name="lock" size={14} /> : toReview > 0 && !inClean ? <span className="count" aria-label={`${toReview} to review`}>{n(toReview)}</span> : undefined)}
         {navButton("calendar", "Calendar", "calendar", calendarLocked ? <Icon name="lock" size={14} /> : undefined)}
+        {navButton("home", "Clean", "review", cleanLocked ? <Icon name="lock" size={14} /> : toReview > 0 && !inClean ? <span className="count" aria-label={`${toReview} to review`}>{n(toReview)}</span> : undefined)}
         {navButton("vault", "Vault", "key", vaultLocked ? <Icon name="lock" size={14} /> : undefined)}
         {SUITE.filter((a) => !a.ready).map((a) => navButton(a.key as View, a.name, a.icon, <span className="soon-dot" title={a.when} />))}
         <div className="rail-spacer" />

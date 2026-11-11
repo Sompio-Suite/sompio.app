@@ -1,6 +1,6 @@
 [package]
 name = "sompio"
-version = "0.7.0"
+version = "0.7.1"
 description = "Sompio Suite: offline privacy tools."
 edition = "2021"
 
@@ -51,3 +51,6 @@ strip = true
 # SQLite with built-in encryption (SQLite3 Multiple Ciphers), no OpenSSL needed.
 [patch.crates-io]
 libsqlite3-sys = { path = "../../vendor/libsqlite3-sys" }
+
+[dev-dependencies]
+image = { version = "0.25", default-features = false, features = ["png"] }

@@ -47,7 +47,7 @@ export default function AutoTypeChooser() {
         {list.map((m, i) => (
           <li key={m.entry.id}>
             <button className="entry-row" onClick={() => pick(m.entry.id, m.sequence)} autoFocus={i === 0 && !search}>
-              <Avatar title={m.entry.title} />
+              <Avatar title={m.entry.title} icon={m.entry.icon} />
               <span className="entry-name"><strong>{m.entry.title}</strong><span className="small muted">{m.entry.username}</span></span>
               <span className="faint small">{m.note}</span>
             </button>

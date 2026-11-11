@@ -1110,3 +1110,16 @@ svg.brand-mark .sun-bottom, .lock-mark .sun-bottom { fill: var(--accent); }
 .xc-page.vault-page { gap: 0; max-width: none; }
 .xc-search { background: var(--surface); border: 1px solid var(--line-strong); }
 .xc-search:focus-within { box-shadow: none; border-color: #0067c0; }
+
+/* Entry icons */
+.avatar.none { background: #eef1f4; color: #6b7785; border: 1px solid var(--line); }
+img.avatar { object-fit: contain; background: #fff; border: 1px solid var(--line); padding: 2px; }
+.xc-row .c-title img.avatar { padding: 1px; }
+.icon-menu { margin-left: auto; position: relative; }
+.icon-panel { right: 0; left: auto; width: 320px; padding: 0.5rem; display: grid; gap: 0.35rem; z-index: 5; }
+.icon-panel > button { justify-content: flex-start; }
+.icon-panel form { display: grid; gap: 0.3rem; padding: 0.35rem 0.25rem; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.icon-panel .row { display: flex; gap: 0.35rem; }
+.vault-page .entry-head { display: flex; align-items: center; }
+.brand .logo { flex: none; border-radius: 6px; }
+svg.logo { display: block; }

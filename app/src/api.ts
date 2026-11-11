@@ -128,6 +128,8 @@ export interface VaultGroup { id: string; parent: string | null; name: string; d
 export interface VaultEntry {
   id: string; group_id: string; group_path: string; title: string; username: string; url: string; tags: string[];
   has_password: boolean; has_totp: boolean; expires: string | null; expired: boolean; modified: string | null; in_recycle_bin: boolean;
+  /** Id of the entry's own icon (see vaultIcons) */
+  icon: string | null;
 }
 export interface VaultField { key: string; value: string | null; protected: boolean }
 export interface AutoTypeSettings { enabled: boolean; sequence: string; windows: string[] }
@@ -154,7 +156,7 @@ export type HealthIssue =
   | { kind: "no_password" };
 export interface HealthReport { checked: number; weak: number; reused: number; expired: number; old: number; score: number; items: { entry: VaultEntry; issues: HealthIssue[]; severity: number }[] }
 export interface VaultImport { entries: number; groups: number; skipped_attachments: number; group_id: string; warnings: string[] }
-export interface VaultSettings { shortcut: string; clear_seconds: number; lock_after_type: boolean }
+export interface VaultSettings { shortcut: string; clear_seconds: number; lock_after_type: boolean; auto_icons: boolean }
 export interface AutoTypeMatch { entry: VaultEntry; sequence: string; because: string }
 
 
@@ -277,6 +279,11 @@ export const api = {
   vaultDeleteEntry: (id: string) => call<boolean>("vault_delete_entry", { id }),
   vaultRestoreEntry: (id: string) => call<void>("vault_restore_entry", { id }),
   vaultRestoreVersion: (id: string, index: number) => call<void>("vault_restore_version", { id, index }),
+  vaultIcons: () => call<Record<string, string>>("vault_icons"),
+  vaultFetchIcon: (id: string, address: string | null) => call<string | null>("vault_fetch_icon", { id, address }),
+  vaultIconFromFile: (id: string, path: string) => call<string | null>("vault_icon_from_file", { id, path }),
+  vaultRemoveIcon: (id: string) => call<void>("vault_remove_icon", { id }),
+  vaultFetchAllIcons: () => call<[number, number]>("vault_fetch_all_icons"),
   vaultCloneEntry: (id: string) => call<string>("vault_clone_entry", { id }),
   vaultMoveEntry: (id: string, group: string) => call<void>("vault_move_entry", { id, group }),
   vaultEmptyBin: () => call<number>("vault_empty_bin"),

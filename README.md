@@ -116,6 +116,13 @@ a tree on the left, a sortable table and a preview pane underneath. Clean's Find
 (`.xc-*` styles in `styles.css`). The Vault has KeePassXC's shortcuts (Ctrl+B/C/T/U, Ctrl+Shift+V, Ctrl+E/K/N/F,
 Enter, Delete), column sorting, clone and drag-to-folder.
 
+Website icons: saving an entry with a website gets its favicon from that site only (no icon service in
+between): the page's icon links, best size first, then /favicon.ico, then the main domain. ICO, PNG, JPEG, GIF,
+WebP and BMP become a 64 px PNG stored as a KeePass custom icon, so KeePassXC shows them too (`vault/src/icons.rs`,
+download in the shell's `vault.rs`). No icon shows a key. Per entry: another address, a picture file, or remove.
+Switch: Vault, "Auto-type, import and export". One logo everywhere: `app/brand/sompio-logo.svg` is the app icon
+(`npx tauri icon`) and the `Logo` component.
+
 First run: welcome, the rules of the lock (do's and don'ts), "Generate my key picture (.png)" (saved and read
 back to check it), the password, then the recovery code (`Vault::new_picture` and `setup_with_picture`).
 

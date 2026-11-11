@@ -18,7 +18,7 @@ let seq = 1;
 const make = (group: string, title: string, username: string, url: string, password: string, extra: Partial<VaultEntryDetail> = {}, otp: string | null = null, changedDaysAgo = 30): Item => ({
   d: {
     id: `e${seq++}`, group_id: group, group_path: "", title, username, url, tags: [], has_password: !!password, has_totp: !!otp,
-    expires: null, expired: false, modified: ago(changedDaysAgo), in_recycle_bin: false, notes: "", custom: [],
+    expires: null, expired: false, modified: ago(changedDaysAgo), in_recycle_bin: false, icon: null, notes: "", custom: [],
     autotype: { enabled: true, sequence: "", windows: [] }, created: ago(400), password_modified: ago(changedDaysAgo), history: [], attachments: [], ...extra,
   },
   password, otp, secrets: {}, history: [],
@@ -35,7 +35,16 @@ let items: Item[] = [
 ];
 items[4].secrets.PIN = "4321";
 items[1].history.push({ password: "steam123", modified: ago(1200) });
-let settings: VaultSettings = { shortcut: "Ctrl+Alt+A", clear_seconds: 20, lock_after_type: false };
+let settings: VaultSettings = { shortcut: "Ctrl+Alt+A", clear_seconds: 20, lock_after_type: false, auto_icons: true };
+// In the preview, "downloaded" icons are drawn here: a coloured tile with the site's first letter
+const mockIcons: Record<string, string> = {};
+const fakeIcon = (site: string) => {
+  const hue = [...site].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='hsl(${hue},60%,45%)'/><text x='32' y='44' font-size='34' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle'>${site[0]?.toUpperCase() ?? "?"}</text></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+};
+const setFake = (i: Item, site: string) => { const id = `icon-${site}`; mockIcons[id] = fakeIcon(site); i.d.icon = id; return id; };
+const siteOf = (u: string) => u.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
 
 const path = (g: string): string => {
   const out: string[] = [];
@@ -120,6 +129,21 @@ export const vaultHandlers: Record<string, (a: any) => unknown> = {
   vault_copy: () => settings.clear_seconds,
   vault_copy_text: () => settings.clear_seconds,
   vault_add_entry: ({ entry }) => { const i = make(entry.group_id ?? ROOT, "", "", "", ""); apply(i, entry); items.push(i); return i.d.id; },
+  vault_icons: () => ({ ...mockIcons }),
+  vault_fetch_icon: async ({ id, address }) => {
+    await new Promise((r) => setTimeout(r, 500));
+    const i = find(id);
+    const site = siteOf(address || i.d.url);
+    if (!site || !site.includes(".")) throw "This entry has no website. Add one, or enter the address to get the icon from.";
+    return setFake(i, site);
+  },
+  vault_icon_from_file: ({ id }) => setFake(find(id), "picture"),
+  vault_remove_icon: ({ id }) => { find(id).d.icon = null; },
+  vault_fetch_all_icons: async () => {
+    const todo = items.filter((i) => !i.d.icon && i.d.url && !inBin(i.d.group_id));
+    for (const i of todo) setFake(i, siteOf(i.d.url));
+    return [todo.length, todo.length];
+  },
   vault_clone_entry: ({ id }) => {
     const o = find(id);
     const c = make(o.d.group_id, `${o.d.title} - Clone`, o.d.username, o.d.url, o.password, { tags: [...o.d.tags], notes: o.d.notes }, o.otp);

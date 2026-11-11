@@ -30,6 +30,8 @@ rem 2. The app itself.
 echo Step 2 of 2: Sompio
 cd /d "%~dp0app"
 call npm.cmd install --no-audit --no-fund || goto :fail
+rem Old setup files go first, so only the one built now is handed out
+del /q "%CARGO_TARGET_DIR%\release\bundle\nsis\*-setup.exe" >nul 2>nul
 rem A plain local build: nothing here talks to GitHub. Updates are only switched on in published releases.
 call npm.cmd run tauri build || goto :fail
 
@@ -39,18 +41,17 @@ del /q "Sompio for Windows\*" >nul 2>nul
 copy /y "%CARGO_TARGET_DIR%\release\sompio.exe" "Sompio for Windows\Sompio.exe" >nul
 copy /y "%CARGO_TARGET_DIR%\release\sompio-keymaker.exe" "Sompio for Windows\Sompio Key Maker.exe" >nul
 for %%f in ("%CARGO_TARGET_DIR%\release\bundle\nsis\*-setup.exe") do copy /y "%%f" "Sompio for Windows\" >nul
-rem Everything a tester needs, and nothing they shouldn't have (no Key Maker)
+rem Only the newest setup file: no Key Maker, no other files
 if exist "Sompio for Windows\For testers" rmdir /s /q "Sompio for Windows\For testers"
 mkdir "Sompio for Windows\For testers"
 for %%f in ("%CARGO_TARGET_DIR%\release\bundle\nsis\*-setup.exe") do copy /y "%%f" "Sompio for Windows\For testers\" >nul
-copy /y "How to test Sompio.txt" "Sompio for Windows\For testers\" >nul
 
 echo.
 echo Done. In the folder that opens:
 echo   Sompio.exe              runs Sompio straight away
 echo   Sompio_..._setup.exe    installs it with a Start menu shortcut (this is what testers get)
 echo   Sompio Key Maker.exe    makes licence keys. Keep this one to yourself.
-echo   For testers\            the setup file and "How to test Sompio.txt". Zip this folder and send it.
+echo   For testers\            just the newest setup file. Send it with "How to test Sompio.txt".
 echo.
 echo Your signing key is in %APPDATA%\Sompio Key Maker. Back it up, never share it.
 explorer "Sompio for Windows"

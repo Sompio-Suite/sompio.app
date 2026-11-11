@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, listen, onFileDrop, passwordProblem, pickPicture, pickPictureSave, type LockStatus } from "../api";
 import Icon from "../Icon";
+import Logo from "../Logo";
 
 interface Props {
   status: LockStatus;
@@ -11,12 +12,7 @@ type Mode = "setup" | "unlock" | "recover";
 type SetupStep = "intro" | "rules" | "picture" | "password" | "sheet" | "phone";
 
 function Mark({ size = 56 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 120 120" aria-hidden className="lock-mark">
-      <path className="sun-top" d="M14 56 A36 36 0 0 1 86 56 Z" />
-      <path className="sun-bottom" d="M34 64 A36 36 0 0 0 106 64 Z" />
-    </svg>
-  );
+  return <Logo size={size} className="lock-mark" />;
 }
 
 function PasswordFields(p: { pw: string; setPw: (s: string) => void; again: string; setAgain: (s: string) => void; label?: string }) {

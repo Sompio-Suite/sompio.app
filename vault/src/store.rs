@@ -43,6 +43,8 @@ pub struct EntrySummary {
     pub expired: bool,
     pub modified: Option<String>,
     pub in_recycle_bin: bool,
+    /// The entry's own icon (a downloaded favicon), by its id in `icons()`
+    pub icon: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -349,6 +351,7 @@ impl Vault {
             expired: expires.is_some_and(|x| x <= now),
             modified: iso(e.times.last_modification),
             in_recycle_bin: self.in_bin(group),
+            icon: e.custom_icon().map(|c| c.id().uuid().to_string()),
         }
     }
 
@@ -702,6 +705,7 @@ impl Vault {
     /// A copy of an entry in the same folder, "Title - Clone", like KeePassXC's Clone (no history).
     pub fn clone_entry(&mut self, id: &str) -> Result<String> {
         let eid = parse_entry_id(id)?;
+        let icon = self.db.entry(eid).and_then(|e| e.custom_icon().map(|c| c.id()));
         let (gid, fields_, tags, autotype, expires, expiry, files) = {
             let e = self.db.entry(eid).ok_or_else(|| anyhow!("That entry no longer exists."))?;
             let files: Vec<(String, Value<Vec<u8>>)> = e.attachments_named().map(|(n, a)| (n.to_string(), a.data.clone())).collect();
@@ -720,10 +724,65 @@ impl Vault {
             for (name, data) in files {
                 n.add_attachment(name, data);
             }
+            if let Some(i) = icon {
+                let _ = n.set_icon_custom(i);
+            }
             n.id().uuid().to_string()
         };
         self.save()?;
         Ok(new_id)
+    }
+
+    /// Sets (or with None, removes) an entry's own icon. `png` should come from `icons::to_png`.
+    /// Entries for the same website share one stored icon; icons nothing uses any more go.
+    pub fn set_icon(&mut self, id: &str, png: Option<Vec<u8>>) -> Result<Option<String>> {
+        let eid = parse_entry_id(id)?;
+        self.db.entry(eid).ok_or_else(|| anyhow!("That entry no longer exists."))?;
+        let same = png.as_ref().and_then(|p| self.db.iter_all_custom_icons().find(|c| c.data == *p).map(|c| c.id()));
+        let new_id = {
+            let mut e = self.db.entry_mut(eid).ok_or_else(|| anyhow!("That entry no longer exists."))?;
+            let id = match (png, same) {
+                (None, _) => {
+                    e.set_icon_none();
+                    None
+                }
+                (Some(_), Some(existing)) => {
+                    e.set_icon_custom(existing).map_err(|x| anyhow!("{x}"))?;
+                    Some(existing)
+                }
+                (Some(p), None) => Some(e.set_icon_custom_new(p).as_ref().id()),
+            };
+            e.times.last_modification = Some(Times::now());
+            id
+        };
+        self.drop_unused_icons();
+        self.save()?;
+        Ok(new_id.map(|i| i.uuid().to_string()))
+    }
+
+    fn drop_unused_icons(&mut self) {
+        let unused: Vec<keepass::db::CustomIconId> =
+            self.db.iter_all_custom_icons().filter(|c| c.entries(true).next().is_none() && c.groups().next().is_none()).map(|c| c.id()).collect();
+        for id in unused {
+            if let Some(c) = self.db.custom_icon_mut(id) {
+                c.remove();
+            }
+        }
+    }
+
+    /// Every entry icon, as id -> "data:image/png;base64,..." for the window.
+    pub fn icons(&self) -> std::collections::HashMap<String, String> {
+        self.db.iter_all_custom_icons().map(|c| (c.id().uuid().to_string(), crate::icons::data_url(&c.data))).collect()
+    }
+
+    /// Entries with a website and no icon yet, for "Get icons for all entries".
+    pub fn entries_without_icon(&self) -> Vec<(String, String)> {
+        self.db
+            .iter_all_entries()
+            .filter(|e| !self.in_bin(e.parent().id()) && e.custom_icon().is_none())
+            .map(|e| (e.id().uuid().to_string(), field(&e, fields::URL).trim().to_string()))
+            .filter(|(_, u)| !u.is_empty() && crate::icons::site_root(u).is_ok())
+            .collect()
     }
 
     pub fn move_entry(&mut self, id: &str, group: &str) -> Result<()> {
@@ -910,6 +969,9 @@ impl Vault {
             for (name, a) in e.attachments_named() {
                 n.add_attachment(name.to_string(), a.data.clone());
             }
+            if let Some(ci) = e.custom_icon() {
+                n.set_icon_custom_new(ci.data.clone());
+            }
             s.entries += 1;
         }
         for k in src.groups() {
@@ -1091,6 +1153,33 @@ mod round2 {
 
     fn vault(dir: &Path) -> Vault {
         Vault::open(&dir.join("vault.kdbx"), &[6u8; 32]).unwrap()
+    }
+
+    #[test]
+    fn icons_are_stored_shared_and_cleaned_up() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut v = vault(dir.path());
+        let a = v.add_entry(&EntryInput { title: "Battle.net".into(), url: "battle.net".into(), ..Default::default() }).unwrap();
+        let b = v.add_entry(&EntryInput { title: "Battle.net 2".into(), url: "battle.net".into(), ..Default::default() }).unwrap();
+        assert_eq!(v.entries_without_icon().len(), 2);
+        let png = vec![137, 80, 78, 71, 1, 2, 3];
+        let ia = v.set_icon(&a, Some(png.clone())).unwrap().unwrap();
+        let ib = v.set_icon(&b, Some(png.clone())).unwrap().unwrap();
+        assert_eq!(ia, ib, "same picture is stored once");
+        assert_eq!(v.icons().len(), 1);
+        let c = v.clone_entry(&a).unwrap();
+        assert_eq!(v.entry(&c).unwrap().summary.icon.as_deref(), Some(ia.as_str()));
+        // Survives saving and opening again
+        drop(v);
+        let mut v = vault(dir.path());
+        assert_eq!(v.entry(&a).unwrap().summary.icon.as_deref(), Some(ia.as_str()));
+        v.set_icon(&a, None).unwrap();
+        v.set_icon(&b, Some(vec![137, 80, 78, 71, 9])).unwrap();
+        assert_eq!(v.icons().len(), 2, "the clone still uses the first one");
+        v.delete_entry(&c).unwrap();
+        v.delete_entry(&c).unwrap();
+        v.set_icon(&b, None).unwrap();
+        assert_eq!(v.icons().len(), 0, "unused icons are dropped");
     }
 
     #[test]

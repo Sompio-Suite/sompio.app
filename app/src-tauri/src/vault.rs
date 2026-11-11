@@ -23,11 +23,13 @@ pub struct VaultSettings {
     pub clear_seconds: u64,
     /// Lock Sompio after auto-typing
     pub lock_after_type: bool,
+    /// Get an entry's icon from its website when it's saved
+    pub auto_icons: bool,
 }
 
 impl Default for VaultSettings {
     fn default() -> Self {
-        Self { shortcut: "Ctrl+Alt+A".into(), clear_seconds: 20, lock_after_type: false }
+        Self { shortcut: "Ctrl+Alt+A".into(), clear_seconds: 20, lock_after_type: false, auto_icons: true }
     }
 }
 
@@ -386,6 +388,154 @@ pub async fn vault_check_leaks(app: AppHandle) -> CmdResult<Vec<sompio_vault::le
     .map_err(err)?
 }
 
+// ---------- Website icons ----------
+// Only the entry's own website is asked (or an address the person typed), never an icon service
+// in between, so no third party learns which sites are in the vault. Nothing is sent but a plain
+// page request, like opening the site in a browser.
+
+const BROWSER: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36";
+
+fn icon_agent() -> ureq::Agent {
+    ureq::Agent::config_builder()
+        .timeout_global(Some(std::time::Duration::from_secs(10)))
+        .max_redirects(6)
+        .http_status_as_error(true)
+        .build()
+        .into()
+}
+
+/// (final address after redirects, body, content type)
+fn fetch(agent: &ureq::Agent, url: &str, limit: u64) -> Result<(String, Vec<u8>, String), String> {
+    use ureq::ResponseExt;
+    let mut r = agent
+        .get(url)
+        .header("User-Agent", BROWSER)
+        .header("Accept", "text/html,image/avif,image/webp,image/png,image/*,*/*;q=0.8")
+        .call()
+        .map_err(|e| e.to_string())?;
+    let final_url = r.get_uri().to_string();
+    let kind = r.headers().get("content-type").and_then(|v| v.to_str().ok()).unwrap_or("").to_ascii_lowercase();
+    let body = r.body_mut().with_config().limit(limit).read_to_vec().map_err(|e| e.to_string())?;
+    Ok((final_url, body, kind))
+}
+
+/// Finds and converts the icon for a website, or for a direct picture address.
+pub fn download_icon(address: &str) -> Result<Vec<u8>, String> {
+    use sompio_vault::icons;
+    let root = icons::site_root(address).map_err(err)?;
+    let agent = icon_agent();
+    let given = if address.contains("://") { address.trim().to_string() } else { format!("https://{}", address.trim()) };
+    let mut pages = vec![given.clone()];
+    if given.trim_end_matches('/') != root.trim_end_matches('/') {
+        pages.push(root.clone());
+    }
+    if let Some(p) = icons::parent_root(&root) {
+        pages.push(p);
+    }
+    let mut tried = std::collections::HashSet::new();
+    let mut reached = false;
+    for page in pages {
+        let mut list = Vec::new();
+        match fetch(&agent, &page, icons::MAX_PAGE_BYTES) {
+            Ok((final_url, body, kind)) => {
+                reached = true;
+                // The address may be a picture itself ("might not be on the main site")
+                if kind.starts_with("image/") || !kind.contains("html") {
+                    if let Ok(png) = icons::to_png(&body) {
+                        return Ok(png);
+                    }
+                }
+                list = icons::candidates(&final_url, &String::from_utf8_lossy(&body));
+            }
+            Err(_) => {
+                if let Ok(r) = icons::site_root(&page) {
+                    list = icons::candidates(&r, "");
+                }
+            }
+        }
+        for url in list.into_iter().take(8) {
+            if !tried.insert(url.clone()) {
+                continue;
+            }
+            if let Ok((_, body, _)) = fetch(&agent, &url, icons::MAX_ICON_BYTES) {
+                reached = true;
+                if let Ok(png) = icons::to_png(&body) {
+                    return Ok(png);
+                }
+            }
+        }
+    }
+    Err(if reached {
+        format!("{} has no icon Sompio can use. Try another address for it, or choose a picture file.", root.trim_end_matches('/'))
+    } else {
+        format!("Couldn't reach {}. Check the address and your internet connection.", root.trim_end_matches('/'))
+    })
+}
+
+#[tauri::command]
+pub async fn vault_icons(app: AppHandle) -> CmdResult<std::collections::HashMap<String, String>> {
+    with_vault(&app, |v| Ok(v.icons())).await
+}
+
+/// Gets the entry's icon from its website, or from `address` when the person gives one.
+#[tauri::command]
+pub async fn vault_fetch_icon(app: AppHandle, state: State<'_, AppState>, id: String, address: Option<String>) -> CmdResult<Option<String>> {
+    state.licences.require(App::Vault)?;
+    let id2 = id.clone();
+    let site = match address.filter(|a| !a.trim().is_empty()) {
+        Some(a) => a,
+        None => with_vault(&app, move |v| Ok(v.entry(&id2)?.summary.url)).await?,
+    };
+    let png = tauri::async_runtime::spawn_blocking(move || download_icon(&site)).await.map_err(err)??;
+    change(&app, &state, move |v| v.set_icon(&id, Some(png))).await
+}
+
+#[tauri::command]
+pub async fn vault_icon_from_file(app: AppHandle, state: State<'_, AppState>, id: String, path: String) -> CmdResult<Option<String>> {
+    let bytes = std::fs::read(&path).map_err(|e| format!("Couldn't open that file: {e}"))?;
+    if bytes.len() as u64 > sompio_vault::icons::MAX_ICON_BYTES * 4 {
+        return Err("That picture is too big for an icon. Choose one under 4 MB.".into());
+    }
+    let png = sompio_vault::icons::to_png(&bytes).map_err(err)?;
+    change(&app, &state, move |v| v.set_icon(&id, Some(png))).await
+}
+
+#[tauri::command]
+pub async fn vault_remove_icon(app: AppHandle, state: State<'_, AppState>, id: String) -> CmdResult<()> {
+    change(&app, &state, move |v| v.set_icon(&id, None).map(|_| ())).await
+}
+
+/// "Get icons for all entries": every entry with a website and no icon. Reports progress.
+#[tauri::command]
+pub async fn vault_fetch_all_icons(app: AppHandle, state: State<'_, AppState>) -> CmdResult<(usize, usize)> {
+    state.licences.require(App::Vault)?;
+    let todo = with_vault(&app, |v| Ok(v.entries_without_icon())).await?;
+    let total = todo.len();
+    let mut found = 0;
+    // One download per website, shared by every entry for it
+    let mut by_site: std::collections::HashMap<String, Option<Vec<u8>>> = std::collections::HashMap::new();
+    for (i, (id, url)) in todo.into_iter().enumerate() {
+        let _ = app.emit("vault-icons-progress", (i, total));
+        let key = sompio_vault::icons::site_root(&url).unwrap_or(url.clone());
+        let png = match by_site.get(&key) {
+            Some(p) => p.clone(),
+            None => {
+                let u = url.clone();
+                let p = tauri::async_runtime::spawn_blocking(move || download_icon(&u).ok()).await.map_err(err)?;
+                by_site.insert(key, p.clone());
+                p
+            }
+        };
+        if let Some(png) = png {
+            if with_vault(&app, move |v| v.set_icon(&id, Some(png))).await.is_ok() {
+                found += 1;
+            }
+        }
+    }
+    let _ = app.emit("vault-icons-progress", (total, total));
+    Ok((found, total))
+}
+
 /// Adds the "Samples" folder of made-up entries. Delete the folder to remove them.
 #[tauri::command]
 pub async fn vault_add_samples(app: AppHandle) -> CmdResult<String> {
@@ -647,4 +797,48 @@ fn send(steps: &[Step]) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod icon_tests {
+    use super::download_icon;
+    use std::io::{Read, Write};
+
+    /// A tiny website: a page linking its icon in a sub-folder, a 32px PNG there, nothing else.
+    fn serve(png: Vec<u8>) -> String {
+        let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = l.local_addr().unwrap();
+        std::thread::spawn(move || {
+            for s in l.incoming() {
+                let mut s = s.unwrap();
+                let mut buf = [0u8; 2048];
+                let n = s.read(&mut buf).unwrap_or(0);
+                let req = String::from_utf8_lossy(&buf[..n]).to_string();
+                let path = req.split_whitespace().nth(1).unwrap_or("/").to_string();
+                let (status, kind, body): (&str, &str, Vec<u8>) = match path.as_str() {
+                    "/" | "/login" => ("200 OK", "text/html", br#"<html><head><link rel="icon" sizes="32x32" href="/static/i.png"></head></html>"#.to_vec()),
+                    "/static/i.png" | "/direct.png" => ("200 OK", "image/png", png.clone()),
+                    _ => ("404 Not Found", "text/plain", b"nope".to_vec()),
+                };
+                let _ = write!(s, "HTTP/1.1 {status}\r\nContent-Type: {kind}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len());
+                let _ = s.write_all(&body);
+            }
+        });
+        format!("http://{addr}")
+    }
+
+    #[test]
+    fn finds_the_icon_on_a_site() {
+        let img = image::RgbaImage::from_pixel(32, 32, image::Rgba([10, 120, 200, 255]));
+        let mut png = std::io::Cursor::new(Vec::new());
+        image::DynamicImage::ImageRgba8(img).write_to(&mut png, image::ImageFormat::Png).unwrap();
+        let site = serve(png.into_inner());
+        for addr in [format!("{site}/login"), site.clone(), format!("{site}/direct.png")] {
+            let out = download_icon(&addr).unwrap();
+            let back = image::load_from_memory(&out).unwrap();
+            assert_eq!((back.width(), back.height()), (64, 64), "{addr}");
+        }
+        let err = download_icon("http://127.0.0.1:9/").unwrap_err();
+        assert!(err.contains("Couldn't reach"), "{err}");
+    }
 }
