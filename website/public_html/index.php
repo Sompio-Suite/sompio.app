@@ -15,7 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'])) {
         $_SESSION['seen'] = time();
         unset($_SESSION['timed_out']);
         // Feedback that was being sent when the 15 minutes ran out goes out now
-        header('Location: ' . (isset($_SESSION['pending']) ? 'feedback.php?resume=1' : './'), true, 303);
+        $next = isset($_SESSION['pending']) ? 'feedback.php?resume=1' : ($_SESSION['after_login'] ?? './');
+        unset($_SESSION['after_login']);
+        header('Location: ' . $next, true, 303);
         exit;
     } else {
         note_wrong_try();
@@ -65,6 +67,7 @@ $c = config();
       <nav>
         <a href="#install">Install</a>
         <a href="#test">What to test</a>
+        <a href="docs.php">Documentation</a>
         <a href="#feedback">Feedback</a>
       </nav>
     </div>
@@ -77,11 +80,11 @@ $c = config();
       <div class="hero-intro">
         <h1>Thanks for testing Sompio</h1>
         <p class="lead">Everything you put in Sompio stays on your PC, encrypted. There's no account, and nothing is sent to us. Please use made-up data while testing: the app's Samples page has some for everything.</p>
-        <ol class="quick">
-          <li><span>1</span><div><strong>Download</strong><small>The setup file from this page</small></div></li>
-          <li><span>2</span><div><strong>Allow it</strong><small>Windows warns first, <a href="#install">see how</a></small></div></li>
-          <li><span>3</span><div><strong>Set up the lock</strong><small>Then try the Samples</small></div></li>
-        </ol>
+        <a class="learn" href="docs.php">
+          <span class="learn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+          <span class="learn-text"><strong>How the suite works</strong><span>What Calendar, Clean and Vault do, and how Sompio keeps your data private.</span></span>
+          <span class="button learn-button">Read the documentation</span>
+        </a>
         <div class="beta-note">
           <h2>Beta: not the final product</h2>
           <p>This is a test version. Things may break, look unfinished, or change before the real release, and some parts will still be improved because of what you tell us. Please use made-up data instead of your real passwords and messages, and don't rely on it for anything important yet.</p>

@@ -127,22 +127,78 @@ section[id] { scroll-margin-top: 72px; }
 .note { color: #1f4f80; background: #eef5fc; border: 1px solid #b9d6f2; padding: 0.6rem 0.8rem; border-radius: 6px; margin: 0; }
 .hero .lead { margin-bottom: 1.2rem; }
 
-/* Three quick steps between the intro and the beta notice */
-.quick { list-style: none; margin: 0 0 1.2rem; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
-.quick li { display: flex; gap: 0.6rem; align-items: flex-start; border: 1px solid var(--line); border-radius: 8px; padding: 0.7rem 0.75rem; background: #fff; }
-.quick li > span { flex: none; width: 24px; height: 24px; border-radius: 50%; background: #e9f4ea; color: var(--green-2); font-weight: 700; font-size: 0.82rem; display: grid; place-items: center; }
-.quick li div { display: grid; gap: 0.1rem; line-height: 1.3; min-width: 0; }
-.quick strong { font-size: 0.92rem; }
-.quick small { color: var(--ink-2); font-size: 0.8rem; }
-@media (max-width: 1000px) and (min-width: 761px) {
-  /* Narrower screens: a compact row of three, titles only */
-  .quick { gap: 0.45rem; }
-  .quick li { padding: 0.5rem 0.55rem; align-items: center; gap: 0.45rem; }
-  .quick li > span { width: 22px; height: 22px; font-size: 0.78rem; }
-  .quick small { display: none; }
-  .quick strong { font-size: 0.86rem; }
+/* "How the suite works": the link to the documentation, between the intro and the beta notice */
+.learn { display: flex; align-items: center; gap: 0.9rem; border: 1px solid var(--line); border-radius: 8px; padding: 0.85rem 1rem; background: #fff; color: inherit; text-decoration: none; margin-bottom: 1.2rem; }
+.learn:hover { border-color: #b9d6f2; background: #f7fbff; }
+.learn-icon { flex: none; width: 38px; height: 38px; border-radius: 8px; background: #eef5fc; color: var(--blue); display: grid; place-items: center; }
+.learn-text { flex: 1; display: grid; gap: 0.1rem; min-width: 0; }
+.learn-text strong { font-size: 0.98rem; }
+.learn-text span { font-size: 0.86rem; color: var(--ink-2); }
+.learn-button { flex: none; padding: 0.45rem 0.9rem; font-size: 0.9rem; }
+.learn:hover .learn-button { border-color: var(--blue); color: var(--blue); }
+@media (max-width: 1100px) and (min-width: 1001px) {
+  .learn { padding: 0.75rem 0.85rem; gap: 0.7rem; }
+  .learn-icon { display: none; }
+  .learn-text span { font-size: 0.84rem; }
+}
+/* Tablets: the top part stacks in one column, like on phones */
+@media (max-width: 1000px) {
+  .hero { grid-template-columns: 1fr; grid-template-areas: "intro" "card" "install"; row-gap: 1.7rem; }
+  .hero-intro { padding-top: 0; }
+  .hero-intro h1 { margin-top: 0; }
+  .hero .beta-note { margin-top: 0; }
 }
 @media (max-width: 420px) {
-  .quick { grid-template-columns: 1fr; gap: 0.4rem; }
-  .quick li { align-items: center; padding: 0.55rem 0.7rem; }
+  .learn { flex-wrap: wrap; }
+  .learn-button { flex: 1 1 100%; }
 }
+
+/* Top menu: the page you're on */
+.top nav a[aria-current="page"] { color: var(--ink); font-weight: 600; }
+
+/* Documentation page: contents on the left, the text on the right */
+.docs { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 2.5rem; align-items: start; }
+main.wrap.docs > * { margin-top: 2.2rem; }
+.docs-toc { position: sticky; top: 76px; display: grid; gap: 0.15rem; font-size: 0.9rem; }
+.toc-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); margin: 0 0 0.3rem; }
+.docs-toc a { color: var(--ink-2); text-decoration: none; padding: 0.3rem 0.6rem; border-left: 2px solid var(--line); }
+.docs-toc a:hover { color: var(--ink); border-left-color: var(--green); }
+.docs-toc .toc-back { margin-top: 0.8rem; border-left: 0; padding-left: 0; color: var(--blue); }
+.docs-body { max-width: 760px; min-width: 0; }
+.docs-body h1 { margin-bottom: 1rem; }
+.docs-body section { padding: 1.4rem 0; border-top: 1px solid var(--line); scroll-margin-top: 72px; }
+.docs-body section:first-of-type { border-top: 0; padding-top: 0; }
+.docs-body h2 { font-size: 1.35rem; margin-bottom: 0.6rem; }
+.docs-body h3 { margin-top: 1.2rem; }
+.docs-body p, .docs-body li, .docs-body dd { max-width: 70ch; }
+.points { padding-left: 1.2rem; display: grid; gap: 0.45rem; margin: 0.4rem 0 0.8rem; }
+.tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; margin-top: 1rem; }
+.tool { display: grid; gap: 0.25rem; border: 1px solid var(--line); border-radius: 8px; padding: 0.85rem 0.95rem; color: inherit; text-decoration: none; background: #fff; }
+.tool:hover { border-color: var(--green); }
+.tool strong { color: var(--green-2); }
+.tool span { font-size: 0.88rem; color: var(--ink-2); }
+.table-wrap { overflow-x: auto; margin: 0.6rem 0 0.9rem; border: 1px solid var(--line); border-radius: 8px; }
+.table-wrap table { border-collapse: collapse; width: 100%; font-size: 0.9rem; min-width: 520px; }
+.table-wrap th, .table-wrap td { text-align: left; vertical-align: top; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--line); }
+.table-wrap th { background: var(--soft); font-weight: 600; }
+.table-wrap tr:last-child td { border-bottom: 0; }
+.callout { border: 1px solid #f0c9c4; background: #fdf1ef; color: #6e2318; padding: 0.75rem 0.9rem; border-radius: 8px; }
+.privacy-line { background: #e9f4ea; border-radius: 8px; padding: 0.65rem 0.9rem; color: #1e4d22; }
+.faq dt { font-weight: 600; margin-top: 0.8rem; }
+.faq dd { margin: 0.2rem 0 0; color: var(--ink-2); }
+.docs-end { display: flex; gap: 0.6rem; flex-wrap: wrap; padding-top: 1rem; border-top: 1px solid var(--line); }
+@media (max-width: 860px) {
+  .docs { grid-template-columns: 1fr; gap: 0; }
+  .docs-toc { position: static; display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.5rem; }
+  .toc-title { width: 100%; }
+  .docs-toc a { border: 1px solid var(--line); border-radius: 999px; padding: 0.25rem 0.7rem; font-size: 0.85rem; }
+  .docs-toc .toc-back { display: none; }
+  .tools { grid-template-columns: 1fr; }
+}
+/* Four menu items on small phones */
+@media (max-width: 480px) {
+  .top-row { height: auto; padding-top: 0.55rem; padding-bottom: 0.55rem; flex-wrap: wrap; row-gap: 0.35rem; }
+  .top nav { width: 100%; justify-content: space-between; gap: 0.4rem; }
+  .brand .tag { display: inline; }
+}
+@media (max-width: 480px) { section[id], .docs-body section { scroll-margin-top: 104px; } }
