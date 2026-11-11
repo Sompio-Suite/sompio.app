@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 const PRIVATE_DIR = __DIR__;
+date_default_timezone_set('Europe/Amsterdam');
 
 function config(): array
 {

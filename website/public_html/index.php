@@ -84,11 +84,12 @@ $c = config();
           <h2>Sompio <?= e($release['version']) ?></h2>
           <p class="small muted">Windows 10 and 11, 64-bit · <?= e(human_size($release['size'])) ?> · <?= e(date('j M Y', $release['date'])) ?></p>
           <a class="button primary big" href="download.php">Download for Windows</a>
-          <details class="small">
-            <summary>File fingerprint (SHA-256)</summary>
-            <p class="muted">To check the file is really ours: in PowerShell, <code>Get-FileHash .\<?= e($release['name']) ?></code> should show</p>
+          <p class="phone-note small">On a phone? Open this page on your Windows PC to install Sompio.</p>
+          <div class="fingerprint">
+            <p class="fp-label"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z M9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>File fingerprint (SHA-256)</p>
             <code class="hash"><?= e($release['sha256']) ?></code>
-          </details>
+            <p class="small muted">To check your download is really ours, open PowerShell in your Downloads folder and run <code><span class="nowrap">Get-FileHash</span> <span class="nowrap">.\<?= e($release['name']) ?></span></code>. The Hash it shows must match the one above.</p>
+          </div>
         <?php else: ?>
           <h2>Coming soon</h2>
           <p class="muted">The first test version isn't up yet. Check back shortly.</p>

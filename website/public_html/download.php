@@ -13,6 +13,7 @@ if ($r === null) {
     http_response_code(404);
     exit('No test version is up yet.');
 }
+@ini_set('zlib.output_compression', 'Off');
 while (ob_get_level()) {
     ob_end_clean();
 }
