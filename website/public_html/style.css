@@ -126,3 +126,23 @@ section[id] { scroll-margin-top: 72px; }
 .beta-note p { margin: 0; color: #5c4600; font-size: 0.93rem; }
 .note { color: #1f4f80; background: #eef5fc; border: 1px solid #b9d6f2; padding: 0.6rem 0.8rem; border-radius: 6px; margin: 0; }
 .hero .lead { margin-bottom: 1.2rem; }
+
+/* Three quick steps between the intro and the beta notice */
+.quick { list-style: none; margin: 0 0 1.2rem; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+.quick li { display: flex; gap: 0.6rem; align-items: flex-start; border: 1px solid var(--line); border-radius: 8px; padding: 0.7rem 0.75rem; background: #fff; }
+.quick li > span { flex: none; width: 24px; height: 24px; border-radius: 50%; background: #e9f4ea; color: var(--green-2); font-weight: 700; font-size: 0.82rem; display: grid; place-items: center; }
+.quick li div { display: grid; gap: 0.1rem; line-height: 1.3; min-width: 0; }
+.quick strong { font-size: 0.92rem; }
+.quick small { color: var(--ink-2); font-size: 0.8rem; }
+@media (max-width: 1000px) and (min-width: 761px) {
+  /* Narrower screens: a compact row of three, titles only */
+  .quick { gap: 0.45rem; }
+  .quick li { padding: 0.5rem 0.55rem; align-items: center; gap: 0.45rem; }
+  .quick li > span { width: 22px; height: 22px; font-size: 0.78rem; }
+  .quick small { display: none; }
+  .quick strong { font-size: 0.86rem; }
+}
+@media (max-width: 420px) {
+  .quick { grid-template-columns: 1fr; gap: 0.4rem; }
+  .quick li { align-items: center; padding: 0.55rem 0.7rem; }
+}

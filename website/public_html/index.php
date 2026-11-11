@@ -77,6 +77,11 @@ $c = config();
       <div class="hero-intro">
         <h1>Thanks for testing Sompio</h1>
         <p class="lead">Everything you put in Sompio stays on your PC, encrypted. There's no account, and nothing is sent to us. Please use made-up data while testing: the app's Samples page has some for everything.</p>
+        <ol class="quick">
+          <li><span>1</span><div><strong>Download</strong><small>The setup file from this page</small></div></li>
+          <li><span>2</span><div><strong>Allow it</strong><small>Windows warns first, <a href="#install">see how</a></small></div></li>
+          <li><span>3</span><div><strong>Set up the lock</strong><small>Then try the Samples</small></div></li>
+        </ol>
         <div class="beta-note">
           <h2>Beta: not the final product</h2>
           <p>This is a test version. Things may break, look unfinished, or change before the real release, and some parts will still be improved because of what you tell us. Please use made-up data instead of your real passwords and messages, and don't rely on it for anything important yet.</p>
