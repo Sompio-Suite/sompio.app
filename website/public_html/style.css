@@ -53,8 +53,12 @@ main.wrap > .success, main.wrap > .error { margin-top: 1.2rem; }
 /* Top row: intro + beta notice on the left, download card on the right, ending on the same line.
    The install steps follow underneath. */
 .hero { display: grid; grid-template-columns: 1.3fr 1fr; grid-template-areas: "intro card" "install install"; column-gap: 2rem; row-gap: 2.2rem; align-items: stretch; }
-.hero-intro { grid-area: intro; padding-top: 1.1rem; display: flex; flex-direction: column; }
-.hero .beta-note { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.hero-intro { grid-area: intro; display: flex; flex-direction: column; }
+/* The title starts level with the top of the download card (no space above its letters) */
+.hero-intro h1 { line-height: 1.1; margin: -0.12em 0 0.5rem; }
+/* The beta notice fits its text and sits at the bottom, level with the card's bottom edge;
+   any spare height goes above it, under the intro */
+.hero .beta-note { margin-top: auto; }
 .hero .download { grid-area: card; }
 .hero-install { grid-area: install; align-self: start; }
 .lead { font-size: 1.05rem; color: var(--ink-2); }
@@ -95,7 +99,8 @@ img, svg { max-width: 100%; }
   input, select, textarea { font-size: 16px; }
   .hero { grid-template-areas: "intro" "card" "install"; row-gap: 1.7rem; }
   .hero-intro { padding-top: 0; }
-  .hero .beta-note { flex: none; }
+  .hero .beta-note { margin-top: 0; }
+  .hero-intro h1 { margin-top: 0; }
   .top nav { gap: 0.8rem; }
   h1 { font-size: 1.55rem; }
   main.wrap > * { margin-top: 1.7rem; }
@@ -116,8 +121,8 @@ img, svg { max-width: 100%; }
 }
 @media (max-width: 340px) { .brand .tag { display: none; } }
 section[id] { scroll-margin-top: 72px; }
-.beta-note { border: 1px solid #f0dfa8; background: #fff8e1; border-radius: 8px; padding: 1rem 1.2rem; margin-top: 1.2rem; }
+.beta-note { border: 1px solid #f0dfa8; background: #fff8e1; border-radius: 8px; padding: 1rem 1.2rem; }
 .beta-note h2 { font-size: 1.05rem; color: #6d4c00; margin-bottom: 0.35rem; }
 .beta-note p { margin: 0; color: #5c4600; font-size: 0.93rem; }
 .note { color: #1f4f80; background: #eef5fc; border: 1px solid #b9d6f2; padding: 0.6rem 0.8rem; border-radius: 6px; margin: 0; }
-.hero .lead { margin-bottom: 0; }
+.hero .lead { margin-bottom: 1.2rem; }
