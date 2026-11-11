@@ -67,7 +67,7 @@ if (!signed_in()) {
           <li><strong>Offline by design.</strong> Every tool works without internet. You can unplug your PC and use all of it.</li>
           <li><strong>Encrypted on your disk.</strong> Your calendar, Clean's findings and your passwords are stored encrypted. Without your password and key picture, the files are unreadable, even to someone who copies them.</li>
           <li><strong>No account, no tracking.</strong> No sign-up, no email address, no analytics, no ads, no "phone home". Sompio doesn't know who you are.</li>
-          <li><strong>Hidden from screen capture.</strong> Reminder pop-ups can be kept out of screenshots and screen sharing. Copied passwords stay out of Windows' clipboard history and cloud clipboard, and clear themselves after 20 seconds.</li>
+          <li><strong>Pop-ups out of screenshots.</strong> Reminder pop-ups and the auto-type picker are left out of screenshots and screen sharing, so a stream or meeting doesn't show what pops up. The main window can be captured, for help and bug reports. Copied passwords stay out of Windows' clipboard history and cloud clipboard, and clear themselves after 20 seconds.</li>
           <li><strong>Problem reports stay with you.</strong> If something goes wrong, Sompio writes a short note to a file on your PC. It's never sent anywhere; you decide whether to share it.</li>
         </ul>
         <h3>The only times Sompio goes online</h3>
