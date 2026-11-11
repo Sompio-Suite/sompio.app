@@ -39,7 +39,7 @@ $c = config();
   <meta name="robots" content="noindex, nofollow">
   <title><?= $in ? 'Sompio beta' : 'Sompio' ?></title>
   <link rel="icon" type="image/svg+xml" href="logo.svg">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=<?= filemtime(__DIR__ . '/style.css') ?>">
 </head>
 <body>
 <?php if (!$in): ?>
