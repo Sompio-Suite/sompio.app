@@ -1,6 +1,6 @@
 [package]
 name = "sompio"
-version = "0.6.0"
+version = "0.7.0"
 description = "Sompio Suite: offline privacy tools."
 edition = "2021"
 
@@ -29,7 +29,6 @@ sompio-suite = { path = "../../suite" }
 sompio-calendar = { path = "../../calendar" }
 sompio-vault = { path = "../../vault" }
 sompio-hwkey = { path = "../../hwkey" }
-sompio-voice = { path = "../../voice" }
 enigo = "0.6"
 arboard = "3"
 ureq = "3"

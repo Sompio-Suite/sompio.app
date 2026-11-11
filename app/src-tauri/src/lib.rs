@@ -5,7 +5,6 @@ mod calendar;
 mod vault;
 mod samples;
 mod problems;
-mod voice;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -28,7 +27,6 @@ struct AppState {
     calendar: calendar::Calendar,
     /// The password vault while it's open, and auto-type
     passwords: vault::VaultState,
-    voice: voice::VoiceState,
 }
 
 type CmdResult<T> = Result<T, String>;
@@ -62,6 +60,16 @@ fn lock_status(state: State<'_, AppState>) -> CmdResult<sompio_suite::LockStatus
 #[tauri::command]
 async fn lock_setup(state: State<'_, AppState>, password: String, picture_path: String, remember: bool) -> CmdResult<String> {
     with_vault(&state, move |v| Ok(v.setup(&password, Path::new(&picture_path), remember)?.to_string())).await
+}
+
+#[tauri::command]
+async fn lock_new_picture(state: State<'_, AppState>, picture_path: String) -> CmdResult<()> {
+    with_vault(&state, move |v| v.new_picture(Path::new(&picture_path))).await
+}
+
+#[tauri::command]
+async fn lock_setup_with_picture(state: State<'_, AppState>, password: String, remember: bool) -> CmdResult<String> {
+    with_vault(&state, move |v| Ok(v.setup_with_picture(&password, remember)?.to_string())).await
 }
 
 #[tauri::command]
@@ -649,9 +657,8 @@ pub fn run() {
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, shortcut, event| {
-                    let down = event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed;
-                    // Push-to-talk wants presses and releases; auto-type only presses
-                    if !voice::on_shortcut(app, shortcut, down) && down {
+                    let _ = shortcut;
+                    if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
                         vault::on_shortcut(app);
                     }
                 })
@@ -674,7 +681,6 @@ pub fn run() {
                 email: std::sync::Arc::new(sompio_connect::email::Email::new(secrets)),
                 calendar: calendar::Calendar::new(),
                 passwords: vault::VaultState::new(&dir),
-                voice: voice::VoiceState::default(),
             });
             let shortcut = app.state::<AppState>().passwords_shortcut();
             if let Err(e) = vault::register_shortcut(app.handle(), "", &shortcut) {
@@ -699,6 +705,8 @@ pub fn run() {
             lock_status,
             lock_setup,
             lock_unlock,
+            lock_new_picture,
+            lock_setup_with_picture,
             lock_recover,
             lock_change_password,
             lock_forget_picture,
@@ -788,6 +796,7 @@ pub fn run() {
             vault::vault_restore_entry,
             vault::vault_restore_version,
             vault::vault_move_entry,
+            vault::vault_clone_entry,
             vault::vault_empty_bin,
             vault::vault_add_group,
             vault::vault_rename_group,
@@ -813,27 +822,10 @@ pub fn run() {
             vault::vault_check_leaks,
             samples::samples_write,
             samples::cal_add_samples,
-            voice::voice_settings,
-            voice::voice_save_settings,
-            voice::voice_connect,
-            voice::voice_disconnect,
-            voice::voice_send,
-            voice::voice_audio,
-            voice::voice_ping,
-            voice::voice_host_start,
-            voice::voice_host_stop,
-            voice::voice_host_status,
-            voice::voice_host_open_port,
             problems::log_problem,
             problems::app_details,
             problems::open_problems_folder,
         ])
-        .build(context)
-        .expect("error while running tauri application")
-        .run(|app, event| {
-            // Close the port the router opened for a hosted voice server
-            if let tauri::RunEvent::Exit = event {
-                voice::on_exit(app);
-            }
-        });
+        .run(context)
+        .expect("error while running tauri application");
 }

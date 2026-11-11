@@ -28,11 +28,13 @@ pub struct Vault {
     dir: PathBuf,
     secrets: Arc<dyn SecretStore>,
     key: Mutex<Option<VaultKey>>,
+    /// First run: the key picture made before the password is chosen
+    pending_picture: Mutex<Option<PictureSecret>>,
 }
 
 impl Vault {
     pub fn new(dir: PathBuf, secrets: Arc<dyn SecretStore>) -> Self {
-        Self { dir, secrets, key: Mutex::new(None) }
+        Self { dir, secrets, key: Mutex::new(None), pending_picture: Mutex::new(None) }
     }
 
     pub fn lock_path(&self) -> PathBuf {
@@ -119,6 +121,45 @@ impl Vault {
         self.remember(&s.picture_secret, remember)?;
         self.secure_data(&s.vault)?;
         self.set_key(Some(s.vault.clone()));
+        Ok(s.recovery_code)
+    }
+
+    /// First run, step one: makes the key picture, saves it where the person chose, and reads it
+    /// back to be sure the saved file works. The password comes next (`setup_with_picture`).
+    pub fn new_picture(&self, picture_path: &Path) -> Result<()> {
+        if self.lock_path().exists() {
+            bail!("Sompio is already locked with a password. Unlock it instead.");
+        }
+        let secret = PictureSecret::new()?;
+        let png = sompio_lock::make_picture(&secret)?;
+        std::fs::write(picture_path, &png).with_context(|| format!("Couldn't save the key picture to {}", picture_path.display()))?;
+        let back = std::fs::read(picture_path).with_context(|| format!("Couldn't read back {}", picture_path.display()))?;
+        if read_picture(&back)?.as_bytes() != secret.as_bytes() {
+            bail!("The key picture didn't save correctly. Try another folder.");
+        }
+        *self.pending_picture.lock().map_err(|_| anyhow!("lock"))? = Some(secret);
+        Ok(())
+    }
+
+    /// First run, step two: the password, with the key picture made in step one.
+    pub fn setup_with_picture(&self, password: &str, remember: bool) -> Result<Zeroizing<String>> {
+        if self.lock_path().exists() {
+            bail!("Sompio is already locked with a password. Unlock it instead.");
+        }
+        let picture = self
+            .pending_picture
+            .lock()
+            .map_err(|_| anyhow!("lock"))?
+            .clone()
+            .ok_or_else(|| anyhow!("Make your key picture first."))?;
+        let s = LockFile::create_with_picture(password, picture)?;
+        s.file.save(&self.lock_path())?;
+        self.remember(&s.picture_secret, remember)?;
+        self.secure_data(&s.vault)?;
+        self.set_key(Some(s.vault.clone()));
+        if let Ok(mut p) = self.pending_picture.lock() {
+            *p = None;
+        }
         Ok(s.recovery_code)
     }
 
@@ -282,6 +323,22 @@ mod hardware_tests {
         fn get(&self, k: &str) -> Result<Option<String>> { Ok(self.0.lock().unwrap().get(k).cloned()) }
         fn set(&self, k: &str, v: &str) -> Result<()> { self.0.lock().unwrap().insert(k.into(), v.into()); Ok(()) }
         fn delete(&self, k: &str) -> Result<()> { self.0.lock().unwrap().remove(k); Ok(()) }
+    }
+
+    #[test]
+    fn picture_first_then_password() {
+        let dir = tempfile::tempdir().unwrap();
+        let v = Vault::new(dir.path().to_path_buf(), Arc::new(Mem(Default::default())));
+        let pic = dir.path().join("key.png");
+        assert!(v.setup_with_picture("correct horse battery staple", false).is_err(), "needs the picture first");
+        v.new_picture(&pic).unwrap();
+        assert!(pic.exists());
+        let code = v.setup_with_picture("correct horse battery staple", false).unwrap();
+        assert!(!code.is_empty());
+        v.lock();
+        assert!(v.unlock("correct horse battery staple", None, false).is_err(), "picture not remembered");
+        v.unlock("correct horse battery staple", Some(&pic), false).unwrap();
+        assert!(v.new_picture(&dir.path().join("again.png")).is_err(), "already set up");
     }
 
     #[test]

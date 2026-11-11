@@ -83,7 +83,7 @@ export interface EmailProvider { id: string; name: string; host: string; help_ur
 export interface EmailStatus { connected: boolean; address: string | null; provider: string | null }
 export interface EmailProgress { done: number; total: number }
 
-export type AppKey = "clean" | "calendar" | "vault" | "voice";
+export type AppKey = "clean" | "calendar" | "vault";
 export interface AppStatus { app: AppKey; name: string; active: boolean; ends_at: number | null; trial_only: boolean }
 export interface KeyView { serial: string; label: string; days: number; activated_at: number; test: boolean; invalid: boolean }
 export interface LicenceStatus { apps: AppStatus[]; keys: KeyView[]; trial_ends_at: number | null; clock_behind: boolean; now: number }
@@ -157,51 +157,6 @@ export interface VaultImport { entries: number; groups: number; skipped_attachme
 export interface VaultSettings { shortcut: string; clear_seconds: number; lock_after_type: boolean }
 export interface AutoTypeMatch { entry: VaultEntry; sequence: string; because: string }
 
-// Voice
-export type VoiceRole = "member" | "moderator" | "admin";
-export interface VoiceChannel { id: number; parent: number | null; name: string; topic: string; has_password: boolean; permanent: boolean; max_users: number; order: number }
-export interface VoiceClient { id: number; name: string; channel: number; role: VoiceRole; muted: boolean; deafened: boolean; away: string | null; identity: string }
-export interface VoiceServerInfo { name: string; welcome: string; max_clients: number; default_channel: number }
-export type ChatTarget = { to: "channel" } | { to: "server" } | { to: "client"; id: number };
-export type VoiceServerMsg =
-  | { type: "welcome"; you: number; role: VoiceRole; server: VoiceServerInfo; channels: VoiceChannel[]; clients: VoiceClient[] }
-  | { type: "error"; message: string }
-  | { type: "channel_saved"; channel: VoiceChannel }
-  | { type: "channel_deleted"; id: number }
-  | { type: "client_joined"; client: VoiceClient }
-  | { type: "client_left"; id: number; reason: string }
-  | { type: "client_updated"; client: VoiceClient }
-  | { type: "chat"; from: number; from_name: string; target: ChatTarget; text: string; at_ms: number }
-  | { type: "poked"; from: number; from_name: string; text: string }
-  | { type: "server_updated"; server: VoiceServerInfo }
-  | { type: "privilege_key"; key: string; role: VoiceRole }
-  | { type: "pong" } | { type: "kicked"; reason: string } | { type: "challenge" };
-export type VoiceClientMsg =
-  | { type: "join"; channel: number; password: string | null }
-  | { type: "chat"; target: ChatTarget; text: string }
-  | { type: "poke"; client: number; text: string }
-  | { type: "set_state"; muted: boolean; deafened: boolean; away: string | null }
-  | { type: "rename"; name: string }
-  | { type: "create_channel"; name: string; parent: number | null; topic: string; password: string | null; permanent: boolean; max_users: number }
-  | { type: "edit_channel"; id: number; name: string; topic: string; password: string | null | undefined; max_users: number }
-  | { type: "delete_channel"; id: number }
-  | { type: "move"; client: number; channel: number }
-  | { type: "kick"; client: number; reason: string; from_server: boolean }
-  | { type: "ban"; client: number; reason: string; minutes: number }
-  | { type: "set_role"; client: number; role: VoiceRole }
-  | { type: "use_privilege_key"; key: string }
-  | { type: "make_privilege_key"; role: VoiceRole }
-  | { type: "edit_server"; name: string; welcome: string };
-export interface VoiceBookmark { label: string; address: string; name: string; fingerprint: string | null; password: string | null; last_channel: string | null }
-export interface VoiceSaved { bookmarks: VoiceBookmark[]; push_to_talk: string; threshold: number; nickname: string }
-export type VoiceConnectResult =
-  | { kind: "connected"; fingerprint: string; welcome: VoiceServerMsg }
-  | { kind: "new_server"; fingerprint: string; name: string }
-  | { kind: "changed"; expected: string; got: string };
-export interface VoiceHosted {
-  port: number; fingerprint: string; admin_key: string | null; name: string; lan: string | null;
-  public: string | null; reach: "open" | "no_router" | "refused" | "shared"; reach_note: string;
-}
 
 export const inDesktopApp = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
@@ -217,16 +172,13 @@ const backend: Promise<{ invoke: Invoke; listen: Listen }> = inDesktopApp
 
 const call = async <T,>(cmd: string, args?: Record<string, unknown>) => (await backend).invoke<T>(cmd, args);
 
-/** One encoded voice frame to the server, as raw bytes (no JSON), 50 times a second. */
-export function sendVoiceFrame(seq: number, data: Uint8Array) {
-  if (!inDesktopApp) return;
-  tauriInvoke("voice_audio", data, { headers: { "x-seq": String(seq) } }).catch(() => {});
-}
 export const listen = async <T,>(event: string, cb: (payload: T) => void) => (await backend).listen<T>(event, cb);
 
 export const api = {
   hasData: () => call<boolean>("has_data"),
   lockStatus: () => call<LockStatus>("lock_status"),
+  lockNewPicture: (picturePath: string) => call<void>("lock_new_picture", { picturePath }),
+  lockSetupWithPicture: (password: string, remember: boolean) => call<string>("lock_setup_with_picture", { password, remember }),
   lockSetup: (password: string, picturePath: string, remember: boolean) => call<string>("lock_setup", { password, picturePath, remember }),
   lockUnlock: (password: string, picturePath: string | null, remember: boolean) => call<void>("lock_unlock", { password, picturePath, remember }),
   lockRecover: (code: string, newPassword: string, picturePath: string, remember: boolean) =>
@@ -325,6 +277,7 @@ export const api = {
   vaultDeleteEntry: (id: string) => call<boolean>("vault_delete_entry", { id }),
   vaultRestoreEntry: (id: string) => call<void>("vault_restore_entry", { id }),
   vaultRestoreVersion: (id: string, index: number) => call<void>("vault_restore_version", { id, index }),
+  vaultCloneEntry: (id: string) => call<string>("vault_clone_entry", { id }),
   vaultMoveEntry: (id: string, group: string) => call<void>("vault_move_entry", { id, group }),
   vaultEmptyBin: () => call<number>("vault_empty_bin"),
   vaultAddGroup: (parent: string | null, name: string) => call<string>("vault_add_group", { parent, name }),
@@ -345,16 +298,6 @@ export const api = {
   vaultAutotypeChoose: (id: string, sequence: string | null) => call<void>("vault_autotype_choose", { id, sequence }),
   vaultAutotypeNow: (id: string) => call<void>("vault_autotype_now", { id }),
   vaultAddSamples: () => call<string>("vault_add_samples"),
-  voiceSettings: () => call<VoiceSaved>("voice_settings"),
-  voiceSaveSettings: (settings: VoiceSaved) => call<void>("voice_save_settings", { settings }),
-  voiceConnect: (address: string, name: string, password: string | null, trusted: string | null) => call<VoiceConnectResult>("voice_connect", { address, name, password, trusted }),
-  voiceDisconnect: () => call<void>("voice_disconnect"),
-  voiceSend: (msg: VoiceClientMsg) => call<void>("voice_send", { msg }),
-  voicePing: () => call<number>("voice_ping"),
-  voiceHostStart: (port: number, name: string) => call<VoiceHosted>("voice_host_start", { port, name }),
-  voiceHostStop: () => call<void>("voice_host_stop"),
-  voiceHostStatus: () => call<VoiceHosted | null>("voice_host_status"),
-  voiceHostOpenPort: () => call<VoiceHosted>("voice_host_open_port"),
   logProblem: (text: string) => call<void>("log_problem", { text }),
   appDetails: () => call<{ version: string; os: string; log: string; recent: string[] }>("app_details"),
   openProblemsFolder: () => call<void>("open_problems_folder"),

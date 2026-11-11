@@ -1,22 +1,24 @@
 HOW TO TEST SOMPIO
 ==================
 
-Thank you for testing! This is a test version of Sompio 0.6.0 for Windows 10 and 11.
+Thank you for testing! This is a test version of Sompio 0.7.0 for Windows 10 and 11.
 Everything you put in it stays on your PC. Nothing is sent to us, and there's no account.
 
 
 1. INSTALLING
 -------------
-Run Sompio_0.6.0_x64-setup.exe.
+Run Sompio_0.7.0_x64-setup.exe.
 
 Windows will probably show a blue "Windows protected your PC" box. That's because this test
 version isn't signed with a Microsoft certificate yet (the real release will be). To go on:
 click "More info", then "Run anyway".
 
-When Sompio starts, set up the Sompio Lock:
-  - Choose a password.
-  - Save your key picture somewhere you'll find it again (not only on this PC is best).
-  - Write down or print the recovery code.
+When Sompio starts, it walks you through the Sompio Lock in four steps:
+  1. How the lock works: a short list of do's and don'ts. Please read it.
+  2. Make your key picture: the button saves a .png file with a secret hidden in it.
+     Put it somewhere you'll find it again (a copy off this PC is best).
+  3. Choose your password.
+  4. Write down or print the recovery code.
 You get a 14-day trial of everything. No licence key is needed for testing.
 
 Please use made-up data while testing, not your real passwords or messages. The Samples page
@@ -31,7 +33,6 @@ Open "Samples" in the menu on the left. It has:
   - Calendar: sample reminders (the first pop-up comes within a minute), plus sample files.
   - Vault: sample entries (2FA codes, weak and reused passwords, auto-type tests), plus KeePass
     files and CSV exports to import. The KeePass sample password is: sample-password
-  - Voice: how to try a server on your own PC.
 Sample files are saved to Documents\Sompio samples, and that folder opens for you.
 
 
@@ -43,7 +44,10 @@ Lock
   - If you have a YubiKey: Security, "Add a YubiKey", then unlock with it.
 
 Clean
-  - Open it with sample data and go through Overview, Review, Messages, Sources and Settings.
+  - Open it with sample data. Findings shows everything found in one list: bank accounts,
+    card numbers, passwords, addresses, phone numbers and more. Pick a type on the left,
+    click a row to see the message underneath, and try "Show values" and "Group repeats".
+  - Also go through Summary, Messages, Sources and Settings.
   - Import the sample exports under Sources, and try "Scan a folder on this PC" on the
     "Sample PC folder".
   - Add a watch term (in the sample, try "Sam Rivers"), mark things, delete things.
@@ -56,24 +60,18 @@ Calendar
   - Make your own reminders, edit them, import the sample schedule files.
 
 Vault
-  - Add sample entries. Copy a username, password and 2FA code. The clipboard clears itself.
+  - Add sample entries. It works like KeePassXC: folders on the left, entries in a table you
+    can sort by clicking the column names, the selected entry underneath.
+  - Try the KeePassXC shortcuts: Ctrl+B copies the username, Ctrl+C the password, Ctrl+T the
+    2FA code, Ctrl+U opens the website, Ctrl+Shift+V types it, Ctrl+K clones, Ctrl+E edits,
+    Ctrl+F searches, Delete deletes. Drag an entry onto a folder to move it.
+  - The clipboard clears itself after a copy.
   - Health check, password generator, earlier versions of an entry, attachments.
   - Auto-type: open Notepad and press Ctrl+Alt+A. Sompio picks the "Notepad" sample entry
     and types it in. The test login page in the sample files works the same way. (The shortcut
     can be changed in Vault, "Auto-type, import and export".)
   - Import the sample KeePass files and CSV exports. Export, and open the export in KeePassXC
     if you have it.
-
-Voice (best with two or more people)
-  - Voice, "Start a server". Windows will ask whether Sompio may use the network: allow it
-    (Private networks is enough on a home network; tick Public too if friends join from outside).
-  - The page tells you whether your router opened the port by itself:
-      "Friends anywhere can join"  - send them the address it shows.
-      Otherwise                     - friends on the same network can join the "At home"
-                                      address; for friends outside, the page explains what to do.
-  - Join your own server, use the admin key it shows, then try channels, passwords, chat,
-    push-to-talk, mute, kick and ban.
-  - Joining someone else's server needs no licence.
 
 
 4. REPORTING A PROBLEM

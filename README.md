@@ -7,7 +7,7 @@ Private tools that keep your data on your PC, unlocked with a key instead of an 
 | **Clean** | Built: finds and cleans up personal information in your exports and files (below) |
 | **Calendar** | Built: Desk Reminders rebuilt, encrypted, with privacy routines (below) |
 | **Vault** | Built (round 1 of 3): KeePass-compatible password manager with auto-type (below) |
-| **Voice** | Built (round 1): self-hosted voice server with channels, like TeamSpeak (below) |
+| **Voice** | On hold: taken out of the app in 0.7.0. The code is kept in `voice/` (below) |
 
 The plan lives in the "Sompio Suite plan" doc.
 
@@ -65,7 +65,13 @@ Round 2 (built so far):
 Still to come in round 2: browser fill (aiming for the KeePassXC-Browser extension's protocol) and YubiKey.
 Round 3: SSH agent, passkeys, Windows Hello quick unlock.
 
-## Sompio Voice
+## Sompio Voice (on hold)
+
+Not in the app since 0.7.0, while how it fits is decided. Everything is kept: the server, client and protocol
+in `voice/` (still built and tested on their own), and the app's parts in `voice/parked-app/` (the Voice
+screen, the audio engine, its worklet and mock, and the shell's `voice.rs`). To bring it back: move those
+files back to `app/src/`, `app/public/` and `app/src-tauri/src/`, add `sompio-voice` to the app's Cargo.toml,
+and register the module, commands, shortcut handler and exit hook in `lib.rs` again (see git history, 0.6.0).
 
 Self-hosted voice and chat with channels, like TeamSpeak (`voice/`).
 
@@ -102,6 +108,16 @@ answer to a stored random challenge opens a copy of the picture's secret, which 
 usual, so password changes keep working and several keys can be added (add a spare). Recovery makes a new
 picture, so keys are added again after it. The protocol code is tested against a simulated YubiKey; it hasn't
 met a real one in this repository's tests.
+
+## Look and layout
+
+White and compact, in the spirit of KeePassXC: a light navigation pane, flat underlined tabs, a toolbar,
+a tree on the left, a sortable table and a preview pane underneath. Clean's Findings and the Vault both use it
+(`.xc-*` styles in `styles.css`). The Vault has KeePassXC's shortcuts (Ctrl+B/C/T/U, Ctrl+Shift+V, Ctrl+E/K/N/F,
+Enter, Delete), column sorting, clone and drag-to-folder.
+
+First run: welcome, the rules of the lock (do's and don'ts), "Generate my key picture (.png)" (saved and read
+back to check it), the password, then the recovery code (`Vault::new_picture` and `setup_with_picture`).
 
 ## Testing and problem reports
 

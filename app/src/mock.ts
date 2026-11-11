@@ -2,7 +2,6 @@
 // It mimics the Rust side closely enough to click through every screen.
 import { calendarHandlers } from "./mockCalendar";
 import { vaultHandlers } from "./mockVault";
-import { setVoiceEmit, voiceHandlers } from "./mockVoice";
 import type { ChannelView, FindingView, KindKey, MessageView, Page, Platform, ScanSummary, Segment, SourceView, Stats, Status } from "./api";
 
 const words = "anyone up for raid tonight the boss was rough need a healer brb dinner that patch broke my ui see you later nice drop gg honestly no idea what happened lol".split(" ");
@@ -185,7 +184,7 @@ function licenceStatus() {
   for (const k of mockKeys) end = Math.max(end, k.at) + 30 * DAY;
   const paid = mockKeys.length > 0;
   return {
-    apps: ["clean", "calendar", "vault", "voice"].map((app) => ({
+    apps: ["clean", "calendar", "vault"].map((app) => ({
       app, name: app[0].toUpperCase() + app.slice(1), active: end > now, ends_at: end, trial_only: !paid,
     })),
     keys: mockKeys.map((k, i) => ({ serial: `a1b2c3d4e5f6070${i}`, label: "Sompio Suite", days: 30, activated_at: k.at, test: true, invalid: false })).reverse(),
@@ -243,6 +242,16 @@ const handlers: Record<string, (a: any) => unknown> = {
   my_names: () => [...myNames],
   set_my_names: ({ names }) => { myNames = names; },
   lock_status: () => ({ ...lockState }),
+  lock_new_picture: async () => {
+    await wait(400);
+  },
+  lock_setup_with_picture: async ({ password }) => {
+    await wait(600);
+    if (String(password).length < 10) throw "Use at least 10 characters. A few unrelated words work well.";
+    lockState = { set_up: true, unlocked: true, remembers_picture: true, hardware_keys: [] };
+    mockPassword = String(password);
+    return "7KQ2-XR9D-4M8T-PLWA-0G3H-ZE5N";
+  },
   lock_setup: async ({ password }) => {
     await wait(600);
     if (String(password).length < 10) throw "Use at least 10 characters. A few unrelated words work well.";
@@ -266,7 +275,7 @@ const handlers: Record<string, (a: any) => unknown> = {
     mockPassword = String(nu);
   },
   log_problem: ({ text }) => console.warn("problem:", text),
-  app_details: () => ({ version: "0.6.0", os: "windows 10.0.22631.4460 (x86_64)", log: "C:\\Users\\you\\AppData\\Local\\app.sompio.desktop\\problems.log", recent: ["2026-11-09 15:40:02 Sompio 0.6.0 started on windows x86_64"] }),
+  app_details: () => ({ version: "0.7.0", os: "windows 10.0.22631.4460 (x86_64)", log: "C:\\Users\\you\\AppData\\Local\\app.sompio.desktop\\problems.log", recent: ["2026-11-09 15:40:02 Sompio 0.6.0 started on windows x86_64"] }),
   open_problems_folder: () => undefined,
   lock_yubikeys_present: () => [{ name: "YubiKey OTP+FIDO+CCID", serial: 21786543 }],
   lock_unlock_yubikey: async ({ password }) => {
@@ -422,8 +431,8 @@ const handlers: Record<string, (a: any) => unknown> = {
   data_location: () => "C:\\Users\\you\\AppData\\Local\\app.sompio.desktop\\sompio.db",
 };
 
-Object.assign(handlers, calendarHandlers, vaultHandlers, voiceHandlers);
-setVoiceEmit((e, p) => emit(e, p));
+Object.assign(handlers, calendarHandlers, vaultHandlers);
+
 
 export const mockBackend = {
   invoke: async <T,>(cmd: string, args?: Record<string, unknown>): Promise<T> => {

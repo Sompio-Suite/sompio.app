@@ -50,12 +50,5 @@ export const SUITE: SuiteApp[] = [
     ready: true,
     plans: [],
   },
-  {
-    key: "voice",
-    name: "Voice",
-    icon: "mic",
-    line: "Voice and chat on your own server, with channels like TeamSpeak. No ID, no phone number.",
-    ready: true,
-    plans: [],
-  },
+
 ];

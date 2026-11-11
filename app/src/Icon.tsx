@@ -23,6 +23,10 @@ const PATHS: Record<string, string> = {
   arrow: "M5 12h14M13 6l6 6-6 6",
   search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zm9 3-4.5-4.5",
   mail: "M3 6h18v12H3zM3 7l9 6 9-6",
+  refresh: "M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7",
+  save: "M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6",
+  edit: "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
+  filter: "M4 5h16l-6 8v6l-4-2v-4z",
   user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6",
 };
 

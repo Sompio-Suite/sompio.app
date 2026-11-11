@@ -120,6 +120,12 @@ export const vaultHandlers: Record<string, (a: any) => unknown> = {
   vault_copy: () => settings.clear_seconds,
   vault_copy_text: () => settings.clear_seconds,
   vault_add_entry: ({ entry }) => { const i = make(entry.group_id ?? ROOT, "", "", "", ""); apply(i, entry); items.push(i); return i.d.id; },
+  vault_clone_entry: ({ id }) => {
+    const o = find(id);
+    const c = make(o.d.group_id, `${o.d.title} - Clone`, o.d.username, o.d.url, o.password, { tags: [...o.d.tags], notes: o.d.notes }, o.otp);
+    items.push(c);
+    return c.d.id;
+  },
   vault_update_entry: ({ id, entry }) => apply(find(id), entry),
   vault_delete_entry: ({ id }) => {
     const i = find(id);

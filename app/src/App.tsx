@@ -15,13 +15,12 @@ import Security from "./views/Security";
 import Calendar from "./views/Calendar";
 import Vault from "./views/Vault";
 import Samples from "./views/Samples";
-import Voice from "./views/Voice";
 import { SUITE, accessText } from "./licence";
 import { autoCheckEnabled, checkForUpdate, dueForCheck, type UpdateInfo } from "./updates";
 
 /** Suite pages, then Clean's pages. */
 export type View =
-  | "overview" | "calendar" | "vault" | "voice" | "licences" | "security" | "samples"
+  | "overview" | "calendar" | "vault" | "licences" | "security" | "samples"
   | "home" | "review" | "messages" | "sources" | "settings";
 const CLEAN_VIEWS: View[] = ["home", "review", "messages", "sources", "settings"];
 export interface Jump { channelId: string; messageId?: string }
@@ -152,7 +151,6 @@ export default function App() {
   const cleanAccess = licence?.apps.find((a) => a.app === "clean");
   const cleanLocked = licence != null && !cleanAccess?.active;
   const inClean = CLEAN_VIEWS.includes(view);
-  const voiceLocked = licence != null && !licence.apps.find((a) => a.app === "voice")?.active;
   const vaultLocked = licence != null && !licence.apps.find((a) => a.app === "vault")?.active;
   const calendarLocked = licence != null && !licence.apps.find((a) => a.app === "calendar")?.active;
 
@@ -162,7 +160,7 @@ export default function App() {
       className={`nav${sub ? " sub" : ""}`}
       aria-current={view === id || (id === "home" && inClean) ? "page" : undefined}
       aria-label={label}
-      onClick={() => (id === "review" ? openReview(null) : setView(id))}
+      onClick={() => (id === "review" || (id === "home" && ready && scan?.total_findings) ? openReview(null) : setView(id))}
     >
       <Icon name={icon as IconName} />
       <span className="label">{label}</span>
@@ -179,7 +177,7 @@ export default function App() {
             setDemo(await api.isDemo());
             setReady(true);
             setVersion((v) => v + 1);
-            setView("home");
+            setView("review");
           }}
         />
       );
@@ -224,7 +222,6 @@ export default function App() {
         {navButton("home", "Clean", "review", cleanLocked ? <Icon name="lock" size={14} /> : toReview > 0 && !inClean ? <span className="count" aria-label={`${toReview} to review`}>{n(toReview)}</span> : undefined)}
         {navButton("calendar", "Calendar", "calendar", calendarLocked ? <Icon name="lock" size={14} /> : undefined)}
         {navButton("vault", "Vault", "key", vaultLocked ? <Icon name="lock" size={14} /> : undefined)}
-        {navButton("voice", "Voice", "mic")}
         {SUITE.filter((a) => !a.ready).map((a) => navButton(a.key as View, a.name, a.icon, <span className="soon-dot" title={a.when} />))}
         <div className="rail-spacer" />
         {navButton("samples", "Samples", "sparkle")}
@@ -280,7 +277,7 @@ export default function App() {
             </div>
             {ready && (
               <div className="segmented" role="tablist" aria-label="Clean">
-                {([["home", "Overview"], ["review", "Review"], ["messages", "Messages"], ["sources", "Sources"], ["settings", "Settings"]] as [View, string][]).map(([id, label]) => (
+                {([["review", "Findings"], ["home", "Summary"], ["messages", "Messages"], ["sources", "Sources"], ["settings", "Settings"]] as [View, string][]).map(([id, label]) => (
                   <button key={id} role="tab" aria-selected={view === id} onClick={() => (id === "review" ? openReview(null) : setView(id))}>
                     {label}
                     {id === "review" && toReview > 0 && <span className="count">{n(toReview)}</span>}
@@ -309,14 +306,15 @@ export default function App() {
             cleanHasData={!!ready && !demo}
             onCleanDemo={async () => {
               await api.loadDemo();
+              // Check the sample straight away, so what it holds shows up in Clean
+              await api.runScan(await api.watchTerms());
               await refresh();
               setVersion((v) => v + 1);
-              setView("home");
+              setView("review");
             }}
             onGo={setView}
           />
         )}
-        {view === "voice" && <Voice canHost={!voiceLocked} onAddKey={() => setView("licences")} />}
         {inClean && cleanPage()}
       </main>
     </div>

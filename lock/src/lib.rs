@@ -256,6 +256,15 @@ impl LockFile {
         Self::build(password, vault, picture_secret)
     }
 
+    /// Like `create`, with a key picture made (and saved by the person) beforehand.
+    pub fn create_with_picture(password: &str, picture_secret: PictureSecret) -> Result<Setup> {
+        if let Some(p) = password_problem(password) {
+            bail!("{p}");
+        }
+        let vault = VaultKey(random::<32>()?);
+        Self::build(password, vault, picture_secret)
+    }
+
     fn build(password: &str, vault: VaultKey, picture_secret: PictureSecret) -> Result<Setup> {
         let password_kdf = new_kdf()?;
         let main = wrap(&main_key(password, &picture_secret, &password_kdf)?, &vault)?;

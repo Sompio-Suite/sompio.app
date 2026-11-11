@@ -699,6 +699,33 @@ impl Vault {
         self.save()
     }
 
+    /// A copy of an entry in the same folder, "Title - Clone", like KeePassXC's Clone (no history).
+    pub fn clone_entry(&mut self, id: &str) -> Result<String> {
+        let eid = parse_entry_id(id)?;
+        let (gid, fields_, tags, autotype, expires, expiry, files) = {
+            let e = self.db.entry(eid).ok_or_else(|| anyhow!("That entry no longer exists."))?;
+            let files: Vec<(String, Value<Vec<u8>>)> = e.attachments_named().map(|(n, a)| (n.to_string(), a.data.clone())).collect();
+            (e.parent().id(), e.fields.clone(), e.tags.clone(), e.autotype.clone(), e.times.expires, e.times.expiry, files)
+        };
+        let title = format!("{} - Clone", fields_.get(fields::TITLE).map(|v| v.get().to_string()).unwrap_or_default());
+        let new_id = {
+            let mut g = self.db.group_mut(gid).ok_or_else(|| anyhow!("That folder no longer exists."))?;
+            let mut n = g.add_entry();
+            n.fields = fields_;
+            n.tags = tags;
+            n.autotype = autotype;
+            n.times.expires = expires;
+            n.times.expiry = expiry;
+            n.set_unprotected(fields::TITLE, title.as_str());
+            for (name, data) in files {
+                n.add_attachment(name, data);
+            }
+            n.id().uuid().to_string()
+        };
+        self.save()?;
+        Ok(new_id)
+    }
+
     pub fn move_entry(&mut self, id: &str, group: &str) -> Result<()> {
         let eid = parse_entry_id(id)?;
         let gid = self.target_group(Some(group))?;
@@ -1064,6 +1091,22 @@ mod round2 {
 
     fn vault(dir: &Path) -> Vault {
         Vault::open(&dir.join("vault.kdbx"), &[6u8; 32]).unwrap()
+    }
+
+    #[test]
+    fn clone_copies_everything_but_history() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut v = vault(dir.path());
+        let id = v.add_entry(&EntryInput { title: "Mail".into(), username: "me".into(), password: Some("pw-123456".into()), ..Default::default() }).unwrap();
+        v.add_attachment(&id, "codes.txt", b"123".to_vec()).unwrap();
+        let c = v.clone_entry(&id).unwrap();
+        assert_ne!(c, id);
+        let d = v.entry(&c).unwrap();
+        assert_eq!(d.summary.title, "Mail - Clone");
+        assert_eq!(d.summary.username, "me");
+        assert_eq!(v.reveal(&c, "Password").unwrap().as_str(), "pw-123456");
+        assert_eq!(d.attachments.len(), 1);
+        assert!(d.history.is_empty());
     }
 
     #[test]

@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
-import { api, listen, pickOpen, pickSave, type Totp, type VaultEntry, type VaultEntryDetail, type VaultGroup } from "../api";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { api, listen, openLink, pickOpen, pickSave, type Totp, type VaultEntry, type VaultEntryDetail, type VaultGroup } from "../api";
 import Icon from "../Icon";
 import { dateTime, plural } from "../format";
 import VaultEntryDialog from "./VaultEntryDialog";
 import { Avatar, Generator, Health, VaultSettingsPanel } from "./VaultTools";
 
 type Tab = "passwords" | "health" | "generator" | "settings";
+type SortKey = "title" | "username" | "url" | "group" | "modified";
 const when = (iso: string | null) => (iso ? dateTime(Date.parse(iso)) : "");
 
 interface Props { readOnly: boolean; onAddKey: () => void }
@@ -21,6 +22,10 @@ export default function Vault({ readOnly, onAddKey }: Props) {
   const [editing, setEditing] = useState<VaultEntryDetail | "new" | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   const [newFolder, setNewFolder] = useState<string | null>(null);
+  const [sort, setSort] = useState<{ key: SortKey; up: boolean }>({ key: "title", up: true });
+  const [dropOn, setDropOn] = useState<string | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const rowsRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -61,137 +66,240 @@ export default function Vault({ readOnly, onAddKey }: Props) {
   const bin = groups.find((g) => g.recycle_bin);
   const inBin = !!bin && group === bin.id;
   const current = groups.find((g) => g.id === group);
+  const pick = entries?.find((e) => e.id === selected) ?? null;
+
+  const sorted = useMemo(() => {
+    if (!entries) return null;
+    const val = (e: VaultEntry) =>
+      sort.key === "group" ? e.group_path : sort.key === "modified" ? e.modified ?? "" : sort.key === "url" ? e.url.replace(/^https?:\/\/(www\.)?/, "") : e[sort.key];
+    const out = [...entries].sort((a, b) => val(a).toLowerCase().localeCompare(val(b).toLowerCase()) || a.title.localeCompare(b.title));
+    return sort.up ? out : out.reverse();
+  }, [entries, sort]);
+
+  // What the toolbar and the KeePassXC shortcuts do
+  const act = {
+    copy: (field: string, what: string) => pick && api.vaultCopy(pick.id, field).then((s) => copied(s, what)).catch((e) => setToast({ ok: false, text: String(e) })),
+    open: () => pick?.url && openLink(/^[a-z]+:\/\//i.test(pick.url) ? pick.url : `https://${pick.url}`).catch((e) => setToast({ ok: false, text: String(e) })),
+    type: () => pick?.has_password && api.vaultAutotypeNow(pick.id).catch((e) => setToast({ ok: false, text: String(e) })),
+    edit: () => !readOnly && detail && setEditing(detail),
+    clone: () => !readOnly && pick && !pick.in_recycle_bin && run(async () => { const id = await api.vaultCloneEntry(pick.id); setSelected(id); }, "Cloned."),
+    remove: () => pick && run(async () => { const gone = pick.in_recycle_bin; await api.vaultDeleteEntry(pick.id); setSelected(null); return gone; }, pick.in_recycle_bin ? "Deleted for good." : "Moved to the recycle bin."),
+  };
+  const move = (d: number) => {
+    if (!sorted || sorted.length === 0) return;
+    const i = sorted.findIndex((e) => e.id === selected);
+    const next = sorted[Math.max(0, Math.min(sorted.length - 1, i < 0 ? 0 : i + d))];
+    setSelected(next.id);
+    rowsRef.current?.querySelector(`[data-id="${next.id}"]`)?.scrollIntoView({ block: "nearest" });
+  };
+  useEffect(() => {
+    if (tab !== "passwords" || editing) return;
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      const typing = el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT";
+      const ctrl = e.ctrlKey || e.metaKey;
+      const k = e.key.toLowerCase();
+      if (ctrl && k === "f") { e.preventDefault(); searchRef.current?.focus(); searchRef.current?.select(); return; }
+      if (ctrl && k === "n" && !readOnly) { e.preventDefault(); setEditing("new"); return; }
+      if (typing && !(el === searchRef.current && (e.key === "ArrowDown" || e.key === "Enter"))) return;
+      if (el === searchRef.current) { e.preventDefault(); rowsRef.current?.focus(); move(e.key === "Enter" ? 0 : 1); return; }
+      if (e.key === "ArrowDown") { e.preventDefault(); return move(1); }
+      if (e.key === "ArrowUp") { e.preventDefault(); return move(-1); }
+      if (!pick) return;
+      const go = (f: () => unknown) => { e.preventDefault(); f(); };
+      if (ctrl && e.shiftKey && k === "v") return go(act.type);
+      if (ctrl && k === "b") return go(() => act.copy("UserName", "Username copied"));
+      if (ctrl && k === "c" && !String(window.getSelection() ?? "")) return go(() => act.copy("Password", "Password copied"));
+      if (ctrl && k === "t" && pick.has_totp) return go(() => act.copy("TOTP", "Code copied"));
+      if (ctrl && k === "u") return go(act.open);
+      if (ctrl && k === "e") return go(act.edit);
+      if (ctrl && k === "k") return go(act.clone);
+      if (e.key === "Enter") return go(act.edit);
+      if (e.key === "Delete") return go(act.remove);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  const head = (key: SortKey, label: string) => (
+    <button className="th" aria-sort={sort.key === key ? (sort.up ? "ascending" : "descending") : "none"} onClick={() => setSort({ key, up: sort.key === key ? !sort.up : true })}>
+      {label}{sort.key === key && <span className="arrow">{sort.up ? "▲" : "▼"}</span>}
+    </button>
+  );
+  const dropProps = (gid: string) => ({
+    onDragOver: (e: React.DragEvent) => { if (!readOnly && e.dataTransfer.types.includes("sompio/entry")) { e.preventDefault(); setDropOn(gid); } },
+    onDragLeave: () => setDropOn((d) => (d === gid ? null : d)),
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      setDropOn(null);
+      const id = e.dataTransfer.getData("sompio/entry");
+      if (id) run(() => (bin && gid === bin.id ? api.vaultDeleteEntry(id) : api.vaultMoveEntry(id, gid)), bin && gid === bin.id ? "Moved to the recycle bin." : "Moved.");
+    },
+  });
+  const root = groups.find((g) => g.depth === 0);
+  const tabs = ([["passwords", "Passwords"], ["health", "Health check"], ["generator", "Generator"], ["settings", "Auto-type, import and export"]] as [Tab, string][]);
 
   return (
-    <div className="page full vault-page">
-      <div className="page-head">
-        <div>
+    <div className="xc-page vault-page">
+      <div className="app-head">
+        <div className="app-title">
           <h1>Vault</h1>
-          <p className="muted">Your passwords, in the KeePass format, encrypted with your lock. Nothing leaves this PC.</p>
+          <span className="muted">Your passwords in the KeePass format, encrypted with your lock. Nothing leaves this PC.</span>
         </div>
-        <div className="toolbar">
-          <button className="primary" disabled={readOnly} onClick={() => setEditing("new")}><Icon name="plus" size={16} />New entry</button>
+        <div className="segmented" role="tablist" aria-label="Vault">
+          {tabs.map(([k, label]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{label}</button>)}
         </div>
       </div>
       {readOnly && (
-        <div className="notice warn">
+        <div className="notice warn vault-notice">
           <Icon name="lock" />
           <div><strong>Vault is read-only.</strong><span>You can still see, copy, auto-type and export every password. Add a key to add or change them.</span></div>
           <button onClick={onAddKey}>Add a key</button>
         </div>
       )}
-      <div className="segmented" role="tablist" aria-label="Vault">
-        {([["passwords", "Passwords"], ["health", "Health check"], ["generator", "Generator"], ["settings", "Auto-type, import and export"]] as [Tab, string][]).map(([k, label]) => (
-          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{label}</button>
-        ))}
-      </div>
 
       {tab === "passwords" && (
-        <div className="vault-layout">
-          <nav className="panel folders" aria-label="Folders">
-            <button className="folder" aria-current={group === null ? "true" : undefined} onClick={() => setGroup(null)}>
-              <Icon name="key" size={16} /><span>All passwords</span>
-            </button>
-            {groups.filter((g) => g.depth > 0 && !g.recycle_bin && !isInBin(groups, g)).map((g) => (
-              <div key={g.id} className="folder-row" style={{ paddingLeft: `${(g.depth - 1) * 0.9}rem` }}>
-                <button className="folder" aria-current={group === g.id ? "true" : undefined} onClick={() => setGroup(g.id)}>
-                  <Icon name="folder" size={16} /><span>{g.name}</span>{g.entries > 0 && <span className="faint small num">{g.entries}</span>}
-                </button>
-              </div>
-            ))}
-            {newFolder !== null ? (
-              <form className="folder-new" onSubmit={(e) => { e.preventDefault(); const name = newFolder; setNewFolder(null); run(() => api.vaultAddGroup(current && !inBin ? current.id : null, name)); }}>
-                <input type="text" autoFocus value={newFolder} placeholder={current && current.depth > 0 && !inBin ? `In ${current.name}` : "Folder name"} onChange={(e) => setNewFolder(e.target.value)} onBlur={() => !newFolder && setNewFolder(null)} />
-              </form>
-            ) : (
-              <button className="folder add" disabled={readOnly} onClick={() => setNewFolder("")}><Icon name="plus" size={16} /><span>New folder</span></button>
-            )}
-            {bin && (
-              <button className="folder bin" aria-current={inBin ? "true" : undefined} onClick={() => setGroup(bin.id)}>
-                <Icon name="trash" size={16} /><span>Recycle bin</span>{bin.entries > 0 && <span className="faint small num">{bin.entries}</span>}
-              </button>
-            )}
-          </nav>
+        <>
+          <div className="xc-toolbar" role="toolbar" aria-label="Entries">
+            <button disabled={readOnly} onClick={() => setEditing("new")} title="New entry (Ctrl+N)"><Icon name="plus" size={16} />New</button>
+            <button disabled={readOnly || !detail} onClick={act.edit} title="Edit entry (Ctrl+E)"><Icon name="edit" size={16} />Edit</button>
+            <button disabled={readOnly || !pick || pick.in_recycle_bin} onClick={act.clone} title="Clone entry (Ctrl+K)"><Icon name="copy" size={16} />Clone</button>
+            <button disabled={!pick} onClick={act.remove} title="Delete entry (Delete)"><Icon name="trash" size={16} />Delete</button>
+            <span className="sep" />
+            <button disabled={!pick?.username} onClick={() => act.copy("UserName", "Username copied")} title="Copy username (Ctrl+B)"><Icon name="user" size={16} />Copy username</button>
+            <button disabled={!pick?.has_password} onClick={() => act.copy("Password", "Password copied")} title="Copy password (Ctrl+C)"><Icon name="key" size={16} />Copy password</button>
+            {pick?.has_totp && <button onClick={() => act.copy("TOTP", "Code copied")} title="Copy 2FA code (Ctrl+T)"><Icon name="clock" size={16} />Copy 2FA</button>}
+            <button disabled={!pick?.url} onClick={act.open} title="Open the website (Ctrl+U)"><Icon name="external" size={16} />Open URL</button>
+            <button disabled={!pick?.has_password || pick.in_recycle_bin} onClick={act.type} title="Type it into the window behind Sompio (Ctrl+Shift+V)"><Icon name="arrow" size={16} />Type it</button>
+            <span className="grow" />
+            <div className="search-box xc-search">
+              <Icon name="search" size={16} />
+              <input ref={searchRef} type="search" placeholder={current && current.depth > 0 ? `Search ${current.name} (Ctrl+F)` : "Search (Ctrl+F)"} value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+          </div>
 
-          <section className="panel entry-list" aria-label="Entries">
-            <div className="list-head">
-              <div className="search-box">
-                <Icon name="search" size={16} />
-                <input type="search" placeholder={current && current.depth > 0 ? `Search ${current.name}` : "Search titles, usernames, websites, tags"} value={search} onChange={(e) => setSearch(e.target.value)} />
-              </div>
+          <div className="xc-body">
+            <nav className="xc-tree folders" aria-label="Folders">
+              <button className="xc-node root" aria-current={group === null} onClick={() => setGroup(null)} {...(root ? dropProps(root.id) : {})} data-drop={root && dropOn === root.id}>
+                <Icon name="key" size={16} /><span>All passwords</span>
+              </button>
+              {groups.filter((g) => g.depth > 0 && !g.recycle_bin && !isInBin(groups, g)).map((g) => (
+                <button
+                  key={g.id}
+                  className="xc-node"
+                  style={{ paddingLeft: `${0.5 + g.depth * 0.9}rem` }}
+                  aria-current={group === g.id}
+                  data-drop={dropOn === g.id}
+                  onClick={() => setGroup(g.id)}
+                  {...dropProps(g.id)}
+                >
+                  <Icon name="folder" size={16} /><span>{g.name}</span>{g.entries > 0 && <span className="num">{g.entries}</span>}
+                </button>
+              ))}
+              {newFolder !== null ? (
+                <form className="folder-new" onSubmit={(e) => { e.preventDefault(); const name = newFolder; setNewFolder(null); run(() => api.vaultAddGroup(current && !inBin ? current.id : null, name)); }}>
+                  <input type="text" autoFocus value={newFolder} placeholder={current && current.depth > 0 && !inBin ? `In ${current.name}` : "Folder name"} onChange={(e) => setNewFolder(e.target.value)} onBlur={() => !newFolder && setNewFolder(null)} />
+                </form>
+              ) : (
+                <button className="xc-node add" disabled={readOnly} onClick={() => setNewFolder("")}><Icon name="plus" size={16} /><span>New folder</span></button>
+              )}
+              {bin && (
+                <button className="xc-node bin" aria-current={inBin} data-drop={dropOn === bin.id} onClick={() => setGroup(bin.id)} {...dropProps(bin.id)}>
+                  <Icon name="trash" size={16} /><span>Recycle bin</span>{bin.entries > 0 && <span className="num">{bin.entries}</span>}
+                </button>
+              )}
               {current && current.depth > 0 && !current.recycle_bin && (
-                <FolderMenu g={current} readOnly={readOnly} onRename={(n) => run(() => api.vaultRenameGroup(current.id, n))} onDelete={() => run(() => api.vaultDeleteGroup(current.id), `${current.name} moved to the recycle bin.`).then(() => setGroup(null))} />
+                <div className="xc-tree-foot">
+                  <FolderMenu g={current} readOnly={readOnly} onRename={(n) => run(() => api.vaultRenameGroup(current.id, n))} onDelete={() => run(() => api.vaultDeleteGroup(current.id), `${current.name} moved to the recycle bin.`).then(() => setGroup(null))} />
+                </div>
               )}
               {inBin && entries && entries.length > 0 && (
-                <button className="small-btn danger" onClick={() => run(async () => { const n = await api.vaultEmptyBin(); setSelected(null); return n; }, "Recycle bin emptied.")}>Empty</button>
+                <div className="xc-tree-foot">
+                  <button className="small-btn danger" onClick={() => run(async () => { const n = await api.vaultEmptyBin(); setSelected(null); return n; }, "Recycle bin emptied.")}>Empty the recycle bin</button>
+                </div>
               )}
-            </div>
-            {entries === null ? null : entries.length === 0 ? (
-              <div className="day-empty">
-                {search ? <span className="muted">Nothing matches "{search}".</span> : inBin ? <span className="muted">The recycle bin is empty.</span> : (
-                  <>
-                    <strong>No passwords here yet.</strong>
-                    <span className="muted">Add one, or bring in your KeePass file or an export from your browser or another password manager.</span>
-                    <div className="toolbar">
-                      <button className="primary" disabled={readOnly} onClick={() => setEditing("new")}>New entry</button>
-                      <button onClick={() => setTab("settings")}>Import</button>
-                      <button className="quiet" onClick={() => run(() => api.vaultAddSamples(), "Sample entries added in the Samples folder.")}>Add sample entries</button>
+            </nav>
+
+            <div className="xc-main">
+              <div className="xc-table">
+                <div className="xc-thead vault-cols" role="row">
+                  {head("title", "Title")}
+                  {head("username", "Username")}
+                  <span className="th">Password</span>
+                  {head("url", "URL")}
+                  {group === null ? head("group", "Folder") : <span className="th">Notes</span>}
+                  {head("modified", "Modified")}
+                </div>
+                <div className="xc-rows" ref={rowsRef} tabIndex={0} role="listbox" aria-label="Entries">
+                  {sorted === null ? null : sorted.length === 0 ? (
+                    <div className="empty">
+                      {search ? <span>Nothing matches "{search}".</span> : inBin ? <span>The recycle bin is empty.</span> : (
+                        <>
+                          <strong>No passwords here yet.</strong>
+                          <span>Add one, or bring in your KeePass file or an export from your browser or another password manager.</span>
+                          <div className="toolbar">
+                            <button className="primary" disabled={readOnly} onClick={() => setEditing("new")}>New entry</button>
+                            <button onClick={() => setTab("settings")}>Import</button>
+                            <button className="quiet" onClick={() => run(() => api.vaultAddSamples(), "Sample entries added in the Samples folder.")}>Add sample entries</button>
+                          </div>
+                        </>
+                      )}
                     </div>
-                  </>
+                  ) : (
+                    sorted.map((e) => (
+                      <div
+                        key={e.id}
+                        data-id={e.id}
+                        role="option"
+                        aria-selected={selected === e.id}
+                        className={`xc-row vault-cols${selected === e.id ? " active" : ""}${e.expired ? " expired" : ""}`}
+                        draggable={!readOnly}
+                        onDragStart={(ev) => { ev.dataTransfer.setData("sompio/entry", e.id); ev.dataTransfer.effectAllowed = "move"; }}
+                        onClick={() => setSelected(e.id)}
+                        onDoubleClick={() => run(async () => copied(await api.vaultCopy(e.id, "Password"), "Password copied"))}
+                      >
+                        <span className="c-title"><Avatar title={e.title} />{e.title}{e.has_totp && <span className="flag" title="Has 2FA codes">2FA</span>}{e.expired && <span className="flag bad">Expired</span>}</span>
+                        <span>{e.username}</span>
+                        <span className="faint">{e.has_password ? "••••••••" : ""}</span>
+                        <span className="faint">{e.url.replace(/^https?:\/\/(www\.)?/, "")}</span>
+                        <span className="faint">{group === null ? e.group_path : ""}</span>
+                        <span className="faint c-date">{when(e.modified)}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+                {entries && entries.length > 0 && (
+                  <div className="xc-status small faint">
+                    {plural(entries.length, "entry", "entries")} · Double-click copies the password · Drag an entry onto a folder to move it
+                  </div>
                 )}
               </div>
-            ) : (
-              <ul className="entries" role="listbox" aria-label="Entries">
-                {entries.map((e) => (
-                  <li key={e.id} role="option" aria-selected={selected === e.id}>
-                    <button className="entry-row" onClick={() => setSelected(e.id)} onDoubleClick={() => run(async () => copied(await api.vaultCopy(e.id, "Password"), "Password copied"))}>
-                      <Avatar title={e.title} />
-                      <span className="entry-name">
-                        <strong>{e.title}</strong>
-                        <span className="small muted">{e.username || e.url.replace(/^https?:\/\//, "") || " "}</span>
-                      </span>
-                      <span className="entry-flags">
-                        {e.has_totp && <span className="flag" title="Has 2FA codes">2FA</span>}
-                        {e.expired && <span className="flag bad" title="Expired">Expired</span>}
-                        {group === null && e.group_path && <span className="faint small">{e.group_path}</span>}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {entries && entries.length > 0 && <div className="list-foot small faint">{plural(entries.length, "entry", "entries")} · double-click to copy a password</div>}
-          </section>
 
-          <section className="panel entry-detail" aria-label="Entry" ref={(el) => {
-            // In a narrow window the entry sits under the list: bring it into view when one is picked
-            if (el && detail && window.innerWidth <= 1150 && el.dataset.shown !== detail.id) { el.dataset.shown = detail.id; el.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
-          }}>
-            {detail ? (
-              <EntryView
-                key={detail.id}
-                d={detail}
-                groups={groups}
-                readOnly={readOnly}
-                onCopied={copied}
-                onError={(t) => setToast({ ok: false, text: t })}
-                onEdit={() => setEditing(detail)}
-                run={run}
-                onGone={() => setSelected(null)}
-              />
-            ) : (
-              <div className="detail-empty muted">
-                <Icon name="key" size={28} />
-                <span>Choose an entry to see it here.</span>
-              </div>
-            )}
-          </section>
-        </div>
+              <section className="xc-preview entry-detail" aria-label="Entry">
+                {detail ? (
+                  <EntryView
+                    key={detail.id}
+                    d={detail}
+                    groups={groups}
+                    readOnly={readOnly}
+                    onCopied={copied}
+                    onError={(t) => setToast({ ok: false, text: t })}
+                    onEdit={() => setEditing(detail)}
+                    run={run}
+                    onGone={() => setSelected(null)}
+                  />
+                ) : (
+                  <div className="detail-empty small muted">Choose an entry to see it here. Shortcuts: Ctrl+B username, Ctrl+C password, Ctrl+U website, Ctrl+Shift+V type it.</div>
+                )}
+              </section>
+            </div>
+          </div>
+        </>
       )}
 
-      {tab === "health" && <Health onOpen={(id) => { setSelected(id); setGroup(null); setSearch(""); setTab("passwords"); }} />}
-      {tab === "generator" && <section className="panel gen-page"><Generator onCopied={(s) => copied(s)} /></section>}
-      {tab === "settings" && <VaultSettingsPanel readOnly={readOnly} onDone={(ok, text) => { setToast({ ok, text }); load(); }} />}
+      {tab === "health" && <div className="page"><Health onOpen={(id) => { setSelected(id); setGroup(null); setSearch(""); setTab("passwords"); }} /></div>}
+      {tab === "generator" && <div className="page"><section className="panel gen-page"><Generator onCopied={(s) => copied(s)} /></section></div>}
+      {tab === "settings" && <div className="page"><VaultSettingsPanel readOnly={readOnly} onDone={(ok, text) => { setToast({ ok, text }); load(); }} /></div>}
 
       {editing && (
         <VaultEntryDialog

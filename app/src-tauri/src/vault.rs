@@ -219,6 +219,11 @@ pub async fn vault_restore_version(app: AppHandle, state: State<'_, AppState>, i
 }
 
 #[tauri::command]
+pub async fn vault_clone_entry(app: AppHandle, state: State<'_, AppState>, id: String) -> CmdResult<String> {
+    change(&app, &state, move |v| v.clone_entry(&id)).await
+}
+
+#[tauri::command]
 pub async fn vault_move_entry(app: AppHandle, state: State<'_, AppState>, id: String, group: String) -> CmdResult<()> {
     change(&app, &state, move |v| v.move_entry(&id, &group)).await
 }

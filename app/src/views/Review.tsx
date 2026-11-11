@@ -27,7 +27,15 @@ interface Batch { label: string; done: number; total: number; failed: number }
 
 const loadGrouped = () => {
   try {
-    return localStorage.getItem("sompio.review.grouped") !== "0";
+    return localStorage.getItem("sompio.review.grouped2") === "1";
+  } catch {
+    return false;
+  }
+};
+
+const loadReveal = () => {
+  try {
+    return localStorage.getItem("sompio.review.reveal") !== "0";
   } catch {
     return true;
   }
@@ -58,7 +66,8 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
   const [kind, setKind] = useState<KindKey | null>(initialKind);
   const [platform, setPlatform] = useState<Platform | null>(null);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
-  const [revealAll, setRevealAll] = useState(false);
+  const [revealAll, setRevealAll] = useState(loadReveal);
+  const [showTerms, setShowTerms] = useState(false);
   const [revealed, setRevealed] = useState<Map<number, FindingView>>(new Map());
   const [focus, setFocus] = useState(0);
   const [listVersion, setListVersion] = useState(0);
@@ -91,6 +100,8 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
       if (s.some((x) => x.platform === "email")) api.emailStatus().then((t) => setEmailConnected(t.connected)).catch(() => {});
     });
     const un = listen<[number, number]>("scan-progress", setScanning);
+    // Data that was never checked: check it now, so the findings are always there
+    if (scan && scan.scanned_at_ms == null) api.watchTerms().then((t) => runScanRef.current(t));
     return () => void un.then((f) => f());
   }, []);
 
@@ -112,11 +123,12 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
   }, [tab, kind, platform, grouped, sameAs, listVersion]);
   useEffect(() => {
     try {
-      localStorage.setItem("sompio.review.grouped", grouped ? "1" : "0");
+      localStorage.setItem("sompio.review.grouped2", grouped ? "1" : "0");
+      localStorage.setItem("sompio.review.reveal", revealAll ? "1" : "0");
     } catch {
       /* not available: the setting just isn't remembered */
     }
-  }, [grouped]);
+  }, [grouped, revealAll]);
 
   // If the selected type has nothing left (say, after "never flag this again"), go back to everything.
   useEffect(() => {
@@ -135,7 +147,7 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
   const v = useVirtualizer({
     count: total ?? 0,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 96,
+    estimateSize: () => 30,
     overscan: 8,
   });
   const virtualItems = v.getVirtualItems();
@@ -395,6 +407,9 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
     }
   };
 
+  const runScanRef = useRef(runScan);
+  runScanRef.current = runScan;
+
   const addTerm = () => {
     const t = draft.trim();
     if (t.length < 2 || terms.some((x) => x.toLowerCase() === t.toLowerCase())) return;
@@ -415,316 +430,304 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
   const base = items[focus];
   const current = base && (revealed.get(base.id) ? { ...base, ...pickText(revealed.get(base.id)!) } : base);
 
+  const kinds = scan ? scan.by_kind.filter((k) => k.count > 0) : [];
+  const kindCount = (k: (typeof kinds)[number]) => (tab === "open" ? k.open : null);
+  const bySeverity: [number, string][] = [[3, "Fix now"], [2, "Worth a look"], [1, "Low risk"]];
+  const tabCount = scan ? (tab === "open" ? scan.open : tab === "later" ? scan.later : scan.done) : 0;
+
   return (
-    <div className="page full review-page">
-      <div className="review-head">
-        <div className="lede">
-          <h1 style={{ fontSize: "var(--t-xl)" }}>
-            {!scanned ? "Review" : scan!.open > 0 ? `${plural(scan!.open, "thing", "things")} to review` : all > 0 ? "All reviewed" : "Nothing found"}
-          </h1>
-          <p className="muted small">
-            {groupList && total != null && total > 0 && scan && total < (tab === "open" ? scan.open : tab === "later" ? scan.later : scan.done)
-              ? `${plural(total, "different value", "different values")} in this list, repeats grouped. `
-              : ""}
-            Sensitive text stays hidden until you click it.
-          </p>
-        </div>
+    <div className="xc-page review-page">
+      <div className="xc-toolbar" role="toolbar" aria-label="Findings">
+        <button onClick={() => runScan()} disabled={!!scanning} title="Check every message and file again"><Icon name="refresh" size={16} />Check again</button>
+        <button aria-pressed={showTerms} onClick={() => setShowTerms(!showTerms)} title="Your name, street, school: things only you know are sensitive">
+          <Icon name="filter" size={16} />Watch terms{terms.length ? ` (${terms.length})` : ""}
+        </button>
+        <button onClick={exportList} disabled={!scanned || all === 0} title="A list of everything found, with links. No message text."><Icon name="save" size={16} />Save list</button>
+        <span className="sep" />
         {scanned && all > 0 && (
-          <div className="meter">
-            <div className="bar" aria-hidden><span style={{ width: `${(scan!.done / all) * 100}%` }} /></div>
-            <span className="num">{n(scan!.done)} of {n(all)} reviewed</span>
+          <div className="segmented" role="tablist" aria-label="Review status">
+            {([["open", "To review", scan!.open], ["later", "Later", scan!.later], ["done", "Done", scan!.done]] as const).map(([id, label, count]) => (
+              <button key={id} role="tab" aria-selected={tab === id} onClick={() => { setTab(id); setFocus(0); }}>
+                {label} <span className="num">{n(count)}</span>
+              </button>
+            ))}
           </div>
         )}
+        <span className="grow" />
+        <label className="switch" title="Show what was found. Turn off when someone can see your screen.">
+          <input type="checkbox" checked={revealAll} onChange={(e) => { setRevealAll(e.target.checked); setRevealed(new Map()); }} />
+          Show values
+        </label>
+        <label className="switch" title="Show each value once, with how many places it appears">
+          <input type="checkbox" checked={grouped} onChange={(e) => { setGrouped(e.target.checked); setSameAs(null); setFocus(0); }} />
+          Group repeats
+        </label>
       </div>
 
-      <WatchTerms
-        terms={terms}
-        draft={draft}
-        demo={demo}
-        scanned={scanned}
-        changed={termsChanged}
-        scanning={!!scanning}
-        onDraft={setDraft}
-        onAdd={addTerm}
-        onRemove={(t) => setTerms(terms.filter((x) => x !== t))}
-        onScan={() => runScan()}
-      />
+      {(showTerms || !scanned) && (
+        <WatchTerms
+          terms={terms}
+          draft={draft}
+          demo={demo}
+          scanned={scanned}
+          changed={termsChanged}
+          scanning={!!scanning}
+          onDraft={setDraft}
+          onAdd={addTerm}
+          onRemove={(t) => setTerms(terms.filter((x) => x !== t))}
+          onScan={() => runScan()}
+          onClose={() => setShowTerms(false)}
+        />
+      )}
       {scanning && (
-        <div className="progress" role="status" aria-live="polite">
-          <span>Checking {n(Math.round(scanning[0]))} of {n(scanning[1])} items</span>
+        <div className="progress xc-progress" role="status" aria-live="polite">
+          <span>Checking {n(Math.round(scanning[0]))} of {n(scanning[1])} items for personal information</span>
           <div className="bar"><span style={{ width: `${pct}%` }} /></div>
         </div>
       )}
+      {sameAs && (
+        <div className="banner-row">
+          <span>Every place this {NOUN[sameAs.kind]} appears{total != null ? ` (${n(total)})` : ""}. Decide on them one by one.</span>
+          <button className="quiet" onClick={() => { setSameAs(null); setFocus(0); }}>Back to the full list</button>
+        </div>
+      )}
+      {selected.size > 0 && (
+        <BulkBar
+          count={selected.size}
+          grouped={groupList}
+          tab={tab}
+          live={(() => {
+            const ps = new Set([...selected.values()].map((f) => f.platform));
+            if (ps.size !== 1) return null;
+            const how = liveFor([...ps][0]);
+            return how && tab !== "done" ? how.ask(selected.size) : null;
+          })()}
+          onDecide={decideSelected}
+          onLive={async () => runLive(await expandSelection())}
+          onClear={() => setSelected(new Map())}
+        />
+      )}
 
-      {scanned && all > 0 && (
-        <>
-          <div className="toolbar">
-            <div className="segmented" role="tablist" aria-label="Review status">
-              {([["open", "To review", scan!.open], ["later", "Later", scan!.later], ["done", "Done", scan!.done]] as const).map(([id, label, count]) => (
-                <button key={id} role="tab" aria-selected={tab === id} onClick={() => { setTab(id); setFocus(0); }}>
-                  {label} <span className="num">{n(count)}</span>
-                </button>
+      <div className="xc-body">
+        <aside className="xc-tree" aria-label="What was found">
+          <button className="xc-node root" aria-current={kind == null} onClick={() => { setKind(null); setFocus(0); }}>
+            <Icon name="review" size={16} /><span>Everything found</span><span className="num">{n(tabCount)}</span>
+          </button>
+          {bySeverity.map(([sev, title]) => {
+            const ks = kinds.filter((k) => k.severity === sev);
+            if (!ks.length) return null;
+            return (
+              <div key={sev} className="xc-branch">
+                <div className="xc-branch-label"><span className={`sev sev-${sev}`} />{title}</div>
+                {ks.map((k) => (
+                  <button key={k.kind} className="xc-node" aria-current={kind === k.kind} onClick={() => { setKind(k.kind); setFocus(0); }}>
+                    <span>{k.label}</span><span className="num">{kindCount(k) == null ? "" : n(kindCount(k)!)}</span>
+                  </button>
+                ))}
+              </div>
+            );
+          })}
+          {platforms.length > 1 && (
+            <div className="xc-branch">
+              <div className="xc-branch-label">Where</div>
+              <button className="xc-node" aria-current={platform == null} onClick={() => { setPlatform(null); setFocus(0); }}><span>All sources</span></button>
+              {platforms.map((p) => (
+                <button key={p} className="xc-node" aria-current={platform === p} onClick={() => { setPlatform(p); setFocus(0); }}><span>{platformName[p]}</span></button>
               ))}
             </div>
-            <select aria-label="Type" value={kind ?? ""} onChange={(e) => { setKind((e.target.value || null) as KindKey | null); setFocus(0); }}>
-              <option value="">All types</option>
-              {scan!.by_kind.filter((k) => k.count > 0).map((k) => (
-                <option key={k.kind} value={k.kind}>{k.label} ({n(k.open)})</option>
-              ))}
-            </select>
-            {platforms.length > 1 && (
-              <select aria-label="Source" value={platform ?? ""} onChange={(e) => { setPlatform((e.target.value || null) as Platform | null); setFocus(0); }}>
-                <option value="">All sources</option>
-                {platforms.map((p) => <option key={p} value={p}>{platformName[p]}</option>)}
-              </select>
-            )}
-            <span className="grow" />
-            <label className="switch" title="Show each value once, with how many places it appears">
-              <input type="checkbox" checked={grouped} onChange={(e) => { setGrouped(e.target.checked); setSameAs(null); setFocus(0); }} />
-              Group repeats
-            </label>
-            <label className="switch">
-              <input type="checkbox" checked={revealAll} onChange={(e) => setRevealAll(e.target.checked)} />
-              Show all hidden text
-            </label>
-            <button className="quiet" onClick={exportList}>Save list</button>
-          </div>
-
-          {sameAs && (
-            <div className="banner-row">
-              <span>
-                Every place this {NOUN[sameAs.kind]} appears{total != null ? ` (${n(total)})` : ""}. Decide on them one by one.
-              </span>
-              <button className="quiet" onClick={() => { setSameAs(null); setFocus(0); }}>Back to the full list</button>
+          )}
+          {scanned && all > 0 && (
+            <div className="xc-tree-foot">
+              <div className="bar" aria-hidden><span style={{ width: `${(scan!.done / all) * 100}%` }} /></div>
+              <span className="small muted">{n(scan!.done)} of {n(all)} dealt with</span>
             </div>
           )}
-          {selected.size > 0 && (
-            <BulkBar
-              count={selected.size}
-              grouped={groupList}
-              tab={tab}
-              live={(() => {
-                const ps = new Set([...selected.values()].map((f) => f.platform));
-                if (ps.size !== 1) return null;
-                const how = liveFor([...ps][0]);
-                return how && tab !== "done" ? how.ask(selected.size) : null;
-              })()}
-              onDecide={decideSelected}
-              onLive={async () => runLive(await expandSelection())}
-              onClear={() => setSelected(new Map())}
-            />
-          )}
+        </aside>
 
-          <div className="review-grid">
-            <div className="review-list" ref={parentRef} role="listbox" aria-label="Findings" aria-activedescendant={base ? `f-${base.id}` : undefined}>
-              {total === 0 && (
+        <div className="xc-main">
+          <div className="xc-table">
+            <div className="xc-thead" role="row">
+              <span />
+              <span>Type</span>
+              <span>Found</span>
+              <span>In the message</span>
+              <span>Where</span>
+              <span>Date</span>
+            </div>
+            <div className="xc-rows" ref={parentRef} role="listbox" aria-label="Findings" aria-activedescendant={base ? `f-${base.id}` : undefined} tabIndex={0}>
+              {scanned && total === 0 && (
                 <div className="empty">
-                  {tab === "open" ? "Nothing left to review here." : tab === "later" ? "Nothing saved for later." : "Nothing marked as done yet."}
+                  {all === 0 ? "Nothing personal found. Add more sources, or watch terms like your name." : tab === "open" ? "Nothing left to review here." : tab === "later" ? "Nothing saved for later." : "Nothing marked as done yet."}
                 </div>
               )}
+              {!scanned && !scanning && <div className="empty">Not checked yet. Click Check again.</div>}
               <div style={{ height: v.getTotalSize(), position: "relative" }}>
                 {virtualItems.map((row) => {
                   const f = items[row.index];
+                  const shown = f && revealed.get(f.id);
+                  const t = shown ? { ...f!, ...pickText(shown) } : f;
                   return (
-                    <div
-                      key={row.key}
-                      data-index={row.index}
-                      ref={v.measureElement}
-                      style={{ position: "absolute", top: 0, left: 0, right: 0, transform: `translateY(${row.start}px)` }}
-                    >
-                      {f ? (
+                    <div key={row.key} style={{ position: "absolute", top: 0, left: 0, right: 0, height: row.size, transform: `translateY(${row.start}px)` }}>
+                      {t ? (
                         <div
-                          id={`f-${f.id}`}
+                          id={`f-${t.id}`}
                           role="option"
                           aria-selected={row.index === focus}
-                          className={`item${row.index === focus ? " active" : ""}${selected.has(f.id) ? " picked" : ""}`}
+                          className={`xc-row${row.index === focus ? " active" : ""}${selected.has(t.id) ? " picked" : ""}${t.status ? " decided" : ""}`}
                           onClick={(e) => {
-                            if (e.shiftKey || e.ctrlKey || e.metaKey) toggleSelect(f, row.index, e.shiftKey);
+                            if (e.shiftKey || e.ctrlKey || e.metaKey) toggleSelect(t, row.index, e.shiftKey);
                             setFocus(row.index);
                           }}
+                          onDoubleClick={() => goTo(t)}
                         >
-                          <div className="item-top">
-                            <input
-                              type="checkbox"
-                              className="pick"
-                              aria-label="Select"
-                              checked={selected.has(f.id)}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={(e) => toggleSelect(f, row.index, (e.nativeEvent as MouseEvent).shiftKey)}
-                            />
-                            <span className={`sev sev-${f.severity}`} aria-label={severityLabel(f.severity)} />
-                            <span className="what">{f.label}</span>
-                            {f.repeats > 1 && groupList && <span className="repeats" title={`Appears in ${f.repeats} places`}>×{n(f.repeats)}</span>}
-                            <span className="when">{dateTime(f.ts)}</span>
-                          </div>
-                          <div className="item-snippet">
-                            {f.before.slice(-50)}
-                            <span className={`redact${f.masked ? "" : " shown"}`}>{f.matched}</span>
-                            {f.after}
-                          </div>
-                          <div className="item-where">
-                            {f.repeats > 1 && groupList ? `${n(f.repeats)} places, newest in ${platformName[f.platform]}` : `${platformName[f.platform]}, ${f.channel_name}`}
-                          </div>
+                          <span>
+                            <input type="checkbox" aria-label="Select" checked={selected.has(t.id)} onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => toggleSelect(t, row.index, (e.nativeEvent as MouseEvent).shiftKey)} />
+                          </span>
+                          <span className="c-type"><span className={`sev sev-${t.severity}`} aria-label={severityLabel(t.severity)} />{t.label}</span>
+                          <span className="c-found">
+                            {t.masked ? <span className="redact">{t.matched}</span> : <strong>{t.matched}</strong>}
+                          </span>
+                          <span className="c-msg">{t.before.slice(-40)}<mark>{t.masked ? "•••" : t.matched}</mark>{t.after.slice(0, 60)}</span>
+                          <span className="c-where">{t.repeats > 1 && groupList ? `${n(t.repeats)} places` : `${platformName[t.platform]}, ${t.channel_name}`}</span>
+                          <span className="c-date">{dateTime(t.ts)}</span>
                         </div>
                       ) : (
-                        <div className="item"><div className="placeholder" /></div>
+                        <div className="xc-row"><span /><div className="placeholder" /></div>
                       )}
                     </div>
                   );
                 })}
               </div>
             </div>
+          </div>
 
-            <div className="detail">
-              {current ? (
-                <>
-                  <div className="detail-head">
-                    <span className={`risk risk-${current.severity}`}>{severityLabel(current.severity)}</span>
-                    <h2>{current.label}</h2>
-                    <div className="detail-meta">
-                      <span className="tag">{platformName[current.platform]}</span>
-                      <span>{current.channel_name}</span>
-                      <span>{dateTime(current.ts)}</span>
-                      {current.status && (
-                        <span className="status-chip"><Icon name="check" size={14} />{current.status === "deleted" ? "Deleted" : current.status === "ok" ? "Not a problem" : "Saved for later"}</span>
+          <div className="xc-preview detail">
+            {current ? (
+              <>
+                <div className="xc-preview-head">
+                  <span className={`risk risk-${current.severity}`}>{severityLabel(current.severity)}</span>
+                  <h2>{current.label}</h2>
+                  <span className="tag">{platformName[current.platform]}</span>
+                  <span className="small muted">{current.channel_name}, {dateTime(current.ts)}</span>
+                  {current.status && (
+                    <span className="status-chip"><Icon name="check" size={14} />{current.status === "deleted" ? "Deleted" : current.status === "ok" ? "Not a problem" : "Saved for later"}</span>
+                  )}
+                </div>
+                <div className="xc-preview-body">
+                  <div className="xc-preview-text">
+                    <p className="quote">
+                      {current.before}
+                      <button
+                        className={`redact${current.masked ? "" : " shown"}`}
+                        onClick={() => toggleReveal(base!)}
+                        aria-label={current.masked ? `Show hidden ${current.label.toLowerCase()}` : "Hide again"}
+                      >
+                        {current.matched}
+                      </button>
+                      {current.after}
+                    </p>
+                    <p className="small muted advice-line"><strong>What to do: </strong>{current.advice}</p>
+                    {current.repeats > 1 && !sameAs && (
+                      <div className="group-box">
+                        <div>
+                          <strong>{groupList ? "This" : "The same"} {NOUN[current.kind]} appears in {n(current.repeats)} places</strong>
+                          <span className="small muted">
+                            {group
+                              ? `${group.platforms.map((p) => `${platformName[p.platform]} ${n(p.count)}`).join(", ")}. ${yearSpan(group.first_ts, group.last_ts)}`
+                              : "Counting…"}
+                          </span>
+                        </div>
+                        <div className="toolbar">
+                          {group && tab !== "done" && group.platforms
+                            .map((p) => ({ p: p.platform, how: liveFor(p.platform), count: p.count }))
+                            .filter((x) => x.how)
+                            .map((x) =>
+                              confirmGroupDelete === x.p ? (
+                                <span key={x.p} className="toolbar">
+                                  <button
+                                    className="danger"
+                                    onClick={() => {
+                                      setConfirmGroupDelete(null);
+                                      runLive(group.ids.map((id, i) => ({ id, message_id: group.message_ids[i], platform: group.member_platforms[i] })).filter((t) => t.platform === x.p));
+                                    }}
+                                  >
+                                    <Icon name="trash" size={16} />Yes, delete them
+                                  </button>
+                                  <button className="quiet" onClick={() => setConfirmGroupDelete(null)}>Cancel</button>
+                                </span>
+                              ) : (
+                                <button key={x.p} onClick={() => setConfirmGroupDelete(x.p)}><Icon name="trash" size={16} />{x.how!.ask(x.count)}</button>
+                              ),
+                            )}
+                          <button className="quiet" onClick={() => { setSameAs(current); setFocus(0); }}>Show each place</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="xc-preview-actions">
+                    <div className="go-row">
+                      {current.platform === "pc" ? (
+                        <>
+                          <button className="primary" onClick={() => goTo(current)}><Icon name="folder" size={16} />Show in folder</button>
+                          {!current.status &&
+                            (confirmRecycle ? (
+                              <>
+                                <button className="danger" onClick={() => recycle(current)}><Icon name="trash" size={16} />Yes, to the Recycle Bin</button>
+                                <button className="quiet" onClick={() => setConfirmRecycle(false)}>Cancel</button>
+                              </>
+                            ) : (
+                              <button onClick={() => setConfirmRecycle(true)}><Icon name="trash" size={16} />Move to Recycle Bin…</button>
+                            ))}
+                          <button className="quiet" onClick={() => copyLink(current)}><Icon name="copy" size={16} />Copy path</button>
+                        </>
+                      ) : (
+                        <>
+                          {liveDelete(current) &&
+                            (confirmRecycle ? (
+                              <>
+                                <button className="danger" onClick={() => deleteLive(current)}><Icon name="trash" size={16} />{liveDelete(current)!.confirm}</button>
+                                <button className="quiet" onClick={() => setConfirmRecycle(false)}>Cancel</button>
+                              </>
+                            ) : (
+                              <button className="primary" onClick={() => setConfirmRecycle(true)}><Icon name="trash" size={16} />{liveDelete(current)!.ask}</button>
+                            ))}
+                          {(current.link || !liveDelete(current)) && (
+                            <button className={liveDelete(current) ? undefined : "primary"} onClick={() => goTo(current)}><Icon name="external" size={16} />{openLabel(current.platform)}</button>
+                          )}
+                          {current.link && <button onClick={() => copyLink(current)}><Icon name="copy" size={16} />Copy link</button>}
+                          <button className="quiet" onClick={() => onOpen({ channelId: current.channel_id, messageId: current.message_id })}>
+                            <Icon name="messages" size={16} />Show conversation
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    <div className="decide">
+                      {current.status ? (
+                        <button onClick={() => decide(current, null)}>Move back to review <span className="key">U</span></button>
+                      ) : (
+                        <div className="decide-row">
+                          <button onClick={() => decideHere(current, "deleted")}><Icon name="check" size={16} />{groupIds(current) ? "I deleted them all" : "I deleted it"} <span className="key">D</span></button>
+                          <button onClick={() => decideHere(current, "ok")}>Not a problem{groupIds(current) ? ` (all ${n(groupIds(current)!.length)})` : ""} <span className="key">N</span></button>
+                          <button onClick={() => decideHere(current, "later")}><Icon name="clock" size={16} />Later <span className="key">L</span></button>
+                        </div>
+                      )}
+                      {!current.status && (
+                        <button className="link small" onClick={() => ignoreEverywhere(current)}>Never flag this {NOUN[current.kind]} again</button>
                       )}
                     </div>
                   </div>
-
-                  <p className="quote">
-                    {current.before}
-                    <button
-                      className={`redact${current.masked ? "" : " shown"}`}
-                      onClick={() => toggleReveal(base!)}
-                      aria-label={current.masked ? `Show hidden ${current.label.toLowerCase()}` : "Hide again"}
-                    >
-                      {current.matched}
-                    </button>
-                    {current.after}
-                    <span className="hint">{current.masked ? "Click the dark bar, or press Space, to see what was found." : "Click it again to hide."}</span>
-                  </p>
-
-                  {current.repeats > 1 && !sameAs && (
-                    <div className="group-box">
-                      <div>
-                        <strong>
-                          {groupList ? "This" : "The same"} {NOUN[current.kind]} appears in {n(current.repeats)} places
-                        </strong>
-                        <span className="small muted">
-                          {group
-                            ? `${group.platforms.map((p) => `${platformName[p.platform]} ${n(p.count)}`).join(", ")}. ${yearSpan(group.first_ts, group.last_ts)}`
-                            : "Counting…"}
-                        </span>
-                      </div>
-                      <div className="toolbar">
-                        {group && tab !== "done" && (() => {
-                          const live = group.platforms.map((p) => ({ p: p.platform, how: liveFor(p.platform), count: p.count })).filter((x) => x.how);
-                          return live.map((x) =>
-                            confirmGroupDelete === x.p ? (
-                              <span key={x.p} className="toolbar">
-                                <button
-                                  className="danger"
-                                  onClick={() => {
-                                    setConfirmGroupDelete(null);
-                                    runLive(group.ids.map((id, i) => ({ id, message_id: group.message_ids[i], platform: group.member_platforms[i] })).filter((t) => t.platform === x.p));
-                                  }}
-                                >
-                                  <Icon name="trash" size={16} />Yes, delete them
-                                </button>
-                                <button className="quiet" onClick={() => setConfirmGroupDelete(null)}>Cancel</button>
-                              </span>
-                            ) : (
-                              <button key={x.p} onClick={() => setConfirmGroupDelete(x.p)}>
-                                <Icon name="trash" size={16} />{x.how!.ask(x.count)}
-                              </button>
-                            ),
-                          );
-                        })()}
-                        <button className="quiet" onClick={() => { setSameAs(current); setFocus(0); }}>Show each place</button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="advice">
-                    <strong>What to do</strong>
-                    <p>{current.advice}</p>
-                  </div>
-
-                  <div className="go-row">
-                    {current.platform === "pc" ? (
-                      <>
-                        <button className="primary" onClick={() => goTo(current)}><Icon name="folder" size={16} />Show in folder</button>
-                        {!current.status &&
-                          (confirmRecycle ? (
-                            <>
-                              <button className="danger" onClick={() => recycle(current)}><Icon name="trash" size={16} />Yes, move it to the Recycle Bin</button>
-                              <button className="quiet" onClick={() => setConfirmRecycle(false)}>Cancel</button>
-                            </>
-                          ) : (
-                            <button onClick={() => setConfirmRecycle(true)}><Icon name="trash" size={16} />Move to Recycle Bin…</button>
-                          ))}
-                        <button className="quiet" onClick={() => copyLink(current)}><Icon name="copy" size={16} />Copy path</button>
-                      </>
-                    ) : (
-                      <>
-                        {liveDelete(current) && (
-                          confirmRecycle ? (
-                            <>
-                              <button className="danger" onClick={() => deleteLive(current)}><Icon name="trash" size={16} />{liveDelete(current)!.confirm}</button>
-                              <button className="quiet" onClick={() => setConfirmRecycle(false)}>Cancel</button>
-                            </>
-                          ) : (
-                            <button className="primary" onClick={() => setConfirmRecycle(true)}><Icon name="trash" size={16} />{liveDelete(current)!.ask}</button>
-                          )
-                        )}
-                        {(current.link || !liveDelete(current)) && (
-                          <button className={liveDelete(current) ? undefined : "primary"} onClick={() => goTo(current)}><Icon name="external" size={16} />{openLabel(current.platform)}</button>
-                        )}
-                        {current.link && <button onClick={() => copyLink(current)}><Icon name="copy" size={16} />Copy link</button>}
-                        <button className="quiet" onClick={() => onOpen({ channelId: current.channel_id, messageId: current.message_id })}>
-                          <Icon name="messages" size={16} />Show conversation
-                        </button>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="decide">
-                    <span className="small muted">{current.status ? "You already decided on this one." : "When you're done, mark it:"}</span>
-                    {current.status ? (
-                      <div><button onClick={() => decide(current, null)}>Move back to review <span className="faint">U</span></button></div>
-                    ) : (
-                      <div className="decide-row">
-                        <button onClick={() => decideHere(current, "deleted")}><Icon name="check" size={16} />{groupIds(current) ? "I deleted them all" : "I deleted it"} <span className="key">D</span></button>
-                        <button onClick={() => decideHere(current, "ok")}>Not a problem{groupIds(current) ? ` (all ${n(groupIds(current)!.length)})` : ""} <span className="key">N</span></button>
-                        <button onClick={() => decideHere(current, "later")}><Icon name="clock" size={16} />Later{groupIds(current) ? ` (all ${n(groupIds(current)!.length)})` : ""} <span className="key">L</span></button>
-                      </div>
-                    )}
-                    {!current.status && (
-                      <div>
-                        <button className="link small" onClick={() => ignoreEverywhere(current)}>Never flag this {NOUN[current.kind]} again</button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="detail-foot" aria-label="Keyboard shortcuts">
-                    <span><kbd>J</kbd> <kbd>K</kbd> next, previous</span>
-                    <span><kbd>Space</kbd> show or hide</span>
-                    <span><kbd>O</kbd> open where it is</span>
-                    <span><kbd>C</kbd> copy link</span>
-                    <span><kbd>X</kbd> select, <kbd>Shift</kbd>-click a range</span>
-                  </div>
-                </>
-              ) : (
-                <div className="detail-empty">
-                  <span className="step-icon good"><Icon name="check" size={24} /></span>
-                  <h3>{tab === "open" ? "Nothing to review here" : "Nothing in this list"}</h3>
-                  <p className="small">Try another filter, or add more sources to check.</p>
                 </div>
-              )}
-            </div>
+              </>
+            ) : (
+              <div className="detail-empty small muted">
+                {scanned ? "Pick something in the list to see it here. Double-click opens it where it was posted." : ""}
+              </div>
+            )}
           </div>
-        </>
-      )}
+        </div>
+      </div>
 
       {batch && (
         <div className="toast" role="status" aria-live="polite">
@@ -781,36 +784,15 @@ function BulkBar(p: {
   );
 }
 
-function WatchTerms(props: {
+function WatchTerms(p: {
   terms: string[]; draft: string; demo: boolean; scanned: boolean; changed: boolean; scanning: boolean;
-  onDraft: (s: string) => void; onAdd: () => void; onRemove: (t: string) => void; onScan: () => void;
+  onDraft: (s: string) => void; onAdd: () => void; onRemove: (t: string) => void; onScan: () => void; onClose: () => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const open = editing || (props.terms.length === 0 && !dismissed) || props.changed || !props.scanned;
-  if (!open && props.terms.length === 0) {
-    return (
-      <div className="watch-compact">
-        <span className="muted">No watch terms yet.</span>
-        <button className="small-btn ghost" onClick={() => { setDismissed(false); setEditing(true); }}>Add your name or street</button>
-      </div>
-    );
-  }
-  if (!open) {
-    return (
-      <div className="watch-compact">
-        <span className="muted">Watch terms</span>
-        <span className="chips">{props.terms.map((t) => <span className="chip plain" key={t}>{t}</span>)}</span>
-        <button className="small-btn ghost" onClick={() => setEditing(true)}>Edit</button>
-      </div>
-    );
-  }
-  const p = props;
   const empty = p.terms.length === 0;
   return (
-    <div className={`watch slim${empty && p.scanned ? " prompt" : ""}`}>
+    <div className="watch slim">
       <div className="watch-title">
-        <h3>{empty && p.scanned ? "Add what only you know is sensitive" : "Watch terms"}</h3>
+        <h3>Watch terms</h3>
         <span className="muted small">
           Your real name, street, school or employer. Patterns can't guess these. They never leave this PC.
           {p.demo && " In the sample, try Sam Rivers."}
@@ -839,8 +821,7 @@ function WatchTerms(props: {
         <button className={p.changed || !p.scanned ? "primary" : undefined} onClick={p.onScan} disabled={p.scanning}>
           {p.scanned ? "Check again" : "Start checking"}
         </button>
-        {!empty && !p.changed && p.scanned && <button className="quiet" onClick={() => setEditing(false)}>Done</button>}
-        {empty && p.scanned && <button className="quiet" onClick={() => { setEditing(false); setDismissed(true); }}>Not now</button>}
+        {p.scanned && <button className="quiet" onClick={p.onClose}>Close</button>}
       </div>
       {p.changed && !p.scanning && <p className="small note">Your watch terms changed. Check again to include them. Your decisions are kept.</p>}
     </div>
