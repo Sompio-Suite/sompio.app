@@ -73,10 +73,14 @@ $c = config();
   <main class="wrap">
     <?php if ($flash): ?><p class="<?= $flash['ok'] ? 'success' : 'error' ?>" role="status"><?= e($flash['text']) ?></p><?php endif; ?>
 
-    <section class="hero">
-      <div>
+    <div class="hero">
+      <div class="hero-intro">
         <h1>Thanks for testing Sompio</h1>
         <p class="lead">Everything you put in Sompio stays on your PC, encrypted. There's no account, and nothing is sent to us. Please use made-up data while testing: the app's Samples page has some for everything.</p>
+        <div class="beta-note">
+          <h2>Beta: not the final product</h2>
+          <p>This is a test version. Things may break, look unfinished, or change before the real release, and some parts will still be improved because of what you tell us. Please use made-up data instead of your real passwords and messages, and don't rely on it for anything important yet.</p>
+        </div>
       </div>
       <div class="card download">
         <?php if ($release): ?>
@@ -95,14 +99,7 @@ $c = config();
           <p class="muted">The first test version isn't up yet. Check back shortly.</p>
         <?php endif; ?>
       </div>
-    </section>
-
-    <section class="beta-note">
-      <h2>Beta: not the final product</h2>
-      <p>This is a test version. Things may break, look unfinished, or change before the real release, and some parts will still be improved because of what you tell us. Please use made-up data instead of your real passwords and messages, and don't rely on it for anything important yet.</p>
-    </section>
-
-    <section id="install">
+    <section id="install" class="hero-install">
       <h2>Installing: Windows will warn you, and that's expected</h2>
       <p>This test version isn't signed with a Microsoft certificate yet (the finished version will be). Until then, Windows and your browser don't know Sompio and show warnings. Here's what you'll see and what to click.</p>
       <ol class="steps">
@@ -128,6 +125,9 @@ $c = config();
       </ol>
       <p class="small muted">To update later, download the new version here and install it over the old one. Your data stays.</p>
     </section>
+    </div>
+
+
 
     <section id="test">
       <h2>What to test</h2>
