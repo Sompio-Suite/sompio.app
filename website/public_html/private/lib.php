@@ -65,7 +65,8 @@ function e(string $s): string
  */
 function attempts_file(): string
 {
-    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    // Behind Cloudflare every visitor arrives from a Cloudflare address; it passes the real one along
+    $ip = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     return PRIVATE_DIR . '/data/tries-' . substr(hash('sha256', 'sompio|' . $ip), 0, 24) . '.json';
 }
 
