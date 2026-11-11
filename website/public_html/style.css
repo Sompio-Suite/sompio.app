@@ -36,7 +36,7 @@ label .muted { font-weight: 400; }
 .success { color: #1e5a22; background: #edf7ee; border: 1px solid #bfe0c2; padding: 0.6rem 0.8rem; border-radius: 6px; }
 
 /* Password page */
-.gate { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 0.6rem; padding: 2rem 20px; text-align: center; background: var(--soft); }
+.gate { min-height: 100vh; min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: 0.6rem; padding: 2rem 20px; text-align: center; background: var(--soft); }
 .gate p { max-width: 44ch; }
 .gate form { width: min(360px, 100%); display: grid; gap: 0.7rem; text-align: left; margin-top: 0.5rem; }
 
@@ -94,6 +94,8 @@ img, svg { max-width: 100%; }
   .card { padding: 1rem; }
   .steps li { padding-left: 0.8rem; }
   .feedback button { justify-self: stretch; }
+  /* Phones: start near the top, so the form is in view right away (and above the keyboard) */
+  .gate { place-content: start center; padding-top: max(2.5rem, 8vh); }
 }
 @media (max-width: 420px) {
   .wrap { padding: 0 14px; }
