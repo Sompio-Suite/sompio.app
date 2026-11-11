@@ -1,0 +1,80 @@
+/* Sompio beta: the same clean white look as the app. System fonts only, nothing loaded from elsewhere. */
+:root {
+  --ink: #1d2125; --ink-2: #525a63; --line: #e2e5e9; --line-2: #c9ced4; --soft: #f5f7f9;
+  --green: #2e7d32; --green-2: #276b2b; --blue: #0067c0; --red: #c0392b;
+  font: 15px/1.55 "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: var(--ink); background: #fff;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+h1, h2, h3 { line-height: 1.25; margin: 0 0 0.5rem; font-weight: 600; }
+h1 { font-size: 1.9rem; } h2 { font-size: 1.35rem; } h3 { font-size: 1.02rem; }
+p { margin: 0 0 0.7rem; max-width: 72ch; }
+a { color: var(--blue); }
+code { font-family: Consolas, ui-monospace, monospace; font-size: 0.85em; background: var(--soft); padding: 0.1rem 0.35rem; border-radius: 4px; }
+.mono { font-family: Consolas, ui-monospace, monospace; font-size: 0.85rem; }
+.muted { color: var(--ink-2); } .small { font-size: 0.86rem; }
+.wrap { width: min(1080px, 100%); margin: 0 auto; padding: 0 20px; }
+.card { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 1.1rem 1.2rem; }
+.tag { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: #e9f4ea; color: var(--green-2); padding: 0.1rem 0.4rem; border-radius: 4px; }
+
+button, .button {
+  font: inherit; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+  border: 1px solid var(--line-2); background: #fdfdfd; color: var(--ink); border-radius: 5px; padding: 0.5rem 1rem; cursor: pointer; text-decoration: none;
+}
+.primary { background: var(--green); border-color: var(--green); color: #fff; }
+.primary:hover { background: var(--green-2); }
+.big { font-size: 1.05rem; padding: 0.7rem 1.4rem; width: 100%; margin: 0.6rem 0; }
+input, select, textarea {
+  font: inherit; width: 100%; border: 1px solid var(--line-2); border-radius: 5px; padding: 0.45rem 0.6rem; background: #fff; color: inherit;
+}
+input:focus, select:focus, textarea:focus { outline: 1px solid var(--blue); border-color: var(--blue); }
+label { display: block; font-weight: 600; font-size: 0.9rem; }
+label > input, label > select, label > textarea { display: block; margin-top: 0.35rem; }
+label .muted { font-weight: 400; }
+.error { color: var(--red); background: #fdf1ef; border: 1px solid #f0c9c4; padding: 0.6rem 0.8rem; border-radius: 6px; }
+.success { color: #1e5a22; background: #edf7ee; border: 1px solid #bfe0c2; padding: 0.6rem 0.8rem; border-radius: 6px; }
+
+/* Password page */
+.gate { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 0.6rem; padding: 2rem 20px; text-align: center; background: var(--soft); }
+.gate p { max-width: 44ch; }
+.gate form { width: min(360px, 100%); display: grid; gap: 0.7rem; text-align: left; margin-top: 0.5rem; }
+
+/* Signed in */
+.top { border-bottom: 1px solid var(--line); background: #fafbfc; position: sticky; top: 0; z-index: 2; }
+.top-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; height: 56px; }
+.brand { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 1.15rem; color: var(--ink); text-decoration: none; }
+.top nav { display: flex; gap: 1.1rem; flex-wrap: wrap; }
+.top nav a { color: var(--ink-2); text-decoration: none; font-size: 0.92rem; }
+.top nav a:hover { color: var(--ink); text-decoration: underline; }
+main.wrap > * { margin-top: 2.2rem; }
+main.wrap > .success, main.wrap > .error { margin-top: 1.2rem; }
+.hero { display: grid; grid-template-columns: 1.3fr 1fr; gap: 2rem; align-items: center; }
+.lead { font-size: 1.05rem; color: var(--ink-2); }
+.download { background: var(--soft); }
+.download h2 { font-size: 1.6rem; margin: 0.1rem 0; }
+.hash { display: block; word-break: break-all; margin-top: 0.3rem; }
+details summary { cursor: pointer; color: var(--ink-2); }
+.ticks { padding-left: 1.2rem; } .ticks li { margin: 0.25rem 0; }
+.steps { list-style: none; padding: 0; display: grid; gap: 1rem; }
+.steps li { border-left: 3px solid var(--line); padding: 0.2rem 0 0.2rem 1rem; }
+.mock { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; background: #fff; border: 1px solid var(--line-2); border-radius: 6px; padding: 0.6rem 0.8rem; font-size: 0.83rem; max-width: 640px; box-shadow: 0 2px 8px rgba(20,30,40,0.08); }
+.mock .mock-text { flex: 1; min-width: 220px; }
+.mock-icon { width: 20px; height: 20px; border-radius: 50%; background: #f2c94c; display: grid; place-items: center; font-weight: 700; font-size: 0.8rem; }
+.mock-btn { border: 1px solid var(--line-2); border-radius: 4px; padding: 0.2rem 0.7rem; background: #f6f6f6; }
+.mock.blue { background: #1f5fa8; color: #fff; border-color: #1f5fa8; }
+.mock.blue > div { display: grid; gap: 0.2rem; flex: 1; min-width: 240px; }
+.mock.blue b { font-size: 1rem; } .mock.blue u { color: #d8e7f7; }
+.mock.blue .mock-btn { background: #fff; color: #1d2125; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.grid3 ul { padding-left: 1.1rem; margin: 0; font-size: 0.92rem; color: var(--ink-2); } .grid3 li { margin: 0.3rem 0; }
+.feedback { display: grid; gap: 0.9rem; max-width: 760px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+.feedback button { justify-self: start; }
+footer.wrap { margin: 3rem auto 2rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+@media (max-width: 760px) {
+  .hero, .grid3, .row2 { grid-template-columns: 1fr; }
+  .top nav { gap: 0.7rem; }
+  h1 { font-size: 1.55rem; }
+}
+section[id] { scroll-margin-top: 72px; }

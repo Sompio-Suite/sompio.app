@@ -1,0 +1,55 @@
+SOMPIO.ORG BETA SITE: HOW TO PUT IT ONLINE
+=========================================
+
+What it is: a page that asks for one tester password. Behind it: the download (always the newest
+version you uploaded), what's new, the Windows-warning walkthrough, what to test, and a feedback
+form. Feedback is emailed to you and also saved on the server. No trackers, no outside services.
+
+Needs: normal web hosting with PHP 8 (cyberfolks has it), and SSL switched on.
+
+
+ONE-TIME SETUP
+--------------
+1. In the cyberfolks panel: add the domain sompio.org to your hosting, and switch on the free
+   SSL certificate (Let's Encrypt) for it.
+
+2. Create two mailboxes for the domain: feedback@sompio.org (where testers' feedback arrives)
+   and noreply@sompio.org (the sender). You can use one address for both if you prefer.
+
+3. Open the File Manager, go to the folder for sompio.org (usually "public_html", or
+   "domains/sompio.org/public_html"), upload "sompio-site.zip" and extract it there.
+   You should now see index.php, style.css, logo.svg and a folder called "private".
+
+4. In "private", edit config.php:
+     'password'    -> the tester password you'll give out
+     'feedback_to' -> where feedback goes
+     'mail_from'   -> the sender address (must be on sompio.org)
+     'discord'     -> your Discord invite link, or leave it empty
+   The site stays locked until you change the password from CHANGE-THIS-PASSWORD.
+
+5. Upload the setup file (from "Sompio for Windows\For testers") into private/releases.
+   Keep its name as it is, like Sompio_0.7.1_x64-setup.exe: the version is read from it.
+   If the File Manager refuses a file that big, use FTP (the panel shows your FTP details).
+
+6. Check it works:
+     - https://sompio.org shows the password page.
+     - https://sompio.org/private/config.php says Forbidden (it must!).
+     - Sign in, download the file, and send yourself a test feedback.
+
+
+A NEW TEST VERSION
+------------------
+1. Upload the new Sompio_X.Y.Z_x64-setup.exe into private/releases. The highest version number
+   is offered automatically. Delete the old one if you like.
+2. In config.php, add a few lines under 'changes' for the new version (copy the pattern there).
+
+
+GOOD TO KNOW
+------------
+- Changing the password in config.php signs everyone out; they need the new one to get back in.
+- 8 wrong passwords from one connection block it for 15 minutes.
+- Every feedback message is also saved in private/feedback (a .txt, plus the screenshot if one
+  was added), so nothing is lost if an email doesn't arrive.
+- The download only works for signed-in testers: a shared download link without the password
+  gets nothing.
+- Search engines are asked not to list the site (robots.txt and a noindex tag).
