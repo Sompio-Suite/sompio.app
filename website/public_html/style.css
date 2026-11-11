@@ -78,3 +78,7 @@ footer.wrap { margin: 3rem auto 2rem; border-top: 1px solid var(--line); padding
   h1 { font-size: 1.55rem; }
 }
 section[id] { scroll-margin-top: 72px; }
+.beta-note { border: 1px solid #f0dfa8; background: #fff8e1; border-radius: 8px; padding: 1rem 1.2rem; }
+.beta-note h2 { font-size: 1.1rem; color: #6d4c00; }
+.beta-note p { margin: 0; color: #5c4600; }
+.note { color: #1f4f80; background: #eef5fc; border: 1px solid #b9d6f2; padding: 0.6rem 0.8rem; border-radius: 6px; margin: 0; }

@@ -18,7 +18,8 @@ function start_session(): void
     $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
     session_name('sompio_beta');
     session_set_cookie_params([
-        'lifetime' => 60 * 60 * 24 * 30,
+        // Gone when the browser closes; and see SIGN_OUT_AFTER
+        'lifetime' => 0,
         'path' => '/',
         'secure' => $https,
         'httponly' => true,
@@ -27,11 +28,27 @@ function start_session(): void
     session_start();
 }
 
-/** Signed in with the current password? Changing the password in config.php signs everyone out. */
+/** Testers are signed out after this long without opening or sending anything. */
+const SIGN_OUT_AFTER = 15 * 60;
+
+/**
+ * Signed in with the current password, and active in the last 15 minutes? Each visit resets the
+ * clock. Changing the password in config.php signs everyone out.
+ */
 function signed_in(): bool
 {
     start_session();
-    return isset($_SESSION['pw']) && hash_equals(password_fingerprint(), (string) $_SESSION['pw']);
+    $ok = isset($_SESSION['pw'], $_SESSION['seen'])
+        && hash_equals(password_fingerprint(), (string) $_SESSION['pw'])
+        && $_SESSION['seen'] > time() - SIGN_OUT_AFTER;
+    if ($ok) {
+        $_SESSION['seen'] = time();
+    } elseif (isset($_SESSION['pw'])) {
+        // Timed out: forget the sign-in (a feedback message being sent is kept, see feedback.php)
+        unset($_SESSION['pw'], $_SESSION['seen']);
+        $_SESSION['timed_out'] = true;
+    }
+    return $ok;
 }
 
 function password_fingerprint(): string

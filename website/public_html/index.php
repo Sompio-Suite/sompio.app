@@ -12,7 +12,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'])) {
     } elseif (hash_equals((string) config()['password'], (string) $_POST['password']) && config()['password'] !== 'CHANGE-THIS-PASSWORD') {
         session_regenerate_id(true);
         $_SESSION['pw'] = password_fingerprint();
-        header('Location: ./', true, 303);
+        $_SESSION['seen'] = time();
+        unset($_SESSION['timed_out']);
+        // Feedback that was being sent when the 15 minutes ran out goes out now
+        header('Location: ' . (isset($_SESSION['pending']) ? 'feedback.php?resume=1' : './'), true, 303);
         exit;
     } else {
         note_wrong_try();
@@ -22,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'])) {
 }
 
 $in = signed_in();
+$timedOut = !$in && !empty($_SESSION['timed_out']);
 $release = $in ? latest_release() : null;
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
@@ -47,7 +51,9 @@ $c = config();
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
       <label for="password">Tester password</label>
       <input id="password" name="password" type="password" autocomplete="current-password" required autofocus>
-      <?php if ($error): ?><p class="error" role="alert"><?= e($error) ?></p><?php endif; ?>
+      <?php if ($error): ?><p class="error" role="alert"><?= e($error) ?></p>
+      <?php elseif (isset($_SESSION['pending'])): ?><p class="note">You were signed out after 15 minutes. Enter the password again and your feedback will be sent.</p>
+      <?php elseif ($timedOut): ?><p class="note">You were signed out after 15 minutes without activity. Enter the password to continue.</p><?php endif; ?>
       <button class="primary" type="submit">Open</button>
     </form>
     <p class="small muted">Don't have the password? Ask whoever invited you to test.</p>
@@ -60,7 +66,6 @@ $c = config();
         <a href="#install">Install</a>
         <a href="#test">What to test</a>
         <a href="#feedback">Feedback</a>
-        <a href="logout.php">Sign out</a>
       </nav>
     </div>
   </header>
@@ -91,14 +96,10 @@ $c = config();
       </div>
     </section>
 
-    <?php if ($release && !empty($c['changes'][$release['version']])): ?>
-      <section>
-        <h2>New in <?= e($release['version']) ?></h2>
-        <ul class="ticks">
-          <?php foreach ($c['changes'][$release['version']] as $line): ?><li><?= e($line) ?></li><?php endforeach; ?>
-        </ul>
-      </section>
-    <?php endif; ?>
+    <section class="beta-note">
+      <h2>Beta: not the final product</h2>
+      <p>This is a test version. Things may break, look unfinished, or change before the real release, and some parts will still be improved because of what you tell us. Please use made-up data instead of your real passwords and messages, and don't rely on it for anything important yet.</p>
+    </section>
 
     <section id="install">
       <h2>Installing: Windows will warn you, and that's expected</h2>

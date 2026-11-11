@@ -39,13 +39,14 @@ ONE-TIME SETUP
 
 A NEW TEST VERSION
 ------------------
-1. Upload the new Sompio_X.Y.Z_x64-setup.exe into private/releases. The highest version number
-   is offered automatically. Delete the old one if you like.
-2. In config.php, add a few lines under 'changes' for the new version (copy the pattern there).
+Upload the new Sompio_X.Y.Z_x64-setup.exe into private/releases. The highest version number is
+offered automatically. Delete the old one if you like.
 
 
 GOOD TO KNOW
 ------------
+- Testers are signed out after 15 minutes without activity, and when they close the browser.
+  Feedback that was being written when the time ran out is kept and sent after the password.
 - Changing the password in config.php signs everyone out; they need the new one to get back in.
 - 8 wrong passwords from one connection block it for 15 minutes.
 - Every feedback message is also saved in private/feedback (a .txt, plus the screenshot if one
