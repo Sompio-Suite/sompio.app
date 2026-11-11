@@ -58,8 +58,7 @@ export function Generator({ onUse, onCopied }: { onUse?: (v: string) => void; on
         <button role="tab" aria-selected={kind === "passphrase"} onClick={() => setKind("passphrase")}>Passphrase</button>
       </div>
       <div className="gen-out">
-        <code className="mono selectable">{out?.value ?? "…"}</code>
-        <button className="quiet" aria-label="Make another" onClick={make}>↻</button>
+        <code className={`mono selectable${out ? "" : " empty"}`} aria-live="polite">{out?.value ?? (error ? "No password yet" : "Making one…")}</code>
       </div>
       <StrengthMeter s={out?.strength ?? null} />
       {kind === "password" ? (
@@ -95,6 +94,7 @@ export function Generator({ onUse, onCopied }: { onUse?: (v: string) => void; on
       )}
       {error && <div className="error">{error}</div>}
       <div className="toolbar">
+        <button className={onUse ? undefined : "primary"} onClick={make}><Icon name="refresh" size={16} />Generate {kind === "password" ? "password" : "passphrase"}</button>
         {onUse && <button className="primary" disabled={!out} onClick={() => out && onUse(out.value)}>Use this</button>}
         <button disabled={!out} onClick={async () => out && onCopied?.(await api.vaultCopyText(out.value))}><Icon name="copy" size={16} />Copy</button>
       </div>

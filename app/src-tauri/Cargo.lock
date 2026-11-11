@@ -5181,7 +5181,7 @@ dependencies = [
 
 [[package]]
 name = "sompio"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "active-win-pos-rs",
  "anyhow",

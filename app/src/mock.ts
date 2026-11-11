@@ -275,7 +275,7 @@ const handlers: Record<string, (a: any) => unknown> = {
     mockPassword = String(nu);
   },
   log_problem: ({ text }) => console.warn("problem:", text),
-  app_details: () => ({ version: "0.7.1", os: "windows 10.0.22631.4460 (x86_64)", log: "C:\\Users\\you\\AppData\\Local\\app.sompio.desktop\\problems.log", recent: ["2026-11-09 15:40:02 Sompio 0.6.0 started on windows x86_64"] }),
+  app_details: () => ({ version: "0.7.2", os: "windows 10.0.22631.4460 (x86_64)", log: "C:\\Users\\you\\AppData\\Local\\app.sompio.desktop\\problems.log", recent: ["2026-11-09 15:40:02 Sompio 0.6.0 started on windows x86_64"] }),
   open_problems_folder: () => undefined,
   lock_yubikeys_present: () => [{ name: "YubiKey OTP+FIDO+CCID", serial: 21786543 }],
   lock_unlock_yubikey: async ({ password }) => {

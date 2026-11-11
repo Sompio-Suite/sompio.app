@@ -1,13 +1,13 @@
 HOW TO TEST SOMPIO
 ==================
 
-Thank you for testing! This is a test version of Sompio 0.7.1 for Windows 10 and 11.
+Thank you for testing! This is a test version of Sompio 0.7.2 for Windows 10 and 11.
 Everything you put in it stays on your PC. Nothing is sent to us, and there's no account.
 
 
 1. INSTALLING
 -------------
-Run Sompio_0.7.1_x64-setup.exe.
+Run Sompio_0.7.2_x64-setup.exe.
 
 Windows will probably show a blue "Windows protected your PC" box. That's because this test
 version isn't signed with a Microsoft certificate yet (the real release will be). To go on:

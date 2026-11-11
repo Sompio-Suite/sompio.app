@@ -448,7 +448,6 @@ button.redact:hover { outline: 2px solid color-mix(in srgb, var(--accent) 45%, t
 /* Sompio Suite shell */
 svg.brand-mark { width: 30px; height: 30px; background: none; flex: none; border-radius: 0; }
 svg.brand-mark::after { display: none; }
-svg.brand-mark .sun-top { fill: var(--ice); }
 svg.brand-mark .sun-bottom { fill: var(--accent); }
 .rail-group { display: grid; gap: 2px; }
 .rail button.nav.sub { padding-left: 2.1rem; font-size: var(--t-s); }
@@ -532,7 +531,6 @@ svg.brand-mark .sun-bottom { fill: var(--accent); }
 .lock-step { width: min(560px, 100%); display: grid; gap: 1.25rem; }
 .lock-step.narrow { width: min(420px, 100%); }
 .lock-step h1 { font-size: 2rem; max-width: none; }
-.lock-mark .sun-top { fill: var(--ice); }
 .lock-mark .sun-bottom { fill: var(--accent); }
 .field { display: grid; gap: 0.35rem; }
 .field > span { font-weight: 600; font-size: var(--t-s); }
@@ -774,7 +772,7 @@ button.quiet.danger { color: var(--risk-high); }
 .generator { display: grid; gap: 0.9rem; }
 .generator > .segmented { justify-self: start; }
 .gen-out { display: flex; align-items: center; gap: 0.5rem; background: var(--sunken); border-radius: var(--r-m); padding: 0.85rem 0.6rem 0.85rem 1rem; }
-.gen-out code { flex: 1; font-size: 1.1rem; word-break: break-all; color: var(--ice); letter-spacing: 0.02em; }
+.gen-out code { flex: 1; font-size: 1.1rem; word-break: break-all; color: var(--ink); letter-spacing: 0.02em; }
 .gen-out .quiet { font-size: 1.2rem; }
 .gen-opts { display: grid; gap: 0.7rem; }
 .gen-opts input[type="range"] { width: 14rem; }
@@ -884,7 +882,7 @@ input.shortcut-input { width: 13rem; text-align: center; cursor: pointer; }
 .person-menu { margin-left: auto; opacity: 0; }
 .person:hover .person-menu, .person:focus-within .person-menu { opacity: 1; }
 .flag.role-admin { color: var(--accent-text); }
-.flag.role-moderator { color: var(--ice); }
+.flag.role-moderator { color: var(--ink); }
 .menu-slider { display: grid; gap: 0.2rem; padding: 0.4rem 0.7rem; }
 .menu-slider input { width: 100%; }
 .menu-note { padding: 0.35rem 0.7rem 0.2rem; border-top: 1px solid var(--line); margin-top: 0.2rem; }
@@ -908,7 +906,7 @@ input.shortcut-input { width: 13rem; text-align: center; cursor: pointer; }
 .level-meter { position: relative; height: 10px; border-radius: 5px; background: var(--sunken); overflow: hidden; }
 .level-meter .level { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ok); transition: width 60ms linear; }
 .level-meter .mark { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--accent); }
-.fingerprint { font-size: 1.15rem; letter-spacing: 0.05em; background: var(--sunken); padding: 0.8rem 1rem; border-radius: var(--r-m); text-align: center; color: var(--ice); }
+.fingerprint { font-size: 1.15rem; letter-spacing: 0.05em; background: var(--sunken); padding: 0.8rem 1rem; border-radius: var(--r-m); text-align: center; color: var(--ink); }
 .voice-card .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; }
 .voice-card .field-row .field { min-width: 0; width: auto; }
 .voice-card input { min-width: 0; }
@@ -1123,3 +1121,9 @@ img.avatar { object-fit: contain; background: #fff; border: 1px solid var(--line
 .vault-page .entry-head { display: flex; align-items: center; }
 .brand .logo { flex: none; border-radius: 6px; }
 svg.logo { display: block; }
+
+/* Password generator: the result is plain to see, with a clear button to make a new one */
+.gen-out { background: #fff; border: 1px solid var(--line-strong); }
+.gen-out code { font-family: Consolas, ui-monospace, monospace; }
+.gen-out code.empty { color: var(--ink-3); font-family: var(--font); font-size: var(--t-m); }
+.gen-out code { background: none; padding: 0; border: 0; }
