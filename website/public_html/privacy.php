@@ -71,7 +71,8 @@ site_header('privacy');
         <p>Sompio asks sompio.org for one small file with the newest version number, every few hours or when you click <em>Check now</em>. The request contains nothing about you or your data. You can switch this off in Sompio's Security settings.</p>
 
         <h3>What every web server sees</h3>
-        <p>Like any website, our hosting provider's server records each request in a log: the IP address, the time, the page asked for and the browser's self-description. This is needed to run the website and keep it secure. We don't use these logs to track or profile anyone, and the hosting provider deletes them after a short period.</p>
+        <p>Like any website, sompio.org records each request in a log: the IP address, the time, the page asked for and the browser's self-description. This is needed to run the website and keep it secure. We don't use these logs to track or profile anyone, and we don't keep archives of them: the server discards them within about a day.</p>
+        <p>All visits to sompio.org pass through Cloudflare, which protects the site against attacks and overload. To do that, Cloudflare sees the same request details, including your IP address, and keeps them under its own short retention periods.</p>
 
         <h3>When you email us</h3>
         <p>We keep your email for as long as needed to help you, and delete conversations that are no longer needed.</p>
@@ -82,7 +83,7 @@ site_header('privacy');
 
       <section id="cookies">
         <h2>Cookies</h2>
-        <p>sompio.org sets one cookie, and only when you sign in to the tester portal: <code>sompio_beta</code>, which keeps you signed in. It's removed when you close your browser, and stops working after 15 minutes without activity. It's strictly necessary for the portal to work, so we don't ask for consent for it. There are no other cookies, and no tracking cookies of any kind.</p>
+        <p>sompio.org sets one cookie, and only when you sign in to the tester portal: <code>sompio_beta</code>, which keeps you signed in. It's removed when you close your browser, and stops working after 15 minutes without activity. It's strictly necessary for the portal to work, so we don't ask for consent for it. Cloudflare, which protects the site, may also set a short-lived security cookie to tell people from bots. That's all: there are no tracking, advertising or analytics cookies of any kind.</p>
       </section>
 
       <section id="others">
@@ -92,7 +93,7 @@ site_header('privacy');
           <table>
             <tr><th>Service</th><th>What for</th><th>Where</th></tr>
             <tr><td>Cyberfolks</td><td>Web hosting: the website, its files and server logs</td><td>EU</td></tr>
-            <tr><td>Cloudflare</td><td>Domain name service for sompio.org</td><td>Global; covered by the EU–US Data Privacy Framework</td></tr>
+            <tr><td>Cloudflare</td><td>Protection against attacks; all visits to sompio.org pass through it</td><td>Global; covered by the EU–US Data Privacy Framework</td></tr>
             <tr><td>Proton</td><td>Our mailbox: notification emails and your emails to us</td><td>Switzerland, recognised by the EU as giving equal protection</td></tr>
             <tr><td>Ko-fi and PayPal</td><td>Tips, only if you choose to leave one</td><td>UK and EU</td></tr>
             <tr><td>GitHub</td><td>Hosts Sompio's source code. You only reach it if you click a link to it.</td><td>US</td></tr>

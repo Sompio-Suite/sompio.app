@@ -66,7 +66,7 @@ function site_footer(): void
         <a href="mailto:hello@sompio.org">hello@sompio.org</a>
         <a href="<?= e(SUPPORT_URL) ?>" class="support-link" rel="noopener noreferrer"><?= HEART_ICON ?>Support Sompio</a>
       </nav>
-      <p class="small muted">This site has no trackers, no ads and no analytics. The only cookie is the one that keeps testers signed in.</p>
+      <p class="small muted">This site has no trackers, no ads, no analytics and no tracking cookies.</p>
     </div>
   </footer>
 </body>
