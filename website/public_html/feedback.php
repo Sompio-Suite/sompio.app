@@ -10,7 +10,7 @@ require __DIR__ . '/private/lib.php';
 function back(bool $ok, string $text): void
 {
     $_SESSION['flash'] = ['ok' => $ok, 'text' => $text];
-    header('Location: ./#feedback', true, 303);
+    header('Location: tester.php#feedback', true, 303);
     exit;
 }
 
@@ -43,7 +43,7 @@ if (!signed_in()) {
             'shot' => uploaded_shot(),
         ];
     }
-    header('Location: ./', true, 303);
+    header('Location: tester.php', true, 303);
     exit;
 }
 

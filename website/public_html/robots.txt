@@ -1,2 +1,9 @@
 User-agent: *
-Disallow: /
+Disallow: /tester.php
+Disallow: /download.php
+Disallow: /feedback.php
+Disallow: /update.php
+Disallow: /publish.php
+Disallow: /private/
+
+Sitemap: https://sompio.org/sitemap.xml

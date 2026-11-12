@@ -5,7 +5,7 @@ declare(strict_types=1);
 require __DIR__ . '/private/lib.php';
 
 if (!signed_in()) {
-    header('Location: ./', true, 303);
+    header('Location: tester.php', true, 303);
     exit;
 }
 $r = latest_release();

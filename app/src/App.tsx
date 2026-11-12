@@ -238,7 +238,7 @@ export default function App() {
         {navButton("samples", "Samples", "sparkle")}
         {navButton("security", "Security", "lock")}
         {navButton("licences", "Licences", "ticket")}
-        <button className="nav" aria-label="Documentation (opens sompio.org)" title="How Sompio works, on sompio.org (needs the tester password)" onClick={() => openExternal(DOCS_URL).catch(() => {})}>
+        <button className="nav" aria-label="Documentation (opens sompio.org)" title="How Sompio works, on sompio.org" onClick={() => openExternal(DOCS_URL).catch(() => {})}>
           <Icon name="book" />
           <span className="label">Documentation</span>
           <Icon name="external" size={13} />

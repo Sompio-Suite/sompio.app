@@ -1,37 +1,11 @@
 <?php
-// Documentation: what Sompio is, each tool, and how it keeps data private. Same password as the
-// rest of the site; after signing in, testers come straight back here.
+// Documentation: what Sompio is, each tool, and how it keeps data private. Open to everyone; the
+// app's Documentation button opens this page.
 declare(strict_types=1);
 require __DIR__ . '/private/lib.php';
-
-if (!signed_in()) {
-    $_SESSION['after_login'] = 'docs.php';
-    header('Location: ./', true, 303);
-    exit;
-}
+page_head('How Sompio works · Documentation', 'What Sompio\'s Calendar, Trace and Vault do, how the Sompio Lock keeps your data encrypted, and why nothing leaves your PC.');
+site_header('docs');
 ?>
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex, nofollow">
-  <title>Documentation · Sompio beta</title>
-  <link rel="icon" type="image/svg+xml" href="logo.svg">
-  <link rel="stylesheet" href="style.css?v=<?= filemtime(__DIR__ . '/style.css') ?>">
-</head>
-<body>
-  <header class="top">
-    <div class="wrap top-row">
-      <a class="brand" href="./"><img src="logo.svg" alt="" width="28" height="28"> sompio <span class="tag">beta</span></a>
-      <nav>
-        <a href="./#install">Install</a>
-        <a href="./#test">What to test</a>
-        <a href="docs.php" aria-current="page">Documentation</a>
-        <a href="./#feedback">Feedback</a>
-      </nav>
-    </div>
-  </header>
 
   <main class="wrap docs">
     <aside class="docs-toc" aria-label="On this page">
@@ -44,7 +18,7 @@ if (!signed_in()) {
       <a href="#vault">Vault</a>
       <a href="#extension">Browser extension</a>
       <a href="#limits">Good to know</a>
-      <a href="./" class="toc-back">← Back to the download</a>
+      <a href="./" class="toc-back">← Back to sompio.org</a>
     </aside>
 
     <article class="docs-body">
@@ -116,7 +90,7 @@ if (!signed_in()) {
       <section id="trace">
         <h2>Trace</h2>
         <p>Trace shows you what personal information you've left behind online over the years, and helps you get rid of it. Most people are surprised: an old bank number sent to a friend, a password pasted in a chat, a home address in a server. Trace used to be called Clean.</p>
-        <p><strong>How it works.</strong> Every big platform must let you download your own data. You ask for that export, and Trace reads it on your PC. It never logs into your accounts to read them. Telegram and email can also be connected, for results in minutes.</p>
+        <p><strong>How it works.</strong> Every big platform must let you download your own data. You ask for that export, and Trace reads it on your PC. It never logs into your accounts to read them. Telegram and email can also be connected, for results in minutes. Starting with Discord? The <a href="delete-discord-messages.php">Discord guide</a> walks you through it step by step.</p>
         <ul class="points">
           <li><strong>Sources:</strong> Discord, Reddit, Telegram, X, Facebook, Instagram, TikTok, Snapchat, LinkedIn, WhatsApp, Gmail and other mailboxes, plus any folder on your own PC.</li>
           <li><strong>What it finds:</strong> bank accounts (IBAN), payment cards, passwords and access tokens, street addresses, postcodes, phone numbers, email addresses, IP addresses, crypto wallets, and sensitive files on your PC. Add your own <strong>watch terms</strong> too, like your real name, school or street, which no pattern could guess.</li>
@@ -197,14 +171,10 @@ if (!signed_in()) {
       </section>
 
       <div class="docs-end">
-        <a class="button primary" href="./">Back to the download</a>
-        <a class="button" href="./#feedback">Send feedback</a>
+        <a class="button primary" href="delete-discord-messages.php">Guide: delete your Discord messages</a>
+        <a class="button" href="tester.php#feedback">Testers: send feedback</a>
       </div>
     </article>
   </main>
 
-  <footer class="wrap small muted">
-    This page has no trackers or ads. Its only cookie keeps you signed in. Feedback goes straight to the Sompio team and isn't shared.
-  </footer>
-</body>
-</html>
+<?php site_footer(); ?>

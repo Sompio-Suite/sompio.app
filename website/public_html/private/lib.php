@@ -168,3 +168,5 @@ function send_mail(string $subject, string $body, ?array $attachment = null): bo
         . "--$boundary--\r\n";
     return @mail($to, $subject, $msg, implode("\r\n", $headers), '-f' . $from);
 }
+
+require_once PRIVATE_DIR . '/layout.php';
