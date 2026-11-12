@@ -6,7 +6,7 @@
     "updater": {
       "pubkey": "SET_UP_UPDATES_FIRST",
       "endpoints": [
-        "https://github.com/OWNER/REPO/releases/latest/download/latest.json"
+        "https://sompio.org/update.php"
       ],
       "windows": {
         "installMode": "passive"

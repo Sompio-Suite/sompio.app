@@ -17,3 +17,5 @@ website/public_html/private/releases/*
 website/public_html/private/data/*
 !website/public_html/private/data/.keep
 app/src-tauri/binaries/
+
+Public keys/

@@ -124,8 +124,8 @@ export default function Security({ status, idleMinutes, onIdleMinutes, onLockNow
         {canUpdate ? (
           <>
             <p className="muted">
-              You have Sompio {version}. To find out about new versions, Sompio downloads one small version file every few
-              hours. Nothing about you or your data is sent. Updates are signed, and Sompio only installs ones signed by us.
+              You have Sompio {version}. To find out about new versions, Sompio downloads one small version file from sompio.org
+              every few hours. Nothing about you or your data is sent. Updates are signed, and Sompio only installs ones signed by us.
             </p>
             <label className="check">
               <input type="checkbox" checked={auto} onChange={(e) => { setAuto(e.target.checked); setAutoCheck(e.target.checked); }} />

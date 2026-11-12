@@ -42,6 +42,13 @@ fn updates_on(state: State<'_, UpdatesOn>) -> bool {
     state.0
 }
 
+/// The code published builds send when asking sompio.org for updates, so only Sompio apps get the
+/// beta installer. Set by the cloud build (SOMPIO_UPDATE_TOKEN); empty in local builds.
+#[tauri::command]
+fn update_token() -> &'static str {
+    option_env!("SOMPIO_UPDATE_TOKEN").unwrap_or("")
+}
+
 // The Sompio Lock. Argon2 takes about half a second on purpose, so these run off the UI thread.
 
 async fn with_vault<T, F>(state: &State<'_, AppState>, f: F) -> CmdResult<T>
@@ -777,6 +784,7 @@ pub fn run() {
             browser::browser_open_extension_folder,
             has_data,
             updates_on,
+            update_token,
             lock_status,
             lock_setup,
             lock_unlock,

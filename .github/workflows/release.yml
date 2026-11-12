@@ -1,19 +1,29 @@
-# Publishing a version: push a tag like v0.1.0 (or run this from the Actions tab).
-# GitHub builds the Windows installer and creates a draft release with it attached.
-# Review the draft on the Releases page, then press Publish.
-name: Release
+# Publishes a new Sompio version: builds the Windows installer in the cloud and puts it on sompio.org,
+# where testers download it and installed copies offer it under "Update now".
+#
+# Runs when a version tag like v0.9.1 is pushed (the version in app/src-tauri/tauri.conf.json must match),
+# or from the Actions tab ("Run workflow"). What's new goes in app/release-notes.txt.
+#
+# Secrets (Settings > Secrets and variables > Actions), all made by "Set up updates.bat":
+#   TAURI_SIGNING_PRIVATE_KEY  signs the update, so Sompio only installs ours
+#   SOMPIO_PUBLISH_TOKEN       lets this build upload to sompio.org (same as publish_token in config.php)
+#   SOMPIO_UPDATE_TOKEN        built into the app, so sompio.org gives updates only to Sompio (= update_token)
+# Optional: SOMPIO_TG_API_ID, SOMPIO_TG_API_HASH (Sompio's own Telegram app key).
+name: Publish
 
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
 
-permissions:
-  contents: write
+concurrency:
+  group: publish
+  cancel-in-progress: false
 
 jobs:
-  release:
+  publish:
     runs-on: windows-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,47 +34,66 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: swatinem/rust-cache@v2
         with:
-          workspaces: app/src-tauri -> target
+          workspaces: |
+            app/src-tauri -> target
+            browserhost -> target
       - name: Check the licence key is yours
         shell: bash
         run: |
           if grep -q "2b51fbc64627099647befc32bd63bddd1d74be5de905d795b4c95e5d784777f3" licence/public.key; then
-            echo "::error::licence/public.key is still the development key, so this build would refuse every key you make. Run Build Sompio.bat once on your PC, then commit and push licence/public.key."
+            echo "::error::licence/public.key is still the development key, so this build would refuse every key you make."
             exit 1
           fi
       - name: Check updates are set up
         shell: bash
+        env:
+          K: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          P: ${{ secrets.SOMPIO_PUBLISH_TOKEN }}
+          U: ${{ secrets.SOMPIO_UPDATE_TOKEN }}
         run: |
           if grep -q "SET_UP_UPDATES_FIRST" app/src-tauri/tauri.release.conf.json; then
-            echo "::error::Updates aren't set up yet. Run 'Set up updates.bat' once on your PC, then commit and push app/src-tauri/tauri.release.conf.json."
-            exit 1
+            echo "::error::Updates aren't set up yet: run 'Set up updates.bat' and send the result."; exit 1
           fi
+          if [ -z "$K" ] || [ -z "$P" ] || [ -z "$U" ]; then
+            echo "::error::A secret is missing. Add TAURI_SIGNING_PRIVATE_KEY, SOMPIO_PUBLISH_TOKEN and SOMPIO_UPDATE_TOKEN."; exit 1
+          fi
+          V=$(node -p "require('./app/src-tauri/tauri.conf.json').version")
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "v$V" ]; then
+            echo "::error::The tag ${GITHUB_REF_NAME} doesn't match the app version $V."; exit 1
+          fi
+          echo "VERSION=$V" >> "$GITHUB_ENV"
+      - name: Build the browser extension helper
+        working-directory: browserhost
+        shell: bash
+        run: |
+          cargo build --release
+          mkdir -p ../app/src-tauri/binaries
+          cp target/release/sompio-browser.exe ../app/src-tauri/binaries/sompio-browser-x86_64-pc-windows-msvc.exe
       - name: Install interface packages
         working-directory: app
         run: npm ci
-      - uses: tauri-apps/tauri-action@v0
+      - name: Build the installer
+        working-directory: app
+        run: npx tauri build --config src-tauri/tauri.release.conf.json
         env:
-          # Releases can go to a separate public repository (vars RELEASES_OWNER / RELEASES_REPO, secret
-          # RELEASES_TOKEN), so the code can stay private while the app can still fetch updates.
-          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN || secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+          SOMPIO_UPDATE_TOKEN: ${{ secrets.SOMPIO_UPDATE_TOKEN }}
           SOMPIO_TG_API_ID: ${{ secrets.SOMPIO_TG_API_ID }}
           SOMPIO_TG_API_HASH: ${{ secrets.SOMPIO_TG_API_HASH }}
+      - name: Put it on sompio.org
+        shell: bash
+        env:
+          TOKEN: ${{ secrets.SOMPIO_PUBLISH_TOKEN }}
+        run: |
+          EXE="app/src-tauri/target/release/bundle/nsis/Sompio_${VERSION}_x64-setup.exe"
+          ls -la "$EXE" "$EXE.sig"
+          NOTES=$(cat app/release-notes.txt 2>/dev/null || echo "")
+          curl --fail-with-body -sS --retry 2 -X POST https://sompio.org/publish.php \
+            -H "X-Sompio-Publish: $TOKEN" -A "Sompio-Publish" \
+            -F "setup=@$EXE" -F "version=$VERSION" -F "signature=$(cat "$EXE.sig")" -F "notes=$NOTES"
+      - uses: actions/upload-artifact@v4
         with:
-          projectPath: app
-          # Published releases switch updates on; local builds leave them off.
-          args: --config src-tauri/tauri.release.conf.json
-          owner: ${{ vars.RELEASES_OWNER || github.repository_owner }}
-          repo: ${{ vars.RELEASES_REPO || github.event.repository.name }}
-          includeUpdaterJson: true
-          updaterJsonPreferNsis: true
-          tagName: v__VERSION__
-          releaseName: Sompio v__VERSION__
-          releaseDraft: true
-          releaseBody: |
-            Already using Sompio? It offers this update by itself: look for **Update now** in the sidebar.
-
-            New here? Download the file ending in **x64-setup.exe** below and run it.
-
-            Windows may show "Windows protected your PC" because the app isn't code-signed yet. Click **More info**, then **Run anyway**.
+          name: Sompio-${{ env.VERSION }}
+          path: app/src-tauri/target/release/bundle/nsis/*-setup.exe
+          retention-days: 14

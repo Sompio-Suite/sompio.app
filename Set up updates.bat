@@ -6,9 +6,11 @@ cd /d "%~dp0"
 echo Sompio updates: one-time setup
 echo ==============================
 echo.
-echo This makes the key that signs Sompio updates, and tells published releases where to look for them.
-echo You only need it when you start publishing. Build Sompio.bat never needs it.
-echo You only do this once.
+echo This makes, on this PC only:
+echo   - the key that signs Sompio updates, so installed copies only accept updates from you
+echo   - a code that lets the cloud build put new versions on sompio.org
+echo   - a code built into Sompio, so sompio.org only hands updates to Sompio apps
+echo Running it again keeps what it made the first time.
 echo.
 
 where npm.cmd >nul 2>nul || (
@@ -19,52 +21,47 @@ where npm.cmd >nul 2>nul || (
 
 set "KEYDIR=%APPDATA%\Sompio Key Maker"
 set "KEY=%KEYDIR%\update.key"
+set "CODES=%KEYDIR%\publishing codes.txt"
 if not exist "%KEYDIR%" mkdir "%KEYDIR%"
-
-set /p OWNER=Your GitHub user name: 
-set /p REPO=The GitHub repository customers download Sompio from (for example sompio-releases): 
-if "%OWNER%"=="" goto :missing
-if "%REPO%"=="" goto :missing
 
 cd /d "%~dp0app"
 if not exist node_modules call npm.cmd install --no-audit --no-fund >nul
 
 if exist "%KEY%" (
-  echo.
   echo An update key already exists, keeping it.
 ) else (
-  echo.
   echo Making the update signing key...
   call npx.cmd tauri signer generate --ci -w "%KEY%" >nul || goto :fail
 )
 
-rem Put the public half of the key and the download address into the app's settings.
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$c = Get-Content -Raw 'src-tauri\tauri.release.conf.json' | ConvertFrom-Json;" ^
-  "$c.plugins.updater.pubkey = (Get-Content -Raw '%KEY%.pub').Trim();" ^
-  "$c.plugins.updater.endpoints = @('https://github.com/%OWNER%/%REPO%/releases/latest/download/latest.json');" ^
-  "[IO.File]::WriteAllText((Resolve-Path 'src-tauri\tauri.release.conf.json'), ($c | ConvertTo-Json -Depth 20))" || goto :fail
+rem The public half of the key, sompio.org, and the two publishing codes (made once)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\setup-updates.ps1" -KeyDir "%KEYDIR%" -Root "%~dp0." || goto :fail
+
+rem The two public files the cloud build needs, so it uses your keys
+cd /d "%~dp0"
+set "OUT=%~dp0Public keys"
+if not exist "%OUT%" mkdir "%OUT%"
+copy /y "app\src-tauri\tauri.release.conf.json" "%OUT%\" >nul
+if exist "licence\public.key" (copy /y "licence\public.key" "%OUT%\" >nul) else (
+  echo.
+  echo licence\public.key is missing: run Build Sompio.bat once first, then run this again.
+  pause
+  exit /b 1
+)
 
 echo.
-echo Done. Two things left, both on github.com:
+echo Done. Three things left:
 echo.
-echo  1. In your Sompio code repository: Settings, Secrets and variables, Actions, New repository secret.
-echo     Name: TAURI_SIGNING_PRIVATE_KEY
-echo     Value: everything in the Notepad window that opens now. Then close Notepad.
+echo  1. Notepad opens with your publishing codes. Add the three GitHub secrets and the two
+echo     config.php lines, exactly as the file says.
+echo  2. Add the two files in the "Public keys" folder that opens to the code. They're public
+echo     halves only: nothing in them can sign anything.
+echo  3. Back up "%KEYDIR%". Never share it: whoever has it can make licence keys and updates.
 echo.
-echo  2. Commit and push the change to app\src-tauri\tauri.release.conf.json.
-echo.
-echo The key file is in %KEYDIR%. Back it up with your licence signing key. Never share it:
-echo whoever has it can push updates to every Sompio user.
-echo.
-notepad "%KEY%"
+explorer "%OUT%"
+notepad "%CODES%"
 pause
 exit /b 0
-
-:missing
-echo Both answers are needed. Run this again.
-pause
-exit /b 1
 
 :fail
 echo.

@@ -40,7 +40,7 @@ export async function currentVersion(): Promise<string> {
 }
 
 /**
- * Asks GitHub whether there's a newer version. Only a small version file is fetched; nothing about you
+ * Asks sompio.org whether there's a newer version. Only a small version file is fetched; nothing about you
  * is sent beyond what any download sends (your IP address). Returns null when up to date.
  */
 export async function checkForUpdate(): Promise<UpdateInfo | null> {
@@ -64,7 +64,10 @@ export async function checkForUpdate(): Promise<UpdateInfo | null> {
   }
   if (!(await updatesOn())) return null;
   const { check } = await import("@tauri-apps/plugin-updater");
-  const update = await check();
+  const { invoke } = await import("@tauri-apps/api/core");
+  // sompio.org only answers Sompio apps: the code is built into published versions
+  const token = await invoke<string>("update_token").catch(() => "");
+  const update = await check({ headers: { "X-Sompio-Update": token } });
   if (!update) return null;
   return {
     version: update.version,

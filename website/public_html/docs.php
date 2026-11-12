@@ -79,6 +79,7 @@ if (!signed_in()) {
             <thead><tr><th>When</th><th>Where it goes</th><th>What is sent</th></tr></thead>
             <tbody>
               <tr><td>Vault saves an entry with a website</td><td>That website only, to fetch its little icon</td><td>A normal page request, like opening the site. Nothing about you or your passwords. Can be switched off.</td></tr>
+              <tr><td>Sompio checks for updates (every few hours, or when you click <em>Check now</em>; can be switched off in Security)</td><td>sompio.org</td><td>A request for one small file with the newest version number. Nothing about you or your data. Updates install only when you click <em>Update now</em>, and only if they're signed by us.</td></tr>
               <tr><td>You click <em>Check for breaches</em> in the Vault</td><td>Have I Been Pwned, the public breach database</td><td>The first 5 characters of a scrambled fingerprint of a password. Never the password itself.</td></tr>
               <tr><td>You connect Trace to your Telegram or email</td><td>Telegram or your email provider</td><td>Your login, to read the messages you sent and delete the ones you choose. Nothing is uploaded anywhere else.</td></tr>
               <tr><td>You click a search, a download page or a company's form in Trace</td><td>That website, in your own browser</td><td>Only what you click. The site sees what you search for, as if you typed it there yourself.</td></tr>
