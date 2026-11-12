@@ -1,0 +1,9 @@
+Company and data protection authority directory
+
+companies.json and authorities.json are taken from the Datenanfragen.de database
+(https://github.com/datenanfragen/data), which is released into the public domain
+under CC0 1.0. Thanks to the Datenanfragen.de team and contributors.
+
+Version: commit b48376208495b299335c775ecdb15d430d3ff905 (2026-11-10).
+Fields were shortened to keep the file small; nothing else was changed.
+Sompio reads these files on your PC. Searching them never goes online.

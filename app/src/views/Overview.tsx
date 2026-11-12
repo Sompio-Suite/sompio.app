@@ -71,7 +71,7 @@ export default function Overview({ licence, scan, cleanReady, onGo }: Props) {
               <div className="suite-card-foot">
                 {app.ready ? (
                   app.key === "clean" ? (
-                    <button className="primary" onClick={() => onGo("home")}>{cleanReady ? "Open Clean" : "Set up Clean"}</button>
+                    <button className="primary" onClick={() => onGo("home")}>{cleanReady ? "Open Trace" : "Set up Trace"}</button>
                   ) : (
                     <button className="primary" onClick={() => onGo(app.key as View)}>Open {app.name}</button>
                   )

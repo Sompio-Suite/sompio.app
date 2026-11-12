@@ -40,7 +40,7 @@ if (!signed_in()) {
       <a href="#private">Why it's private</a>
       <a href="#lock">The Sompio Lock</a>
       <a href="#calendar">Calendar</a>
-      <a href="#clean">Clean</a>
+      <a href="#trace">Trace</a>
       <a href="#vault">Vault</a>
       <a href="#limits">Good to know</a>
       <a href="./" class="toc-back">← Back to the download</a>
@@ -51,11 +51,11 @@ if (!signed_in()) {
 
       <section id="what">
         <h2>What Sompio is</h2>
-        <p>Sompio is a private toolkit for your Windows PC: a calendar, a cleaner for what you've shared online, and a password vault, in one program. Everything works on your own computer. There is no account to make, no cloud, and no server of ours that holds your data.</p>
+        <p>Sompio is a private toolkit for your Windows PC: a calendar, a tool that finds and removes what you've shared online, and a password vault, in one program. Everything works on your own computer. There is no account to make, no cloud, and no server of ours that holds your data.</p>
         <p>All three tools sit behind one lock, the <strong>Sompio Lock</strong>, so one password (plus your key picture) opens everything and keeps it encrypted when you're away. You buy it once with a licence key, like a game key, and the key is checked on your PC without going online.</p>
         <div class="tools">
           <a class="tool" href="#calendar"><strong>Calendar</strong><span>Reminders that pop up on time, for you or a whole group, even when Sompio is locked.</span></a>
-          <a class="tool" href="#clean"><strong>Clean</strong><span>Finds personal information you've shared online (bank numbers, passwords, addresses…) and helps you remove it.</span></a>
+          <a class="tool" href="#trace"><strong>Trace</strong><span>Finds personal information you've shared online (bank numbers, passwords, addresses…), helps you remove it, and gets companies to delete what they hold.</span></a>
           <a class="tool" href="#vault"><strong>Vault</strong><span>Keeps your passwords safe, fills them in for you, and works with KeePass and KeePassXC files.</span></a>
         </div>
       </section>
@@ -65,7 +65,7 @@ if (!signed_in()) {
         <p>Sompio is built so your information never has to leave your PC. There is no Sompio server holding your passwords, messages or calendar, so there is nothing of yours on our side that could be hacked, sold or leaked.</p>
         <ul class="points">
           <li><strong>Offline by design.</strong> Every tool works without internet. You can unplug your PC and use all of it.</li>
-          <li><strong>Encrypted on your disk.</strong> Your calendar, Clean's findings and your passwords are stored encrypted. Without your password and key picture, the files are unreadable, even to someone who copies them.</li>
+          <li><strong>Encrypted on your disk.</strong> Your calendar, Trace's findings and requests, and your passwords are stored encrypted. Without your password and key picture, the files are unreadable, even to someone who copies them.</li>
           <li><strong>No account, no tracking.</strong> No sign-up, no email address, no analytics, no ads, no "phone home". Sompio doesn't know who you are.</li>
           <li><strong>Pop-ups out of screenshots.</strong> Reminder pop-ups and the auto-type picker are left out of screenshots and screen sharing, so a stream or meeting doesn't show what pops up. The main window can be captured, for help and bug reports. Copied passwords stay out of Windows' clipboard history and cloud clipboard, and clear themselves after 20 seconds.</li>
           <li><strong>Problem reports stay with you.</strong> If something goes wrong, Sompio writes a short note to a file on your PC. It's never sent anywhere; you decide whether to share it.</li>
@@ -78,11 +78,12 @@ if (!signed_in()) {
             <tbody>
               <tr><td>Vault saves an entry with a website</td><td>That website only, to fetch its little icon</td><td>A normal page request, like opening the site. Nothing about you or your passwords. Can be switched off.</td></tr>
               <tr><td>You click <em>Check for breaches</em> in the Vault</td><td>Have I Been Pwned, the public breach database</td><td>The first 5 characters of a scrambled fingerprint of a password. Never the password itself.</td></tr>
-              <tr><td>You connect Clean to your Telegram or email to delete messages there</td><td>Telegram or your email provider</td><td>Only the delete requests you approve.</td></tr>
+              <tr><td>You connect Trace to your Telegram or email</td><td>Telegram or your email provider</td><td>Your login, to read the messages you sent and delete the ones you choose. Nothing is uploaded anywhere else.</td></tr>
+              <tr><td>You click a search, a download page or a company's form in Trace</td><td>That website, in your own browser</td><td>Only what you click. The site sees what you search for, as if you typed it there yourself.</td></tr>
             </tbody>
           </table>
         </div>
-        <p>If you never use those three, Sompio never touches the internet.</p>
+        <p>If you never use these, Sompio never touches the internet. Letters to companies open in <em>your own</em> email app, ready for you to send; Sompio never sends mail itself.</p>
       </section>
 
       <section id="lock">
@@ -109,17 +110,25 @@ if (!signed_in()) {
         <p class="privacy-line"><strong>Privacy:</strong> your schedule is stored encrypted on your PC. No calendar account or cloud sync means no company sees your plans, who you meet or where you'll be.</p>
       </section>
 
-      <section id="clean">
-        <h2>Clean</h2>
-        <p>Clean shows you what personal information you've left behind online over the years, and helps you get rid of it. Most people are surprised: an old bank number sent to a friend, a password pasted in a chat, a home address in a server.</p>
-        <p><strong>How it works.</strong> Every big platform lets you download your own data. You request that export, and Clean reads it on your PC. It never logs into your accounts to read them.</p>
+      <section id="trace">
+        <h2>Trace</h2>
+        <p>Trace shows you what personal information you've left behind online over the years, and helps you get rid of it. Most people are surprised: an old bank number sent to a friend, a password pasted in a chat, a home address in a server. Trace used to be called Clean.</p>
+        <p><strong>How it works.</strong> Every big platform must let you download your own data. You ask for that export, and Trace reads it on your PC. It never logs into your accounts to read them. Telegram and email can also be connected, for results in minutes.</p>
         <ul class="points">
           <li><strong>Sources:</strong> Discord, Reddit, Telegram, X, Facebook, Instagram, TikTok, Snapchat, LinkedIn, WhatsApp, Gmail and other mailboxes, plus any folder on your own PC.</li>
           <li><strong>What it finds:</strong> bank accounts (IBAN), payment cards, passwords and access tokens, street addresses, postcodes, phone numbers, email addresses, IP addresses, crypto wallets, and sensitive files on your PC. Add your own <strong>watch terms</strong> too, like your real name, school or street, which no pattern could guess.</li>
           <li><strong>One clear list.</strong> Everything found sits in a table, sorted by risk, with the message it was in and advice on what to do (for a leaked password: change it now; for a card: call your bank).</li>
-          <li><strong>Clean it up.</strong> Open each message where it was posted to delete it, or connect Telegram or email to delete straight from Sompio. Files on your PC go to the Recycle Bin. Mark what's fine as "not a problem" and track what you've dealt with.</li>
+          <li><strong>Clean it up, one by one.</strong> "Clean up" takes you through everything in turn: it opens each message where it was posted, you delete it there, and move on to the next. Connected Telegram and email messages are deleted straight from Sompio, and files on your PC go to the Recycle Bin.</li>
         </ul>
-        <p class="privacy-line"><strong>Privacy:</strong> your exports and everything Clean finds stay encrypted on your PC. Unlike online "privacy scanners", nobody else ever sees your messages.</p>
+        <h3>Requests: get your data, and get it deleted</h3>
+        <p>Under the GDPR, companies must give you your data, delete it, or stop using it when you ask, and answer within one month. Trace's <strong>Requests</strong> tab does the paperwork for you:</p>
+        <ul class="points">
+          <li><strong>Get your data.</strong> Where and how to ask each platform for your export, how long it usually takes, and a Calendar reminder for when it should be ready.</li>
+          <li><strong>Find it now.</strong> Don't want to wait? Ready-made searches for your watch terms on Discord, Reddit and X, limited to your own posts.</li>
+          <li><strong>Ask a company.</strong> Search about 3,000 companies, data brokers included, and pick what you want: delete my data, send me a copy, or stop using it. Trace writes the letter with the right legal articles, and opens it in your own email app or the company's form.</li>
+          <li><strong>Track the deadline.</strong> Every request gets its one-month deadline and a Calendar reminder. No answer? Trace writes the reminder, and then a complaint to your country's data protection authority, which handles it for free.</li>
+        </ul>
+        <p class="privacy-line"><strong>Privacy:</strong> your exports, everything Trace finds and your requests stay encrypted on your PC. Unlike online "privacy scanners" and paid removal services, nobody else ever sees your messages or the list of companies you deal with. The company directory is built in, so searching it never goes online.</p>
       </section>
 
       <section id="vault">
@@ -141,15 +150,16 @@ if (!signed_in()) {
         <p>Privacy tools should be honest about their limits, so here are Sompio's:</p>
         <ul class="points">
           <li><strong>Your PC is the vault.</strong> While Sompio is unlocked, it's only as safe as the PC it runs on. No app can fully protect you from malware or someone using your unlocked computer, so keep Windows updated and lock Sompio when you step away.</li>
-          <li><strong>Clean finds, you decide.</strong> It spots patterns and your watch terms, but it can miss things and occasionally flag something harmless. Deleting a message doesn't undo that others may have seen it, which is why it tells you to change leaked passwords too.</li>
+          <li><strong>Trace finds, you decide.</strong> It spots patterns and your watch terms, but it can miss things and occasionally flag something harmless. Deleting a message doesn't undo that others may have seen it, which is why it tells you to change leaked passwords too. Companies sometimes answer late or partly; Trace helps you follow up, but it can't force them.</li>
           <li><strong>Backups are your job.</strong> With no cloud copy, keep your key picture and recovery code safe, and export your vault now and then.</li>
         </ul>
         <h3>Questions</h3>
         <dl class="faq">
-          <dt>Does Sompio work without internet?</dt><dd>Yes, everything. Only the three optional actions listed under <a href="#private">Why it's private</a> go online.</dd>
+          <dt>Does Sompio work without internet?</dt><dd>Yes, everything. Only the optional actions listed under <a href="#private">Why it's private</a> go online.</dd>
           <dt>Can you see my passwords or messages?</dt><dd>No. They never leave your PC, and we don't have your keys.</dd>
           <dt>What if I forget my password?</dt><dd>Use your recovery code. Without it, nobody can open your data, including us.</dd>
           <dt>Which systems?</dt><dd>Windows 10 and 11 today. Linux, Mac and phones are planned.</dd>
+          <dt>Does Trace send emails for me?</dt><dd>No. It writes the letter and opens it in your own email app, so you send it from your own address and the answer comes back to you.</dd>
         </dl>
       </section>
 

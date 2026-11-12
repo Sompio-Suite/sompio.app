@@ -56,7 +56,7 @@ impl App {
     }
     pub fn name(self) -> &'static str {
         match self {
-            App::Clean => "Clean",
+            App::Clean => "Trace",
             App::Calendar => "Calendar",
             App::Vault => "Vault",
             App::Voice => "Voice",
@@ -438,7 +438,7 @@ mod tests {
         let text = issue(&s, Apps::of(&[App::Clean, App::Vault]), 30, T0, true).unwrap();
         assert!(text.starts_with("SOMPIO-"));
         let k = parse(&text, &p).unwrap();
-        assert_eq!((k.apps.label().as_str(), k.days, k.test), ("Clean + Vault", 30, true));
+        assert_eq!((k.apps.label().as_str(), k.days, k.test), ("Trace + Vault", 30, true));
         assert_eq!(k.issued_ms, T0.div_euclid(DAY_MS) * DAY_MS);
         // Lower case, spaces and missing dashes are fine
         assert!(parse(&text.to_lowercase().replace('-', " "), &p).is_ok());

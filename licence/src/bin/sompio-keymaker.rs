@@ -115,7 +115,7 @@ fn interactive() -> Result<()> {
             "1" => {
                 println!("\nWhich apps?");
                 println!("  1  Sompio Suite (all apps)");
-                println!("  2  Clean");
+                println!("  2  Trace");
                 println!("  3  Calendar");
                 println!("  4  Vault");
                 println!("  5  Voice");

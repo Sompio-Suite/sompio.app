@@ -4,7 +4,7 @@ Private tools that keep your data on your PC, unlocked with a key instead of an 
 
 | App | Status |
 | --- | --- |
-| **Clean** | Built: finds and cleans up personal information in your exports and files (below) |
+| **Trace** | Built: finds and cleans up personal information in your exports and files, and handles GDPR requests to companies (below). Called Clean before 0.8.0 |
 | **Calendar** | Built: Desk Reminders rebuilt, encrypted, with privacy routines (below) |
 | **Vault** | Built (round 1 of 3): KeePass-compatible password manager with auto-type (below) |
 | **Voice** | On hold: taken out of the app in 0.7.0. The code is kept in `voice/` (below) |
@@ -112,7 +112,7 @@ met a real one in this repository's tests.
 ## Look and layout
 
 White and compact, in the spirit of KeePassXC: a light navigation pane, flat underlined tabs, a toolbar,
-a tree on the left, a sortable table and a preview pane underneath. Clean's Findings and the Vault both use it
+a tree on the left, a sortable table and a preview pane underneath. Trace's Findings and the Vault both use it
 (`.xc-*` styles in `styles.css`). The Vault has KeePassXC's shortcuts (Ctrl+B/C/T/U, Ctrl+Shift+V, Ctrl+E/K/N/F,
 Enter, Delete), column sorting, clone and drag-to-folder.
 
@@ -137,7 +137,7 @@ last log lines for a bug report.
 
 ## Samples
 
-The Samples page (sidebar) has made-up data for every function: Clean's sample data, sample exports for all
+The Samples page (sidebar) has made-up data for every function: Trace's sample data, sample exports for all
 12 import types plus a folder for the PC scan, Calendar reminders that pop up within a minute plus a shared
 schedule and a Desk Reminders folder, Vault entries covering every feature plus KeePass files (one needs a key
 file; password `sample-password`), five CSV formats and a local login page for auto-type. Files are written to
@@ -158,7 +158,7 @@ wrapped (XChaCha20-Poly1305) in `lock.json`, and opens two ways:
   remembered in Windows Credential Manager so only the password is typed there.
 - **Recovery code** (120 bits, printed once). It sets a new password, picture and code; the old ones stop working.
 
-Each app gets its own key from the vault key (HKDF). Clean's database is encrypted with SQLite3 Multiple Ciphers
+Each app gets its own key from the vault key (HKDF). Trace's database is encrypted with SQLite3 Multiple Ciphers
 (ChaCha20-Poly1305), vendored as a drop-in for rusqlite's bundled SQLite in `vendor/libsqlite3-sys`, so no
 OpenSSL is needed to build. Data from before the lock is encrypted in place on setup. Sompio locks itself after
 a chosen idle time. Nobody, including us, can reset a lost password together with a lost recovery code.
@@ -198,7 +198,7 @@ A key holds which apps it unlocks, for how many days, the day it was made and a 
 Ed25519 (`licence/`). The app has only the public half (`licence/public.key`), so it can check keys offline but
 never make them. Keys stack: new days start where the current ones end. A key must be added within a year of
 being made. Every new install gets a 14-day suite trial. The app remembers the latest date it has seen, so setting
-the clock back gains nothing. When access ends, Clean turns read-only: everything stays visible and exportable.
+the clock back gains nothing. When access ends, Trace turns read-only: everything stays visible and exportable.
 
 **Making keys.** `Build Sompio.bat` builds `Sompio Key Maker.exe` next to the app. Double-click it for a menu
 (make keys, check a key). The first run creates the signing key in `%APPDATA%\Sompio Key Maker\` and the build
@@ -209,7 +209,9 @@ Keys you make are saved as CSV files in `Documents\Sompio Keys\`. For scripts an
 The `public.key` in the repository belongs to a throwaway development key. Builds made by the script replace it
 with yours; CI builds still carry the throwaway one until a release key is set up.
 
-# Sompio Clean
+# Sompio Trace
+
+The code still calls it `clean` (the crate, the database file and the commands), so existing data keeps working.
 
 Find personal information in your chats, posts, sent mail and files, offline.
 
@@ -232,6 +234,27 @@ a password or an access token, then walks you through cleaning it up. Nothing le
 | LinkedIn | Get a copy of your data | Messages you sent, your posts and comments |
 | Gmail / email | Google Takeout (.mbox), or connect any IMAP account | Mail you sent only, without quoted replies |
 | This PC | Folders you choose | Text files, Word documents, and every file's name (passport scans, key files…) |
+
+## Requests: getting your data, and getting it deleted
+
+The **Requests** tab handles what happens outside the PC, without Sompio going online:
+
+- **Get your data**: for each platform, where and how to ask for the export and how long it usually takes.
+  "I asked for it" can add a Calendar reminder for when it should be ready. Telegram and email can be connected
+  for results right away instead.
+- **Find it now**: ready-made searches for the watch terms on Discord (copied, for Ctrl+F), Reddit, X and the web,
+  limited to the person's own posts when they add their username. The searches run on those sites, which the
+  screen says.
+- **Ask a company**: a bundled directory of about 3,000 companies with their privacy contacts, plus GDPR letters
+  for erasure (Art. 17), access (Art. 15) and objection (Art. 21). Letters open in the person's own email app
+  (mailto) or are copied for the company's web form; Sompio never sends mail itself.
+- **Your requests**: the one-month deadline (Art. 12(3)), a reminder letter, and a complaint to the data protection
+  authority of the person's country (57 authorities bundled). Stored encrypted in the database (`trace_requests`).
+- **Clean up one by one** in Findings walks through findings one at a time: open where it was posted, delete it
+  there, "I deleted it, next". Connected Telegram and email, and files on the PC, are removed directly.
+
+The company and authority directory is the Datenanfragen.de database (public domain, CC0), bundled in
+`app/public/trace/`; see `SOURCE.txt` there for the version.
 
 ## What using it looks like
 
@@ -333,7 +356,7 @@ cargo run --release --bin sompio-clean-cli -- demo          # load the sample da
 ## How it's put together
 
 ```
-clean/             Rust library (Sompio Clean), all the real work. No UI, no network.
+clean/             Rust library (Sompio Trace), all the real work. No UI, no network.
 connect/           Live account connections (Telegram, email over IMAP). The only code that goes online.
   src/import/        one reader per platform; mod.rs detects which export it is
   src/pcscan.rs      the PC folder scan and Recycle Bin

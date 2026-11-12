@@ -22,6 +22,9 @@ interface Toast { text: string; undo?: () => void }
 /** One message to delete on its platform. */
 interface Target { id: number; message_id: string; platform: Platform }
 
+/** The guided clean-up: one finding at a time, with the right way to remove it. */
+interface Guide { items: FindingView[]; i: number; deleted: number; ok: number; skipped: number; busy?: boolean; error?: string }
+
 /** A run of deletions on a connected platform, one message at a time. */
 interface Batch { label: string; done: number; total: number; failed: number }
 
@@ -87,6 +90,7 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
   const [batch, setBatch] = useState<Batch | null>(null);
   const stopBatch = useRef(false);
   const [confirmGroupDelete, setConfirmGroupDelete] = useState<Platform | null>(null);
+  const [guide, setGuide] = useState<Guide | null>(null);
 
   useEffect(() => {
     api.watchTerms().then((t) => {
@@ -357,9 +361,50 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
     }
   };
 
+  /** Starts the guided clean-up with the selected items, or everything still to review in this view. */
+  const startGuide = async (fromSelection: boolean) => {
+    let list: FindingView[];
+    if (fromSelection) list = [...selected.values()].filter((f) => !f.status);
+    else list = (await api.findings(kind, platform, "open", 0, 500, true, false, null)).items;
+    if (list.length === 0) return setToast({ text: "Nothing left to clean up here." });
+    setSelected(new Map());
+    setGuide({ items: list, i: 0, deleted: 0, ok: 0, skipped: 0 });
+  };
+  /** Records what happened to the current item and moves on. */
+  const guideNext = async (outcome: "deleted" | "ok" | "skipped", markIt = true) => {
+    if (!guide) return;
+    const f = guide.items[guide.i];
+    if (markIt && outcome !== "skipped") {
+      try {
+        onScan(await api.setStatus(f.id, outcome));
+      } catch (e) {
+        return setGuide({ ...guide, error: String(e) });
+      }
+    }
+    setGuide({ ...guide, i: guide.i + 1, busy: false, error: undefined, [outcome]: guide[outcome] + 1 });
+  };
+  /** Removes it for you where Sompio can: connected Telegram or email, or a file on this PC. */
+  const guideRemove = async () => {
+    if (!guide) return;
+    const f = guide.items[guide.i];
+    setGuide({ ...guide, busy: true, error: undefined });
+    try {
+      if (f.platform === "pc") onScan((await api.recycleFile(f.id))[1]);
+      else onScan(await liveDelete(f)!.run(f.id));
+      await guideNext("deleted", false);
+    } catch (e) {
+      setGuide({ ...guide, busy: false, error: String(e) });
+    }
+  };
+  const closeGuide = () => {
+    setGuide(null);
+    reload();
+  };
+
   // Keyboard: works anywhere on the page except while typing in a field.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (guide) return;
       const el = e.target as HTMLElement;
       if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || e.metaKey || e.ctrlKey || e.altKey) return;
       if (!total) return;
@@ -442,6 +487,9 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
         <button aria-pressed={showTerms} onClick={() => setShowTerms(!showTerms)} title="Your name, street, school: things only you know are sensitive">
           <Icon name="filter" size={16} />Watch terms{terms.length ? ` (${terms.length})` : ""}
         </button>
+        <button onClick={() => startGuide(false)} disabled={!scanned || !scan?.open} title="Go through everything still to review, one at a time, and remove it">
+          <Icon name="trash" size={16} />Clean up
+        </button>
         <button onClick={exportList} disabled={!scanned || all === 0} title="A list of everything found, with links. No message text."><Icon name="save" size={16} />Save list</button>
         <span className="sep" />
         {scanned && all > 0 && (
@@ -503,6 +551,7 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
             return how && tab !== "done" ? how.ask(selected.size) : null;
           })()}
           onDecide={decideSelected}
+          onGuide={() => startGuide(true)}
           onLive={async () => runLive(await expandSelection())}
           onClear={() => setSelected(new Map())}
         />
@@ -729,6 +778,17 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
         </div>
       </div>
 
+      {guide && (
+        <GuidePanel
+          guide={guide}
+          revealAll={revealAll}
+          removeLabel={(f) => (f.platform === "pc" ? "Move to Recycle Bin" : liveDelete(f) ? (f.platform === "telegram" ? "Delete from Telegram" : "Move to Trash") : null)}
+          onOpen={goTo}
+          onRemove={guideRemove}
+          onNext={guideNext}
+          onClose={closeGuide}
+        />
+      )}
       {batch && (
         <div className="toast" role="status" aria-live="polite">
           <span>{batch.label}: {n(batch.done)} of {n(batch.total)}{batch.failed ? `, ${batch.failed} failed` : ""}</span>
@@ -755,7 +815,7 @@ const yearSpan = (a: number, b: number) => {
 
 function BulkBar(p: {
   count: number; grouped: boolean; tab: StatusTab; live: string | null;
-  onDecide: (s: Status) => void; onLive: () => void; onClear: () => void;
+  onDecide: (s: Status) => void; onGuide: () => void; onLive: () => void; onClear: () => void;
 }) {
   const [confirm, setConfirm] = useState(false);
   return (
@@ -774,6 +834,7 @@ function BulkBar(p: {
         ))}
       {p.tab !== "done" && (
         <>
+          <button onClick={p.onGuide} title="Open each one where it was posted, then mark it"><Icon name="arrow" size={16} />One by one</button>
           <button onClick={() => p.onDecide("deleted")}><Icon name="check" size={16} />I deleted them</button>
           <button onClick={() => p.onDecide("ok")}>Not a problem</button>
           {p.tab !== "later" && <button onClick={() => p.onDecide("later")}><Icon name="clock" size={16} />Later</button>}
@@ -824,6 +885,85 @@ function WatchTerms(p: {
         {p.scanned && <button className="quiet" onClick={p.onClose}>Close</button>}
       </div>
       {p.changed && !p.scanning && <p className="small note">Your watch terms changed. Check again to include them. Your decisions are kept.</p>}
+    </div>
+  );
+}
+
+function GuidePanel(p: {
+  guide: Guide; revealAll: boolean;
+  removeLabel: (f: FindingView) => string | null;
+  onOpen: (f: FindingView) => void; onRemove: () => void;
+  onNext: (o: "deleted" | "ok" | "skipped") => void; onClose: () => void;
+}) {
+  const g = p.guide;
+  const f = g.items[g.i];
+  const [opened, setOpened] = useState(false);
+  useEffect(() => setOpened(false), [g.i]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement).tagName === "TEXTAREA") return;
+      if (e.key === "Escape") return p.onClose();
+      if (!f || g.busy) return;
+      if (e.key === "d") p.onNext("deleted");
+      else if (e.key === "s") p.onNext("skipped");
+      else if (e.key === "o") { p.onOpen(f); setOpened(true); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+  const remove = f ? p.removeLabel(f) : null;
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <div className="modal guide" role="dialog" aria-modal="true" aria-label="Clean up one by one">
+        {f ? (
+          <>
+            <div className="guide-head">
+              <strong>Clean up one by one</strong>
+              <span className="muted small">{n(g.i + 1)} of {n(g.items.length)}</span>
+              <span className="grow" />
+              <button className="quiet" onClick={p.onClose}>Stop</button>
+            </div>
+            <div className="bar"><span style={{ width: `${(g.i / g.items.length) * 100}%` }} /></div>
+            <div className="guide-item">
+              <div className="guide-meta">
+                <span className={`risk risk-${f.severity}`}>{severityLabel(f.severity)}</span>
+                <strong>{f.label}</strong>
+                <span className="tag">{platformName[f.platform]}</span>
+                <span className="small muted">{f.channel_name}, {dateTime(f.ts)}</span>
+              </div>
+              <p className="quote">{f.before}<mark>{f.masked && !p.revealAll ? "•••" : f.matched}</mark>{f.after}</p>
+              {f.advice && <p className="small"><strong>What to do:</strong> {f.advice}</p>}
+            </div>
+            {g.error && <p className="error small" role="alert">{g.error}</p>}
+            <div className="guide-actions">
+              {remove ? (
+                <button className="primary" disabled={g.busy} onClick={p.onRemove}><Icon name="trash" size={16} />{g.busy ? "Removing…" : remove}</button>
+              ) : (
+                <button className={opened ? undefined : "primary"} onClick={() => { p.onOpen(f); setOpened(true); }}>
+                  <Icon name="external" size={16} />{openLabel(f.platform)} <span className="key">O</span>
+                </button>
+              )}
+              <button className={!remove && opened ? "primary" : undefined} disabled={g.busy} onClick={() => p.onNext("deleted")}>
+                <Icon name="check" size={16} />I deleted it, next <span className="key">D</span>
+              </button>
+              <button disabled={g.busy} onClick={() => p.onNext("ok")}>Not a problem</button>
+              <button className="quiet" disabled={g.busy} onClick={() => p.onNext("skipped")}>Skip <span className="key">S</span></button>
+            </div>
+            {!remove && f.platform !== "pc" && (
+              <p className="small muted">Sompio opens the message in your browser or app. Delete it there, come back, and click "I deleted it".</p>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="guide-head"><strong>All done</strong></div>
+            <p>
+              {plural(g.deleted, "item removed", "items removed")}, {n(g.ok)} marked as not a problem, {n(g.skipped)} skipped.
+              {g.skipped > 0 && " Skipped items are still under To review."}
+            </p>
+            <div className="guide-actions"><button className="primary" onClick={p.onClose}>Close</button></div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

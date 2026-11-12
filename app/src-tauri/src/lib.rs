@@ -604,6 +604,60 @@ async fn watch_terms(state: State<'_, AppState>) -> CmdResult<Vec<String>> {
     with_store(state.db()?, |s| s.watch_terms()).await
 }
 
+/// Opens a web page or a ready-to-send email in the person's own browser or mail app. Only
+/// https, http and mailto: never files, programs or other schemes.
+#[tauri::command]
+fn open_external(app: AppHandle, url: String) -> CmdResult<()> {
+    use tauri_plugin_opener::OpenerExt;
+    let u = url.trim();
+    let lower = u.to_ascii_lowercase();
+    if !(lower.starts_with("https://") || lower.starts_with("http://") || lower.starts_with("mailto:")) {
+        return Err("Only web and email links can be opened.".into());
+    }
+    if u.len() > 32_000 || u.chars().any(|c| c.is_control()) {
+        return Err("That link can't be opened.".into());
+    }
+    app.opener().open_url(u, None::<&str>).map_err(|e| format!("Couldn't open it: {e}"))
+}
+
+// ---------- Trace: request centre ----------
+
+#[tauri::command]
+async fn trace_data(state: State<'_, AppState>) -> CmdResult<sompio_clean::trace::TraceData> {
+    with_store(state.db()?, |s| s.trace_data()).await
+}
+
+#[tauri::command]
+async fn trace_save(state: State<'_, AppState>, data: sompio_clean::trace::TraceData) -> CmdResult<()> {
+    with_store(state.db()?, move |s| s.set_trace_data(&data)).await
+}
+
+/// A one-off Calendar reminder (a request deadline, an export to check on), in a schedule of its own.
+#[tauri::command]
+async fn trace_remind(state: State<'_, AppState>, date: String, title: String, text: String) -> CmdResult<()> {
+    if chrono::NaiveDate::parse_from_str(&date, "%Y-%m-%d").is_err() {
+        return Err("That isn't a date.".into());
+    }
+    let (path, key) = state.vault.calendar_db().map_err(|e| e.to_string())?;
+    tauri::async_runtime::spawn_blocking(move || -> anyhow::Result<()> {
+        const NAME: &str = "Trace requests";
+        let store = sompio_calendar::CalendarStore::open_encrypted(&path, &key)?;
+        let id = match store.load()?.into_iter().find(|l| l.view.name == NAME && l.view.owned) {
+            Some(l) => l.view.id,
+            None => store.create_shared(NAME, "", &[])?,
+        };
+        store.add_row(
+            id,
+            &sompio_calendar::RowInput { days: date, time: "10:00".into(), title, text, ..Default::default() },
+        )
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())?;
+    state.calendar.mark_dirty();
+    Ok(())
+}
+
 #[tauri::command]
 async fn export_flagged(state: State<'_, AppState>, path: String) -> CmdResult<usize> {
     with_store(state.db()?, move |s| s.export_flagged_csv(Path::new(&path))).await
@@ -759,6 +813,10 @@ pub fn run() {
             load_demo,
             is_demo,
             watch_terms,
+            open_external,
+            trace_data,
+            trace_save,
+            trace_remind,
             export_flagged,
             wipe_data,
             data_location,

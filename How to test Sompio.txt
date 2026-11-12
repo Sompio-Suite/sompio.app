@@ -1,13 +1,13 @@
 HOW TO TEST SOMPIO
 ==================
 
-Thank you for testing! This is a test version of Sompio 0.7.2 for Windows 10 and 11.
+Thank you for testing! This is a test version of Sompio 0.8.0 for Windows 10 and 11.
 Everything you put in it stays on your PC. Nothing is sent to us, and there's no account.
 
 
 1. INSTALLING
 -------------
-Run Sompio_0.7.2_x64-setup.exe.
+Run Sompio_0.8.0_x64-setup.exe.
 
 Windows will probably show a blue "Windows protected your PC" box. That's because this test
 version isn't signed with a Microsoft certificate yet (the real release will be). To go on:
@@ -29,7 +29,7 @@ in the menu has made-up data for everything (see step 2).
 -------------------
 Open "Samples" in the menu on the left. It has:
   - Calendar: sample reminders (the first pop-up comes within a minute), plus sample files.
-  - Clean: open Clean with ready-made sample data, or save sample exports from Discord,
+  - Trace: open Trace with ready-made sample data, or save sample exports from Discord,
     Reddit, Telegram, X, Facebook, Instagram, TikTok, Snapchat, LinkedIn, WhatsApp and Gmail.
   - Vault: sample entries (2FA codes, weak and reused passwords, auto-type tests), plus KeePass
     files and CSV exports to import. The KeePass sample password is: sample-password
@@ -50,10 +50,21 @@ Calendar
     it's locked.
   - Make your own reminders, edit them, import the sample schedule files.
 
-Clean
+Trace (this used to be called Clean)
   - Open it with sample data. Findings shows everything found in one list: bank accounts,
     card numbers, passwords, addresses, phone numbers and more. Pick a type on the left,
     click a row to see the message underneath, and try "Show values" and "Group repeats".
+  - "Clean up" in Findings goes through everything one at a time: it opens each message
+    where it was posted, you delete it there and click "I deleted it, next".
+  - The new Requests tab:
+      Get your data: where and how to ask each platform for your data, with "I asked
+        for it" (Calendar reminds you when it should be ready).
+      Find it now: ready-made searches for your watch terms on Discord, Reddit and X.
+      Ask a company: search a company (try Discord), pick "Delete my data", and look at
+        the letter Trace writes. "Open in my email app" opens it ready to send; please
+        don't actually send it while testing. Then "I've sent it: track the deadline".
+      Your requests: the deadline, a reminder letter, and a complaint to the data
+        protection authority.
   - Also go through Summary, Messages, Sources and Settings.
   - Import the sample exports under Sources, and try "Scan a folder on this PC" on the
     "Sample PC folder".

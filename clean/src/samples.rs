@@ -166,7 +166,7 @@ pub fn write_samples(dir: &Path) -> Result<Vec<SampleFile>> {
             ("your_instagram_activity/comments/post_comments_1.json", r#"[{"string_map_data": {"Comment": {"value": "congrats!!"}, "Time": {"timestamp": 1650000000}}}]"#.into()),
         ],
     )?;
-    add("Instagram export.zip", "Instagram", "Two chats and a comment. Clean works out which name is yours.");
+    add("Instagram export.zip", "Instagram", "Two chats and a comment. Trace works out which name is yours.");
 
     std::fs::write(
         dir.join("user_data_tiktok.json"),
@@ -204,7 +204,7 @@ pub fn write_samples(dir: &Path) -> Result<Vec<SampleFile>> {
         dir.join("WhatsApp Chat with Sam.txt"),
         "12/03/2024, 09:15 - Messages and calls are end-to-end encrypted.\n12/03/2024, 09:16 - Sam: hi, what's your address?\n13/03/2024, 09:17 - Alex: Prinsengracht 263, 1016 GV Amsterdam\n13/03/2024, 09:18 - Sam: thanks\n13/03/2024, 09:20 - Alex: and my IBAN for the tickets: NL91 ABNA 0417 1643 00\n",
     )?;
-    add("WhatsApp Chat with Sam.txt", "WhatsApp", "An exported chat. The file name says Sam is the other person, so Clean keeps only your lines.");
+    add("WhatsApp Chat with Sam.txt", "WhatsApp", "An exported chat. The file name says Sam is the other person, so Trace keeps only your lines.");
 
     zip(
         &dir.join("Gmail takeout.zip"),
@@ -232,7 +232,7 @@ pub fn write_samples(dir: &Path) -> Result<Vec<SampleFile>> {
     add("Sample PC folder", "This PC", "A folder for \"Scan a folder\": notes with a password and IBAN, a passport scan's file name, contacts and a CV.");
 
     let mut readme = String::from(
-        "Sompio Clean samples\r\n====================\r\n\r\nMade-up exports to try every import in Sompio Clean. Nothing in them is real.\r\nIn Clean, open Sources, choose \"Add an export\" and pick one of these.\r\n\r\n",
+        "Sompio Trace samples\r\n====================\r\n\r\nMade-up exports to try every import in Sompio Trace. Nothing in them is real.\r\nIn Trace, open Sources, choose \"Add an export\" and pick one of these.\r\n\r\n",
     );
     for f in &out {
         readme.push_str(&format!("{}  ({})\r\n  {}\r\n\r\n", f.file, f.platform, f.what));

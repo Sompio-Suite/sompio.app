@@ -15,6 +15,7 @@ mod query;
 mod scan;
 pub mod samples;
 mod time;
+pub mod trace;
 
 pub use db::Store;
 pub use demo::load_demo;

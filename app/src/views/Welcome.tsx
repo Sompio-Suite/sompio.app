@@ -51,7 +51,7 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
     <div className="welcome">
       <div className="welcome-inner">
         <div className="eyebrow">
-          <Icon name="review" size={16} /> Sompio Clean
+          <Icon name="review" size={16} /> Sompio Trace
         </div>
         <div className="lede">
           <h1>
@@ -121,7 +121,7 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
         <div className="promises">
           <div>
             <h3><Icon name="lock" size={16} />Works offline</h3>
-            <p>Clean reads exports on this PC. It only goes online if you connect an account, and then only to that service. No analytics, no tracking.</p>
+            <p>Trace reads exports on this PC. It only goes online if you connect an account, and then only to that service. No analytics, no tracking.</p>
           </div>
           <div>
             <h3><Icon name="lock" size={16} />No logins needed</h3>

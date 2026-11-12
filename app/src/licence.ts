@@ -36,7 +36,7 @@ export const SUITE: SuiteApp[] = [
   },
   {
     key: "clean",
-    name: "Clean",
+    name: "Trace",
     icon: "review",
     line: "Find personal details in your chats, posts, sent mail and files, and clean them up.",
     ready: true,

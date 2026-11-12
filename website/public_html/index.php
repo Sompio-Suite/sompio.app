@@ -48,7 +48,7 @@ $c = config();
   <main class="gate">
     <img src="logo.svg" alt="" width="56" height="56">
     <h1>Sompio beta</h1>
-    <p class="muted">Private tools for your PC: a calendar, a cleaner for what you've shared online, and a password vault. This page is for testers.</p>
+    <p class="muted">Private tools for your PC: a calendar, a tool that finds and removes what you've shared online, and a password vault. This page is for testers.</p>
     <form method="post" class="card">
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
       <label for="password">Tester password</label>
@@ -82,7 +82,7 @@ $c = config();
         <p class="lead">Everything you put in Sompio stays on your PC, encrypted. There's no account, and nothing is sent to us. Please use made-up data while testing: the app's Samples page has some for everything.</p>
         <a class="learn" href="docs.php">
           <span class="learn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
-          <span class="learn-text"><strong>How the suite works</strong><span>What Calendar, Clean and Vault do, and how Sompio keeps your data private.</span></span>
+          <span class="learn-text"><strong>How the suite works</strong><span>What Calendar, Trace and Vault do, and how Sompio keeps your data private.</span></span>
           <span class="button learn-button">Read the documentation</span>
         </a>
         <div class="beta-note">
@@ -149,10 +149,10 @@ $c = config();
           </ul>
         </div>
         <div class="card">
-          <h3>Clean</h3>
+          <h3>Trace <span class="muted small">(was Clean)</span></h3>
           <ul>
-            <li>Samples page: "Open Clean with sample data".</li>
-            <li>Findings shows everything found: bank accounts, cards, passwords, addresses and more.</li>
+            <li>Samples page: "Open Trace with sample data". Findings shows everything found, and "Clean up" goes through it one at a time.</li>
+            <li>The new Requests tab: how to get your data from each platform, and letters asking companies to delete it, with deadlines.</li>
             <li>Import the sample exports under Sources, and scan the sample PC folder.</li>
           </ul>
         </div>
@@ -180,7 +180,7 @@ $c = config();
         <div class="row2">
           <label>Which part?
             <select name="area">
-              <option>Calendar</option><option>Clean</option><option>Vault</option>
+              <option>Calendar</option><option>Trace</option><option>Vault</option>
               <option>Installing or starting</option><option>The lock</option><option>Something else</option>
             </select>
           </label>

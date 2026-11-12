@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, listen, openLink, pickOpen, pickSave, type Totp, type VaultEntry, type VaultEntryDetail, type VaultGroup } from "../api";
+import { api, listen, openExternal, pickOpen, pickSave, type Totp, type VaultEntry, type VaultEntryDetail, type VaultGroup } from "../api";
 import Icon from "../Icon";
 import { dateTime, plural } from "../format";
 import VaultEntryDialog from "./VaultEntryDialog";
@@ -80,7 +80,7 @@ export default function Vault({ readOnly, onAddKey }: Props) {
   // What the toolbar and the KeePassXC shortcuts do
   const act = {
     copy: (field: string, what: string) => pick && api.vaultCopy(pick.id, field).then((s) => copied(s, what)).catch((e) => setToast({ ok: false, text: String(e) })),
-    open: () => pick?.url && openLink(/^[a-z]+:\/\//i.test(pick.url) ? pick.url : `https://${pick.url}`).catch((e) => setToast({ ok: false, text: String(e) })),
+    open: () => pick?.url && openExternal(/^[a-z]+:\/\//i.test(pick.url) ? pick.url : `https://${pick.url}`).catch((e) => setToast({ ok: false, text: String(e) })),
     type: () => pick?.has_password && api.vaultAutotypeNow(pick.id).catch((e) => setToast({ ok: false, text: String(e) })),
     edit: () => !readOnly && detail && setEditing(detail),
     clone: () => !readOnly && pick && !pick.in_recycle_bin && run(async () => { const id = await api.vaultCloneEntry(pick.id); setSelected(id); }, "Cloned."),

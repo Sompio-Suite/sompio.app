@@ -78,6 +78,7 @@ let loaded = false;
 let demo = false;
 let scanned = false;
 let terms: string[] = [];
+let traceData = { profile: { name: "", email: "", country: "", handles: {} }, exports: {}, requests: [] } as unknown;
 
 const url = (m: Msg) => (m.platform === "pc" ? null : `https://discord.com/channels/${m.guild ?? "@me"}/${m.channel_id}/${m.id}`);
 const mask = (s: string) => s.replace(/(\p{L}|\d)([\p{L}\d]*)/gu, (_, a, b) => a + "•".repeat(b.length));
@@ -274,6 +275,10 @@ const handlers: Record<string, (a: any) => unknown> = {
     if (old !== mockPassword) throw "That password isn't right. Check Caps Lock and try again.";
     mockPassword = String(nu);
   },
+  trace_data: () => JSON.parse(JSON.stringify(traceData)),
+  trace_save: ({ data }) => { traceData = JSON.parse(JSON.stringify(data)); },
+  trace_remind: ({ date, title }) => console.info("calendar reminder", date, title),
+  open_external: ({ url }) => { window.open(String(url), "_blank", "noopener"); },
   log_problem: ({ text }) => console.warn("problem:", text),
   app_details: () => ({ version: "0.7.2", os: "windows 10.0.22631.4460 (x86_64)", log: "C:\\Users\\you\\AppData\\Local\\app.sompio.desktop\\problems.log", recent: ["2026-11-09 15:40:02 Sompio 0.6.0 started on windows x86_64"] }),
   open_problems_folder: () => undefined,

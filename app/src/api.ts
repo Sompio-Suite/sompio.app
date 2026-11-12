@@ -14,6 +14,18 @@ export type Platform =
   | "tiktok" | "snapchat" | "linkedin" | "email" | "pc";
 export type StatusTab = "open" | "later" | "done";
 
+/** Trace's request centre, stored encrypted with everything else */
+export interface PrivacyRequest {
+  id: string; company: string; company_name: string; kind: "erasure" | "access" | "objection"; account: string;
+  sent_on: string | null; status: "waiting" | "answered" | "done"; reminders: string[];
+  complained_on: string | null; authority: string; note: string;
+}
+export interface TraceData {
+  profile: { name: string; email: string; country: string; handles: Record<string, string> };
+  exports: Record<string, { requested_on: string | null }>;
+  requests: PrivacyRequest[];
+}
+
 export interface ChannelView {
   id: string;
   platform: Platform;
@@ -242,6 +254,9 @@ export const api = {
   ignoreEverywhere: (id: number) => call<[number, ScanSummary]>("ignore_everywhere", { id }),
   clearIgnored: () => call<number>("clear_ignored"),
   watchTerms: () => call<string[]>("watch_terms"),
+  traceData: () => call<TraceData>("trace_data"),
+  traceSave: (data: TraceData) => call<void>("trace_save", { data }),
+  traceRemind: (date: string, title: string, text: string) => call<void>("trace_remind", { date, title, text }),
   exportFlagged: (path: string) => call<number>("export_flagged", { path }),
   wipeData: () => call<void>("wipe_data"),
   dataLocation: () => call<string>("data_location"),
@@ -403,6 +418,16 @@ export async function openLink(url: string | null) {
   }
   const { openUrl } = await import("@tauri-apps/plugin-opener");
   await openUrl(url);
+}
+
+/** Opens any web page (https/http) or a ready-to-send email (mailto) in the person's own browser or mail app. */
+export async function openExternal(url: string) {
+  if (!/^(https?:\/\/|mailto:)/i.test(url.trim())) throw "Only web and email links can be opened.";
+  if (!inDesktopApp) {
+    window.open(url, "_blank", "noopener");
+    return;
+  }
+  await call<void>("open_external", { url });
 }
 
 export async function copyText(text: string) {

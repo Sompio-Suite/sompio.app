@@ -190,7 +190,7 @@ export default function LockScreen({ status, onUnlocked }: Props) {
           <Mark />
           <h1>Welcome to Sompio</h1>
           <p className="muted">
-            Sompio keeps everything on this PC, encrypted: your passwords, your calendar and what Clean finds. Nothing goes to us or
+            Sompio keeps everything on this PC, encrypted: your passwords, your calendar and what Trace finds. Nothing goes to us or
             to the cloud. Before you start, you set up the lock that keeps it safe. It takes about two minutes.
           </p>
           <ol className="setup-steps">

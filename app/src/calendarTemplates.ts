@@ -10,9 +10,9 @@ export const PACKS: Pack[] = [
     line: "A few minutes a month that keep your accounts and data tidy.",
     rows: [
       { days: "Monthly 1", time: "19:00", title: "Password check-up", text: "Change one old password, and check you don't use it anywhere else.", notice: 0 },
-      { days: "Monthly 15", time: "19:00", title: "Review what you shared", text: "Open Sompio Clean and go through anything new it found.", notice: 0 },
+      { days: "Monthly 15", time: "19:00", title: "Review what you shared", text: "Open Sompio Trace and go through anything new it found.", notice: 0 },
       { days: "Monthly 20", time: "19:00", title: "Check app permissions", text: "On your phone: which apps can see your location, camera, microphone and contacts? Turn off what they don't need.", notice: 0 },
-      { days: "Quarterly 1", time: "18:30", title: "Request fresh data exports", text: "Ask Discord, Google, Meta and others for a copy of your data, so Clean can check it when it arrives.", notice: 0 },
+      { days: "Quarterly 1", time: "18:30", title: "Request fresh data exports", text: "Ask Discord, Google, Meta and others for a copy of your data, so Trace can check it when it arrives.", notice: 0 },
       { days: "Quarterly 10", time: "18:30", title: "Sign out of old sessions", text: "Check the logged-in devices on your main accounts and sign out of the ones you don't know or use.", notice: 0 },
       { days: "Quarterly 25", time: "18:30", title: "Is your recovery code still safe?", text: "Check you can still find your Sompio recovery sheet and a copy of your key picture.", notice: 0 },
     ],

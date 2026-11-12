@@ -78,22 +78,22 @@ export default function Samples({ cleanHasData, onCleanDemo, onGo }: Props) {
       </section>
 
       <section className="panel sample-card">
-        <header><Icon name="review" /><h2>Clean</h2></header>
+        <header><Icon name="review" /><h2>Trace</h2></header>
         <div className="sample-row">
           <div>
             <strong>Look around with sample data</strong>
             <span className="small muted">A ready-scanned set of Discord messages: review, group, mark and delete without touching anything real. "Use my own data" in the bar at the top removes it.</span>
           </div>
           {cleanHasData ? (
-            <span className="small faint">You already have your own data in Clean, so this is off. Use the sample files instead.</span>
+            <span className="small faint">You already have your own data in Trace, so this is off. Use the sample files instead.</span>
           ) : (
-            <button className="primary" disabled={!!busy} onClick={() => run("clean-demo", onCleanDemo)}>Open Clean with sample data</button>
+            <button className="primary" disabled={!!busy} onClick={() => run("clean-demo", onCleanDemo)}>Open Trace with sample data</button>
           )}
         </div>
         <div className="sample-row">
           <div>
             <strong>Sample exports for every import</strong>
-            <span className="small muted">Discord, Reddit, Telegram, X, Facebook, Instagram, TikTok, Snapchat, LinkedIn, WhatsApp, Gmail, and a folder for "Scan a folder on this PC". Import them under Clean, Sources.</span>
+            <span className="small muted">Discord, Reddit, Telegram, X, Facebook, Instagram, TikTok, Snapchat, LinkedIn, WhatsApp, Gmail, and a folder for "Scan a folder on this PC". Import them under Trace, Sources.</span>
           </div>
           <button disabled={!!busy} onClick={() => files("clean")}>{busy === "clean-files" ? "Saving…" : "Save sample exports"}</button>
         </div>

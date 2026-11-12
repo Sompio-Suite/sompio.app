@@ -21,7 +21,7 @@ fn folder(app: &AppHandle, name: &str) -> CmdResult<PathBuf> {
 #[tauri::command]
 pub async fn samples_write(app: AppHandle, which: String) -> CmdResult<Written> {
     let (name, dir) = match which.as_str() {
-        "clean" => ("Clean", folder(&app, "Clean")?),
+        "clean" => ("Trace", folder(&app, "Trace")?),
         "calendar" => ("Calendar", folder(&app, "Calendar")?),
         "vault" => ("Vault", folder(&app, "Vault")?),
         other => return Err(format!("No samples for \"{other}\".")),
@@ -29,7 +29,7 @@ pub async fn samples_write(app: AppHandle, which: String) -> CmdResult<Written> 
     let d = dir.clone();
     let files = tauri::async_runtime::spawn_blocking(move || -> anyhow::Result<Vec<(String, String)>> {
         Ok(match name {
-            "Clean" => sompio_clean::samples::write_samples(&d)?.into_iter().map(|f| (f.file, format!("{}: {}", f.platform, f.what))).collect(),
+            "Trace" => sompio_clean::samples::write_samples(&d)?.into_iter().map(|f| (f.file, format!("{}: {}", f.platform, f.what))).collect(),
             "Calendar" => sompio_calendar::samples::write_sample_files(&d)?.into_iter().map(|(f, w)| (f, w.to_string())).collect(),
             _ => sompio_vault::samples::write_sample_files(&d)?.into_iter().map(|(f, w)| (f, w.to_string())).collect(),
         })

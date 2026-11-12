@@ -6,6 +6,7 @@ import Logo from "./Logo";
 import Welcome from "./views/Welcome";
 import Home from "./views/Home";
 import Review from "./views/Review";
+import Requests from "./views/Requests";
 import Messages from "./views/Messages";
 import Settings from "./views/Settings";
 import Sources from "./views/Sources";
@@ -22,8 +23,8 @@ import { autoCheckEnabled, checkForUpdate, dueForCheck, type UpdateInfo } from "
 /** Suite pages, then Clean's pages. */
 export type View =
   | "overview" | "calendar" | "vault" | "licences" | "security" | "samples"
-  | "home" | "review" | "messages" | "sources" | "settings";
-const CLEAN_VIEWS: View[] = ["home", "review", "messages", "sources", "settings"];
+  | "home" | "review" | "requests" | "messages" | "sources" | "settings";
+const CLEAN_VIEWS: View[] = ["home", "review", "requests", "messages", "sources", "settings"];
 export interface Jump { channelId: string; messageId?: string }
 
 export default function App() {
@@ -188,6 +189,8 @@ export default function App() {
         return <Home key={version} scan={scan} onReview={openReview} onGo={setView} onOpen={openChannel} />;
       case "review":
         return <Review key={`${version}-${reviewKind}`} scan={scan} demo={demo} initialKind={reviewKind} onScan={setScan} onOpen={openChannel} />;
+      case "requests":
+        return <Requests key={version} readOnly={cleanLocked} onGo={setView} />;
       case "messages":
         return <Messages key={version} jump={jump} onJumpHandled={() => setJump(null)} />;
       case "sources":
@@ -218,7 +221,7 @@ export default function App() {
         </div>
         {navButton("overview", "Overview", "grid")}
         {navButton("calendar", "Calendar", "calendar", calendarLocked ? <Icon name="lock" size={14} /> : undefined)}
-        {navButton("home", "Clean", "review", cleanLocked ? <Icon name="lock" size={14} /> : toReview > 0 && !inClean ? <span className="count" aria-label={`${toReview} to review`}>{n(toReview)}</span> : undefined)}
+        {navButton("home", "Trace", "review", cleanLocked ? <Icon name="lock" size={14} /> : toReview > 0 && !inClean ? <span className="count" aria-label={`${toReview} to review`}>{n(toReview)}</span> : undefined)}
         {navButton("vault", "Vault", "key", vaultLocked ? <Icon name="lock" size={14} /> : undefined)}
         {SUITE.filter((a) => !a.ready).map((a) => navButton(a.key as View, a.name, a.icon, <span className="soon-dot" title={a.when} />))}
         <div className="rail-spacer" />
@@ -255,7 +258,7 @@ export default function App() {
         {inClean && cleanLocked && (
           <div className="demo-bar locked-bar" role="status">
             <span>
-              <Icon name="lock" size={16} /> Clean is read-only: {accessText(cleanAccess, licence?.now ?? Date.now()).text.toLowerCase()}. You can look at
+              <Icon name="lock" size={16} /> Trace is read-only: {accessText(cleanAccess, licence?.now ?? Date.now()).text.toLowerCase()}. You can look at
               everything, but not import, scan or delete.
             </span>
             <button onClick={() => setView("licences")}>Add a key</button>
@@ -270,12 +273,12 @@ export default function App() {
         {inClean && (
           <div className="app-head">
             <div className="app-title">
-              <h1>Clean</h1>
+              <h1>Trace</h1>
               <span className="muted">Find and remove what you've shared over the years.</span>
             </div>
             {ready && (
-              <div className="segmented" role="tablist" aria-label="Clean">
-                {([["review", "Findings"], ["home", "Summary"], ["messages", "Messages"], ["sources", "Sources"], ["settings", "Settings"]] as [View, string][]).map(([id, label]) => (
+              <div className="segmented" role="tablist" aria-label="Trace">
+                {([["review", "Findings"], ["requests", "Requests"], ["home", "Summary"], ["messages", "Messages"], ["sources", "Sources"], ["settings", "Settings"]] as [View, string][]).map(([id, label]) => (
                   <button key={id} role="tab" aria-selected={view === id} onClick={() => (id === "review" ? openReview(null) : setView(id))}>
                     {label}
                     {id === "review" && toReview > 0 && <span className="count">{n(toReview)}</span>}
@@ -304,7 +307,7 @@ export default function App() {
             cleanHasData={!!ready && !demo}
             onCleanDemo={async () => {
               await api.loadDemo();
-              // Check the sample straight away, so what it holds shows up in Clean
+              // Check the sample straight away, so what it holds shows up in Trace
               await api.runScan(await api.watchTerms());
               await refresh();
               setVersion((v) => v + 1);
