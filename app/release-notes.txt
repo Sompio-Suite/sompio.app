@@ -1,2 +1,1 @@
-Vault: a "Set it up" button walks you through adding the browser extension: it opens your browser's extensions page and copies the folder for you.
-A Documentation link in the sidebar.
+Trace: the welcome headline fits on one line, with more space around it.
