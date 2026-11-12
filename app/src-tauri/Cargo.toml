@@ -49,8 +49,10 @@ winreg = "0.56"
 windows-sys = { version = "0.59", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation"] }
 
 [profile.release]
-lto = true
-codegen-units = 1
+# Quick rebuilds: "thin" link-time optimisation and parallel code generation take seconds instead of
+# minutes after a small change, and the app runs just as well (the file is a little bigger).
+lto = "thin"
+codegen-units = 16
 opt-level = 3
 strip = true
 
