@@ -192,6 +192,7 @@ $c = config();
         <label>Screenshot <span class="muted">(optional, PNG or JPG up to 5 MB. Windows key + Shift + S takes one. Please don't include real passwords.)</span>
           <input type="file" name="shot" accept="image/png,image/jpeg,image/webp"></label>
         <button class="primary" type="submit">Send feedback</button>
+        <p class="small muted">How we handle feedback: see the <a href="privacy.php#what">privacy statement</a>.</p>
       </form>
     </section>
   </main>

@@ -146,7 +146,7 @@ site_header('home');
             <label>Anything else? <span class="muted">(optional)</span><textarea name="note" rows="2" maxlength="500" placeholder="For example: I have a huge Discord export, or I use a YubiKey"></textarea></label>
             <label class="check"><input type="checkbox" name="launch" value="1"><span>Also email me once when Sompio launches</span></label>
             <button class="primary" type="submit">Join the beta</button>
-            <p class="small muted">Your email is only used to send you a beta invite, and is deleted when the beta ends. If you tick the box, you get one more email at launch, and that's it. It's kept on sompio.org, never shared, and there's no tracking. Want it removed sooner? Write to <a href="mailto:hello@sompio.org">hello@sompio.org</a>.</p>
+            <p class="small muted">Your email is only used to send you a beta invite, and is deleted when the beta ends. If you tick the box, you get one more email at launch, and that's it. It's kept on sompio.org, never shared, and there's no tracking. Want it removed sooner? Write to <a href="mailto:hello@sompio.org">hello@sompio.org</a>. Details in our <a href="privacy.php">privacy statement</a>.</p>
           </form>
         <?php endif; ?>
       </div>

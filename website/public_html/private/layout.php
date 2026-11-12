@@ -62,6 +62,7 @@ function site_footer(): void
         <a href="docs.php">Documentation</a>
         <a href="delete-discord-messages.php">Delete your Discord messages</a>
         <a href="<?= e(SOURCE_URL) ?>" class="gh-link" rel="noopener noreferrer"><?= GITHUB_ICON ?>Source code</a>
+        <a href="privacy.php">Privacy</a>
         <a href="mailto:hello@sompio.org">hello@sompio.org</a>
         <a href="<?= e(SUPPORT_URL) ?>" class="support-link" rel="noopener noreferrer"><?= HEART_ICON ?>Support Sompio</a>
       </nav>
