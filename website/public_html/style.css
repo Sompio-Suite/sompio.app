@@ -303,3 +303,13 @@ main.wrap.docs > * { margin-top: 2.2rem; }
 .join-done p { margin: 0; }
 @media (max-width: 900px) { .join { grid-template-columns: 1fr; gap: 1.2rem; } }
 @media (max-width: 640px) { .join-form button { justify-self: stretch; } }
+
+/* Support (Ko-fi) */
+.support-link, .support-button { display: inline-flex; align-items: center; gap: 0.35rem; }
+.heart-icon { flex: none; color: #d0455b; }
+.support-strip { display: flex; align-items: center; justify-content: space-between; gap: 1.2rem; }
+.support-strip h2 { font-size: 1.15rem; margin-bottom: 0.3rem; }
+.support-strip p { margin: 0; }
+.support-button { flex: none; }
+.support-button:hover { border-color: #d0455b; }
+@media (max-width: 640px) { .support-strip { flex-direction: column; align-items: stretch; } }

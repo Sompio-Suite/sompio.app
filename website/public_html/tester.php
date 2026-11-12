@@ -154,6 +154,14 @@ $c = config();
       </div>
     </section>
 
+    <section class="support-strip card">
+      <div>
+        <h2>Enjoying Sompio?</h2>
+        <p class="muted">Sompio is made by one person, without ads or investors. If you like the project, a small tip helps keep it going. Completely optional: testing is already a big help.</p>
+      </div>
+      <a class="button support-button" href="<?= e(SUPPORT_URL) ?>" rel="noopener noreferrer"><?= HEART_ICON ?>Support on Ko-fi</a>
+    </section>
+
     <section id="feedback">
       <h2>Tell us what you found</h2>
       <p>Bugs, confusing bits, ideas, or what you liked. Everything helps.
