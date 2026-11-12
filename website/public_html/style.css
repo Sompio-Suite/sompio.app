@@ -269,9 +269,13 @@ main.wrap.docs > * { margin-top: 2.2rem; }
   .home-hero h1 { font-size: 2rem; }
 }
 @media (max-width: 640px) {
-  .top nav a.hide-sm, .top nav a[href="./#tools"], .top nav a[href^="https://github.com"] { display: none; }
+  .top nav a.hide-sm, .top nav a[href="./#tools"] { display: none; }
+  .top nav .gh-label { display: none; }
+  .top nav .gh-icon { width: 20px; height: 20px; }
   .promises { grid-template-columns: 1fr; }
   .guide-card { flex-direction: column; align-items: stretch; }
   .home-hero h1 { font-size: 1.7rem; }
   .cta-row .button { flex: 1 1 100%; }
 }
+.gh-link { display: inline-flex; align-items: center; gap: 0.35rem; }
+.gh-icon { flex: none; }
