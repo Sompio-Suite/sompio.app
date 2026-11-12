@@ -379,7 +379,9 @@ button.redact:hover { outline: 2px solid color-mix(in srgb, var(--accent) 45%, t
 /* ---------- Welcome ---------- */
 .welcome { min-height: 100%; display: grid; place-items: center; padding: 3rem 1.5rem; }
 .welcome-inner { width: min(720px, 100%); display: grid; gap: 2.25rem; }
-.welcome h1 { font-size: 2.6rem; max-width: 20ch; }
+.welcome h1 { font-size: 2.15rem; line-height: 1.2; max-width: 22ch; }
+/* In the headline the bar hugs the word, sitting on the same baseline as the text around it */
+.welcome h1 .redact { display: inline-block; line-height: 1.05; padding: 0 0.16em 0.04em; border-radius: 0.14em; letter-spacing: 0.02em; vertical-align: baseline; }
 .choices { overflow: hidden; }
 .choice {
   display: grid; grid-template-columns: auto 1fr auto; gap: 1rem; align-items: center; width: 100%; text-align: left;
