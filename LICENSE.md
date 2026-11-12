@@ -6,7 +6,7 @@ FSL-1.1-ALv2
 
 ## Notice
 
-Copyright 2026 Sompio (YOUR LEGAL NAME OR COMPANY)
+Copyright 2026 Sompio
 
 ## Terms and Conditions
 
