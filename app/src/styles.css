@@ -382,8 +382,7 @@ button.redact:hover { outline: 2px solid color-mix(in srgb, var(--accent) 45%, t
 .welcome h1 { font-size: 1.85rem; line-height: 1.25; max-width: none; letter-spacing: -0.01em; }
 .welcome .lede { gap: 1rem; }
 .welcome .lede > p { max-width: 64ch; }
-/* A solid bar with no letters inside: it sits on the line and is as tall as a capital letter in any font */
-.welcome h1 .redact-bar { display: inline-block; width: 1.7em; height: 0.7em; margin-left: 0.04em; background: var(--redact); border-radius: 0.1em; vertical-align: baseline; }
+.welcome h1 .hl { color: var(--accent-text); }
 .choices { overflow: hidden; }
 .choice {
   display: grid; grid-template-columns: auto 1fr auto; gap: 1rem; align-items: center; width: 100%; text-align: left;
