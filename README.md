@@ -461,3 +461,21 @@ and a test in `clean/tests/scanner.rs` that it catches the real thing and ignore
 3. **Later:** optional clean-up mode that deletes flagged messages through Discord. This needs your token and
    automates your user account, which Discord's terms prohibit. Make it opt-in, slow and very clearly explained.
 4. **Then:** Outlook.com (Microsoft sign-in), Reddit live (needs Reddit's API approval), Routines.
+
+# License and checking Sompio yourself
+
+Sompio is **source-available** under the [Functional Source License 1.1 with an Apache 2.0 future license](LICENSE.md)
+(FSL-1.1-ALv2):
+
+- You may read, build and use the code, including to check for yourself that Sompio keeps your data on your PC.
+  Internal use, education, research and contributions are all fine.
+- You may not offer it, or something built from it, as a competing product or service.
+- Two years after each version is released, that version also becomes available under the Apache License 2.0.
+
+Bundled third-party code keeps its own license (for example `vendor/` and the company directory in `app/public/trace/`,
+see `SOURCE.txt` there).
+
+To check a download, compare its SHA-256 fingerprint with the one on the download page, or build it yourself with
+`Build Sompio.bat`. Published versions are built by the workflow in `.github/workflows/release.yml`, in the open,
+from the code in this repository.
+
