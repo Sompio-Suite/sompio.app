@@ -1,8 +1,9 @@
 # Publishes a new Sompio version: builds the Windows installer in the cloud and puts it on sompio.org,
 # where testers download it and installed copies offer it under "Update now".
 #
-# Runs when a version tag like v0.9.1 is pushed (the version in app/src-tauri/tauri.conf.json must match),
-# or from the Actions tab ("Run workflow"). What's new goes in app/release-notes.txt.
+# Runs when the "release" branch is pushed (or from the Actions tab: "Run workflow"). The version is the
+# one in app/src-tauri/tauri.conf.json; sompio.org refuses a version that isn't newer. What's new goes in
+# app/release-notes.txt.
 #
 # Secrets (Settings > Secrets and variables > Actions), all made by "Set up updates.bat":
 #   TAURI_SIGNING_PRIVATE_KEY  signs the update, so Sompio only installs ours
@@ -13,7 +14,7 @@ name: Publish
 
 on:
   push:
-    tags: ["v*"]
+    branches: [release]
   workflow_dispatch:
 
 concurrency:
@@ -58,9 +59,6 @@ jobs:
             echo "::error::A secret is missing. Add TAURI_SIGNING_PRIVATE_KEY, SOMPIO_PUBLISH_TOKEN and SOMPIO_UPDATE_TOKEN."; exit 1
           fi
           V=$(node -p "require('./app/src-tauri/tauri.conf.json').version")
-          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "v$V" ]; then
-            echo "::error::The tag ${GITHUB_REF_NAME} doesn't match the app version $V."; exit 1
-          fi
           echo "VERSION=$V" >> "$GITHUB_ENV"
       - name: Build the browser extension helper
         working-directory: browserhost
