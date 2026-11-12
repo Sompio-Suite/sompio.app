@@ -99,7 +99,7 @@ site_header('guide');
           <dt>Does it work for other apps?</dt>
           <dd>Yes. Trace also reads exports from Reddit, WhatsApp, Telegram, X, Facebook, Instagram, TikTok, Snapchat, LinkedIn and your mailboxes. See the <a href="docs.php#trace">documentation</a>.</dd>
           <dt>Can I use Sompio now?</dt>
-          <dd>Sompio is in beta with a small group of testers. The public release follows soon. Questions? Write to <a href="mailto:hello@sompio.org">hello@sompio.org</a>.</dd>
+          <dd>Sompio is in beta with a small group of testers, and the public release follows soon. Want to help test it? <a href="./#join">Join the beta</a>. Questions? Write to <a href="mailto:hello@sompio.org">hello@sompio.org</a>.</dd>
         </dl>
       </section>
     </article>

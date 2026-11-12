@@ -279,3 +279,27 @@ main.wrap.docs > * { margin-top: 2.2rem; }
 }
 .gh-link { display: inline-flex; align-items: center; gap: 0.35rem; }
 .gh-icon { flex: none; }
+
+/* Join the beta */
+.join { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 2.4rem; align-items: start; padding-top: 3.2rem; scroll-margin-top: 72px; }
+.join h2 { font-size: 1.7rem; }
+.join .ticks { color: var(--ink-2); }
+.join-card { background: var(--soft); padding: 1.3rem 1.4rem; }
+.join-form { display: grid; gap: 1rem; }
+.join-form fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.join-form legend { font-weight: 600; font-size: 0.9rem; padding: 0; margin-bottom: 0.4rem; }
+.join-form p { margin: 0; }
+.join-form button { justify-self: start; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.chip { position: relative; font-weight: 400; }
+.chip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.chip span { display: inline-block; border: 1px solid var(--line-2); background: #fff; border-radius: 999px; padding: 0.25rem 0.8rem; font-size: 0.9rem; cursor: pointer; }
+.chip input:checked + span { background: #e9f4ea; border-color: var(--green); color: var(--green-2); font-weight: 600; }
+.chip input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }
+.join-form label.check { display: flex; gap: 0.55rem; align-items: flex-start; font-weight: 400; }
+.join-form label.check input { width: auto; margin-top: 0.3rem; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.join-done h3 { color: var(--green-2); font-size: 1.2rem; }
+.join-done p { margin: 0; }
+@media (max-width: 900px) { .join { grid-template-columns: 1fr; gap: 1.2rem; } }
+@media (max-width: 640px) { .join-form button { justify-self: stretch; } }

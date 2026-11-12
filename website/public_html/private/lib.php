@@ -169,4 +169,29 @@ function send_mail(string $subject, string $body, ?array $attachment = null): bo
     return @mail($to, $subject, $msg, implode("\r\n", $headers), '-f' . $from);
 }
 
+/** What the "Join the beta" form offers (index.php shows them, signup.php keeps only these). */
+const CHOICES = [
+    'windows' => ['Windows 11', 'Windows 10', 'Not sure'],
+    'browsers' => ['Chrome', 'Edge', 'Firefox', 'Brave', 'Other'],
+    'apps' => ['Discord', 'Reddit', 'WhatsApp', 'Telegram', 'X', 'Instagram or Facebook', 'Email', 'Other'],
+    'tools' => ['Trace', 'Vault', 'Calendar'],
+];
+
+/** A secret only this server knows, made once, for signing the form's time stamp. */
+function form_secret(): string
+{
+    $f = PRIVATE_DIR . '/data/form-secret';
+    if (!is_file($f)) {
+        @file_put_contents($f, bin2hex(random_bytes(32)), LOCK_EX);
+    }
+    return trim((string) @file_get_contents($f)) ?: 'sompio-fallback';
+}
+
+/** Put in the form when the page is shown: the time, signed. */
+function signup_stamp(): string
+{
+    $t = (string) time();
+    return $t . '.' . hash_hmac('sha256', 'signup|' . $t, form_secret());
+}
+
 require_once PRIVATE_DIR . '/layout.php';

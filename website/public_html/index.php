@@ -13,8 +13,8 @@ site_header('home');
           <h1>Private tools for your PC. <span class="hl">Nothing leaves it.</span></h1>
           <p class="lead">Sompio is one program with three tools: a calendar, Trace, which finds what you've shared online over the years and helps you remove it, and a password vault. There's no account to make, no cloud, and no server of ours that holds your data.</p>
           <div class="cta-row">
-            <a class="button primary" href="docs.php">See how it works</a>
-            <a class="button" href="delete-discord-messages.php">Delete your Discord messages</a>
+            <a class="button primary" href="#join">Join the beta</a>
+            <a class="button" href="docs.php">See how it works</a>
           </div>
         </div>
         <figure class="shot shot-hero">
@@ -95,10 +95,61 @@ site_header('home');
       </div>
     </section>
 
-    <section class="wrap beta-strip">
-      <h2>Sompio is in beta</h2>
-      <p class="muted">A small group is testing it now. The public release, with licence keys for sale, follows once testing is done. Questions? Write to <a href="mailto:hello@sompio.org">hello@sompio.org</a>.</p>
-      <p class="small muted">Testing Sompio? Go to the <a href="tester.php">tester portal</a> for the download and the feedback form.</p>
+    <section id="join" class="wrap join">
+      <div class="join-intro">
+        <p class="eyebrow">Beta</p>
+        <h2>Join the beta</h2>
+        <p>A small group is testing Sompio before the public release. Want to help? Tell us a little about your setup, and we'll invite testers in small groups, picked so every kind of PC and app gets covered.</p>
+        <ul class="ticks">
+          <li>You get the full app, free, for the whole beta</li>
+          <li>Your feedback decides what gets fixed first</li>
+          <li>Already invited? Go to the <a href="tester.php">tester portal</a></li>
+        </ul>
+      </div>
+      <div class="card join-card">
+        <?php if (isset($_GET['joined'])): ?>
+          <div class="join-done" role="status">
+            <h3>You're on the list</h3>
+            <p>Thanks! If you're picked for the next group, an invite with the download comes from <strong>hello@sompio.org</strong>. Nothing else will be sent.</p>
+          </div>
+        <?php else: ?>
+          <?php $errs = ['email' => 'That email address doesn\'t look right.', 'stale' => 'The form was open too long, or sent too fast. Please try again.', 'limit' => 'Too many sign-ups from your network. Try again in an hour.', 'server' => 'Something went wrong on our side. Please try again later.']; ?>
+          <?php if (isset($_GET['join_error'], $errs[$_GET['join_error']])): ?><p class="error" role="alert"><?= e($errs[$_GET['join_error']]) ?></p><?php endif; ?>
+          <form method="post" action="signup.php" class="join-form">
+            <input type="hidden" name="stamp" value="<?= e(signup_stamp()) ?>">
+            <div class="hp" aria-hidden="true"><label>Leave this empty <input name="website" tabindex="-1" autocomplete="off"></label></div>
+            <label>Email<input name="email" type="email" maxlength="120" required autocomplete="email"></label>
+            <fieldset>
+              <legend>Your Windows</legend>
+              <div class="chips">
+                <?php foreach (CHOICES['windows'] as $i => $v): ?><label class="chip"><input type="radio" name="windows" value="<?= e($v) ?>"<?= $i === 0 ? ' checked' : '' ?>><span><?= e($v) ?></span></label><?php endforeach; ?>
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend>Browsers you use</legend>
+              <div class="chips">
+                <?php foreach (CHOICES['browsers'] as $v): ?><label class="chip"><input type="checkbox" name="browsers[]" value="<?= e($v) ?>"><span><?= e($v) ?></span></label><?php endforeach; ?>
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend>Apps you'd check with Trace</legend>
+              <div class="chips">
+                <?php foreach (CHOICES['apps'] as $v): ?><label class="chip"><input type="checkbox" name="apps[]" value="<?= e($v) ?>"><span><?= e($v) ?></span></label><?php endforeach; ?>
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend>Most interested in</legend>
+              <div class="chips">
+                <?php foreach (CHOICES['tools'] as $v): ?><label class="chip"><input type="checkbox" name="tools[]" value="<?= e($v) ?>"><span><?= e($v) ?></span></label><?php endforeach; ?>
+              </div>
+            </fieldset>
+            <label>Anything else? <span class="muted">(optional)</span><textarea name="note" rows="2" maxlength="500" placeholder="For example: I have a huge Discord export, or I use a YubiKey"></textarea></label>
+            <label class="check"><input type="checkbox" name="launch" value="1"><span>Also email me once when Sompio launches</span></label>
+            <button class="primary" type="submit">Join the beta</button>
+            <p class="small muted">Your email is only used to send you a beta invite, and is deleted when the beta ends. If you tick the box, you get one more email at launch, and that's it. It's kept on sompio.org, never shared, and there's no tracking. Want it removed sooner? Write to <a href="mailto:hello@sompio.org">hello@sompio.org</a>.</p>
+          </form>
+        <?php endif; ?>
+      </div>
     </section>
   </main>
 <?php site_footer(); ?>
