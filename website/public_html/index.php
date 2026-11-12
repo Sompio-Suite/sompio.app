@@ -162,6 +162,7 @@ $c = config();
             <li>Samples page: "Add sample entries".</li>
             <li>KeePassXC shortcuts: Ctrl+B username, Ctrl+C password, Ctrl+U website, Ctrl+Shift+V types it.</li>
             <li>Auto-type: open Notepad, press Ctrl+Alt+A.</li>
+            <li>New: the browser extension. Turn it on in Vault, Settings, and follow the steps there (or in the <a href="docs.php#extension">documentation</a>).</li>
           </ul>
         </div>
       </div>

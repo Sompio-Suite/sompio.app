@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  api, listen, pickOpen, pickSave,
-  type HealthReport, type VaultLeak, type PassphraseRules, type PasswordRules, type Strength, type VaultSettings,
+  api, copyText, listen, pickOpen, pickSave,
+  type BrowserClient, type HealthReport, type VaultLeak, type PassphraseRules, type PasswordRules, type Strength, type VaultSettings,
 } from "../api";
 import Icon from "../Icon";
 import { plural } from "../format";
@@ -278,6 +278,7 @@ export function VaultSettingsPanel({ readOnly, onDone }: { readOnly: boolean; on
         </div>
         <label className="check"><input type="checkbox" checked={s.lock_after_type} onChange={(e) => save({ ...s, lock_after_type: e.target.checked })} /><span>Lock Sompio after auto-typing</span></label>
       </section>
+      <BrowserSettings s={s} save={save} onDone={onDone} />
       <section className="setting">
         <h3>Website icons</h3>
         <label className="check">
@@ -390,5 +391,79 @@ export function VaultSettingsPanel({ readOnly, onDone }: { readOnly: boolean; on
         )}
       </section>
     </div>
+  );
+}
+
+/** The browser extension: on or off, how to add it to a browser, and which browsers are paired. */
+function BrowserSettings({ s, save, onDone }: { s: VaultSettings; save: (n: VaultSettings) => Promise<void>; onDone: (ok: boolean, text: string) => void }) {
+  const [clients, setClients] = useState<BrowserClient[]>([]);
+  const [folder, setFolder] = useState("");
+  const [forget, setForget] = useState<string | null>(null);
+  const load = () => api.browserClients().then(setClients).catch(() => setClients([]));
+  useEffect(() => {
+    if (s.browser) {
+      load();
+      api.browserExtensionFolder().then(setFolder).catch(() => setFolder(""));
+    }
+    const un = listen("browser-pair-done", () => setTimeout(load, 500));
+    return () => void un.then((f) => f());
+  }, [s.browser]);
+  const when = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  return (
+    <section className="setting">
+      <h3>Browser extension</h3>
+      <p className="muted">
+        Fill and save website logins in Chrome, Edge, Brave and Firefox, like other password managers do. The extension talks only to Sompio on this
+        PC, never to the internet, and only after you allow each browser here once.
+      </p>
+      <label className="check">
+        <input type="checkbox" checked={s.browser} onChange={(e) => {
+          const on = e.target.checked;
+          save({ ...s, browser: on }).then(() => onDone(true, on ? "Browser extension turned on. Add it to your browser with the steps below." : "Browser extension turned off. Browsers can't reach your vault now."));
+        }} />
+        <span>Let the Sompio extension use my vault</span>
+      </label>
+      {s.browser && (
+        <>
+          <div className="browser-steps">
+            <p><strong>Add it to your browser</strong> <span className="muted small">(while Sompio is in testing, the extension isn't in the browser stores yet)</span></p>
+            <ol className="small">
+              <li><strong>Chrome, Edge or Brave:</strong> open <code>chrome://extensions</code> (Edge: <code>edge://extensions</code>), turn on <em>Developer mode</em>, click <em>Load unpacked</em>, and choose the folder below.</li>
+              <li><strong>Firefox:</strong> open <code>about:debugging</code>, choose <em>This Firefox</em>, <em>Load Temporary Add-on</em>, and pick <code>manifest.json</code> in the folder below. Firefox removes it when it closes, until the extension is published.</li>
+              <li>Restart the browser, click the Sompio button in its toolbar, and choose <em>Connect to Sompio</em>. Sompio asks you to allow it, with a code to compare.</li>
+            </ol>
+            {folder && (
+              <div className="inline-fields">
+                <code className="selectable folder-path">{folder}</code>
+                <button className="small-btn" onClick={() => copyText(folder).then(() => onDone(true, "Folder copied."))}><Icon name="copy" size={14} />Copy</button>
+                <button className="small-btn" onClick={() => api.browserOpenExtensionFolder().catch((e) => onDone(false, String(e)))}><Icon name="folder" size={14} />Show folder</button>
+              </div>
+            )}
+          </div>
+          <div>
+            <p><strong>Allowed browsers</strong></p>
+            {clients.length === 0 ? (
+              <p className="small muted">None yet.</p>
+            ) : (
+              <ul className="browser-list">
+                {clients.map((c) => (
+                  <li key={c.id}>
+                    <span><strong>{c.browser}</strong> <span className="small muted">allowed {when(c.added)}, last used {when(c.last_used)}</span></span>
+                    {forget === c.id ? (
+                      <>
+                        <button className="small-btn danger" onClick={async () => { await api.browserForget(c.id); setForget(null); load(); onDone(true, `${c.browser} can't use your vault any more.`); }}>Yes, remove</button>
+                        <button className="small-btn ghost" onClick={() => setForget(null)}>Cancel</button>
+                      </>
+                    ) : (
+                      <button className="small-btn ghost" onClick={() => setForget(c.id)}>Remove</button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
+    </section>
   );
 }

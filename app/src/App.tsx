@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { api, listen, type KindKey, type LicenceStatus, type LockStatus, type ScanSummary } from "./api";
+import { api, listen, type BrowserPairAsk, type KindKey, type LicenceStatus, type LockStatus, type ScanSummary } from "./api";
 import { n } from "./format";
 import Icon, { type IconName } from "./Icon";
 import Logo from "./Logo";
@@ -46,6 +46,15 @@ export default function App() {
   const [scan, setScan] = useState<ScanSummary | null>(null);
   const [version, setVersion] = useState(0); // bumps after data changes so views reload
   const [connected, setConnected] = useState<string[]>([]);
+  const [pairAsk, setPairAsk] = useState<BrowserPairAsk | null>(null);
+  useEffect(() => {
+    const a = listen<BrowserPairAsk>("browser-pair", setPairAsk);
+    const b = listen<string>("browser-pair-done", (id) => setPairAsk((p) => (p?.id === id ? null : p)));
+    return () => {
+      a.then((f) => f());
+      b.then((f) => f());
+    };
+  }, []);
   const checkConnections = useCallback(async () => {
     const [tg, mail] = await Promise.all([api.tgStatus().catch(() => null), api.emailStatus().catch(() => null)]);
     setConnected([...(tg?.connected ? ["Telegram"] : []), ...(mail?.connected ? ["email"] : [])]);
@@ -318,6 +327,20 @@ export default function App() {
         )}
         {inClean && cleanPage()}
       </main>
+      {pairAsk && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="modal pair-ask" role="dialog" aria-modal="true" aria-labelledby="pair-title">
+            <h2 id="pair-title">Allow {pairAsk.browser} to use your Vault?</h2>
+            <p>The Sompio extension in {pairAsk.browser} wants to fill and save logins. Check that it shows the same code:</p>
+            <div className="pair-code" aria-label="Pairing code">{pairAsk.code}</div>
+            <p className="small muted">If you didn't just click "Connect to Sompio" in your browser, don't allow it. You can remove a browser any time in Vault, Settings.</p>
+            <div className="guide-actions">
+              <button className="primary" onClick={() => { api.browserAnswer(pairAsk.id, true); setPairAsk(null); }}>Allow</button>
+              <button onClick={() => { api.browserAnswer(pairAsk.id, false); setPairAsk(null); }}>Don't allow</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

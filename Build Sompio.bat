@@ -21,13 +21,20 @@ echo Building Sompio. The first time takes 5 to 10 minutes; after that only what
 echo.
 
 rem 1. The key maker, and the public half of your signing key for the app to trust.
-echo Step 1 of 2: Sompio Key Maker
+echo Step 1 of 3: Sompio Key Maker
 cd /d "%~dp0licence"
 cargo build --release --bin sompio-keymaker || goto :fail
 "%CARGO_TARGET_DIR%\release\sompio-keymaker.exe" init --public-out public.key >nul || goto :fail
 
-rem 2. The app itself.
-echo Step 2 of 2: Sompio
+rem 2. The small helper browsers start for the Sompio extension. It goes into the installer next to Sompio.
+echo Step 2 of 3: browser extension helper
+cd /d "%~dp0browserhost"
+cargo build --release || goto :fail
+if not exist "%~dp0app\src-tauri\binaries" mkdir "%~dp0app\src-tauri\binaries"
+copy /y "%CARGO_TARGET_DIR%\release\sompio-browser.exe" "%~dp0app\src-tauri\binaries\sompio-browser-x86_64-pc-windows-msvc.exe" >nul || goto :fail
+
+rem 3. The app itself.
+echo Step 3 of 3: Sompio
 cd /d "%~dp0app"
 call npm.cmd install --no-audit --no-fund || goto :fail
 rem Old setup files go first, so only the one built now is handed out
@@ -39,6 +46,7 @@ cd /d "%~dp0"
 if not exist "Sompio for Windows" mkdir "Sompio for Windows"
 del /q "Sompio for Windows\*" >nul 2>nul
 copy /y "%CARGO_TARGET_DIR%\release\sompio.exe" "Sompio for Windows\Sompio.exe" >nul
+copy /y "%CARGO_TARGET_DIR%\release\sompio-browser.exe" "Sompio for Windows\sompio-browser.exe" >nul
 copy /y "%CARGO_TARGET_DIR%\release\sompio-keymaker.exe" "Sompio for Windows\Sompio Key Maker.exe" >nul
 for %%f in ("%CARGO_TARGET_DIR%\release\bundle\nsis\*-setup.exe") do copy /y "%%f" "Sompio for Windows\" >nul
 rem Only the newest setup file: no Key Maker, no other files

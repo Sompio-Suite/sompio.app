@@ -42,6 +42,7 @@ if (!signed_in()) {
       <a href="#calendar">Calendar</a>
       <a href="#trace">Trace</a>
       <a href="#vault">Vault</a>
+      <a href="#extension">Browser extension</a>
       <a href="#limits">Good to know</a>
       <a href="./" class="toc-back">← Back to the download</a>
     </aside>
@@ -56,7 +57,7 @@ if (!signed_in()) {
         <div class="tools">
           <a class="tool" href="#calendar"><strong>Calendar</strong><span>Reminders that pop up on time, for you or a whole group, even when Sompio is locked.</span></a>
           <a class="tool" href="#trace"><strong>Trace</strong><span>Finds personal information you've shared online (bank numbers, passwords, addresses…), helps you remove it, and gets companies to delete what they hold.</span></a>
-          <a class="tool" href="#vault"><strong>Vault</strong><span>Keeps your passwords safe, fills them in for you, and works with KeePass and KeePassXC files.</span></a>
+          <a class="tool" href="#vault"><strong>Vault</strong><span>Keeps your passwords safe, fills them in for you (also in your browser, with the Sompio extension), and works with KeePass and KeePassXC files.</span></a>
         </div>
       </section>
 
@@ -68,6 +69,7 @@ if (!signed_in()) {
           <li><strong>Encrypted on your disk.</strong> Your calendar, Trace's findings and requests, and your passwords are stored encrypted. Without your password and key picture, the files are unreadable, even to someone who copies them.</li>
           <li><strong>No account, no tracking.</strong> No sign-up, no email address, no analytics, no ads, no "phone home". Sompio doesn't know who you are.</li>
           <li><strong>Pop-ups out of screenshots.</strong> Reminder pop-ups and the auto-type picker are left out of screenshots and screen sharing, so a stream or meeting doesn't show what pops up. The main window can be captured, for help and bug reports. Copied passwords stay out of Windows' clipboard history and cloud clipboard, and clear themselves after 20 seconds.</li>
+          <li><strong>The browser extension stays local too.</strong> It talks only to Sompio on your PC, never to a server, and only after you allow your browser in Sompio. See <a href="#extension">Browser extension</a>.</li>
           <li><strong>Problem reports stay with you.</strong> If something goes wrong, Sompio writes a short note to a file on your PC. It's never sent anywhere; you decide whether to share it.</li>
         </ul>
         <h3>The only times Sompio goes online</h3>
@@ -145,6 +147,35 @@ if (!signed_in()) {
         <p class="privacy-line"><strong>Privacy:</strong> unlike cloud password managers, your vault is never uploaded or synced to a company's servers. It's one encrypted file on your PC, opened only by your lock.</p>
       </section>
 
+      <section id="extension">
+        <h2>Browser extension</h2>
+        <p>The Sompio extension brings your Vault into Chrome, Edge, Brave and Firefox, the way password managers like Proton Pass or Bitwarden do: a small Sompio button in login fields, your logins one click away, and an offer to save new ones. The difference: there is no Sompio account or server. The extension talks only to Sompio on your own PC.</p>
+        <ul class="points">
+          <li><strong>Fill with one click.</strong> Click the Sompio button in a login field and pick a login. Only logins saved for that website are shown.</li>
+          <li><strong>Save and update.</strong> After you sign in somewhere new, or change a password, Sompio offers to save it. Choose "Never for this site" to stop asking there.</li>
+          <li><strong>Strong passwords when you sign up.</strong> In a "new password" field, "Use a strong password" makes one with Sompio's generator and fills both fields.</li>
+          <li><strong>2FA codes</strong> for the website, filled into the code field.</li>
+          <li><strong>The toolbar button</strong> shows the logins for the page you're on, searches your vault, copies usernames and passwords, and makes passwords.</li>
+        </ul>
+        <h3>How it stays private</h3>
+        <ul class="points">
+          <li><strong>No internet, no account.</strong> The browser starts a small part of Sompio on your PC, which passes messages to the Sompio app. Nothing goes over the network.</li>
+          <li><strong>You allow each browser once.</strong> When you click "Connect to Sompio", Sompio asks you to allow it and shows a code that must match the one in your browser. You can remove a browser any time in Vault, Settings.</li>
+          <li><strong>Encrypted between the browser and Sompio.</strong> Each allowed browser gets its own secret key, kept inside your encrypted vault. Every request is encrypted with it, and an old request can't be sent again.</li>
+          <li><strong>Only for the right website.</strong> Sompio checks the website the browser itself reports, not what the page claims, and refuses to fill a login on a different or look-alike website (like <em>example.com.evil.net</em>).</li>
+          <li><strong>Nothing while locked.</strong> When Sompio is locked or closed, the extension can't get anything, and offers to open Sompio so you can unlock it.</li>
+          <li><strong>Off until you turn it on.</strong> The extension does nothing until you turn it on in Sompio (Vault, Settings).</li>
+        </ul>
+        <h3>Setting it up (test version)</h3>
+        <p>While Sompio is in testing, the extension isn't in the browser stores yet, so you add it by hand. Sompio installs its files for you.</p>
+        <ol class="points">
+          <li>In Sompio, open <strong>Vault</strong>, then <strong>Settings</strong> (the "Auto-type, import and export" tab), and turn on <strong>Let the Sompio extension use my vault</strong>. Copy the folder it shows.</li>
+          <li><strong>Chrome, Edge or Brave:</strong> open <code>chrome://extensions</code> (Edge: <code>edge://extensions</code>), turn on <em>Developer mode</em>, click <em>Load unpacked</em>, and choose that folder.<br><strong>Firefox:</strong> open <code>about:debugging</code>, choose <em>This Firefox</em>, then <em>Load Temporary Add-on</em>, and pick <code>manifest.json</code> in that folder. Firefox removes it when it closes, until the extension is published.</li>
+          <li>Restart the browser. Click the Sompio button in the toolbar (pin it from the puzzle-piece menu), then <strong>Connect to Sompio</strong>, and click <strong>Allow</strong> in Sompio when the codes match.</li>
+        </ol>
+        <p class="privacy-line"><strong>Privacy:</strong> the extension can see the pages you visit, as every password extension must, to find login fields. It keeps nothing about them and sends nothing anywhere: it only asks Sompio, on your PC, for logins for the page you're on.</p>
+      </section>
+
       <section id="limits">
         <h2>Good to know</h2>
         <p>Privacy tools should be honest about their limits, so here are Sompio's:</p>
@@ -158,6 +189,7 @@ if (!signed_in()) {
           <dt>Does Sompio work without internet?</dt><dd>Yes, everything. Only the optional actions listed under <a href="#private">Why it's private</a> go online.</dd>
           <dt>Can you see my passwords or messages?</dt><dd>No. They never leave your PC, and we don't have your keys.</dd>
           <dt>What if I forget my password?</dt><dd>Use your recovery code. Without it, nobody can open your data, including us.</dd>
+          <dt>Does the browser extension upload my passwords?</dt><dd>No. It has no server to send them to. It asks Sompio on your PC for one login when you click it, encrypted, and only for the website you're on.</dd>
           <dt>Which systems?</dt><dd>Windows 10 and 11 today. Linux, Mac and phones are planned.</dd>
           <dt>Does Trace send emails for me?</dt><dd>No. It writes the letter and opens it in your own email app, so you send it from your own address and the answer comes back to you.</dd>
         </dl>

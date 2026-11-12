@@ -35,7 +35,8 @@ let items: Item[] = [
 ];
 items[4].secrets.PIN = "4321";
 items[1].history.push({ password: "steam123", modified: ago(1200) });
-let settings: VaultSettings = { shortcut: "Ctrl+Alt+A", clear_seconds: 20, lock_after_type: false, auto_icons: true };
+let settings: VaultSettings = { shortcut: "Ctrl+Alt+A", clear_seconds: 20, lock_after_type: false, auto_icons: true, browser: false };
+let browsers = [{ id: "a1b2", browser: "Chrome", added: Date.now() - 86400000 * 3, last_used: Date.now() - 3600000 }];
 // In the preview, "downloaded" icons are drawn here: a coloured tile with the site's first letter
 const mockIcons: Record<string, string> = {};
 const fakeIcon = (site: string) => {
@@ -193,6 +194,11 @@ export const vaultHandlers: Record<string, (a: any) => unknown> = {
   vault_export_csv: () => undefined,
   vault_settings: () => settings,
   vault_set_settings: ({ settings: s }) => { settings = s; },
+  browser_clients: () => (settings.browser ? browsers : []),
+  browser_forget: ({ id }) => { browsers = browsers.filter((b) => b.id !== id); },
+  browser_answer: () => undefined,
+  browser_extension_folder: () => "C:\\Users\\you\\AppData\\Local\\Sompio\\extension",
+  browser_open_extension_folder: () => undefined,
   vault_autotype_matches: () => ({ window: "Battle.net Login", matches: [{ entry: summary(items[0]), sequence: "{PASSWORD}{ENTER}", because: "window rule" }, { entry: summary(items[1]), sequence: "{USERNAME}{TAB}{PASSWORD}{ENTER}", because: "title" }] }),
   vault_autotype_choose: () => undefined,
   vault_autotype_now: () => undefined,

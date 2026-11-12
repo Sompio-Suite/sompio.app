@@ -1,6 +1,7 @@
 //! The desktop shell. It only passes requests from the UI to sompio-clean and back.
 //! Every command runs off the UI thread so the window never freezes.
 
+mod browser;
 mod calendar;
 mod vault;
 mod samples;
@@ -27,6 +28,8 @@ struct AppState {
     calendar: calendar::Calendar,
     /// The password vault while it's open, and auto-type
     passwords: vault::VaultState,
+    /// The browser extension's pairing requests
+    browser: browser::Bridge,
 }
 
 type CmdResult<T> = Result<T, String>;
@@ -687,6 +690,10 @@ fn move_from_veil(dir: &Path, db_path: &Path) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Started by a browser for the Sompio extension: pass messages to Sompio, nothing else
+    if browser::is_host_launch() {
+        return browser::run_host();
+    }
     let context = tauri::generate_context!();
     // Updates are only switched on in published releases (tauri.release.conf.json). A local
     // build has no update address, so the updater isn't loaded at all.
@@ -735,7 +742,16 @@ pub fn run() {
                 email: std::sync::Arc::new(sompio_connect::email::Email::new(secrets)),
                 calendar: calendar::Calendar::new(),
                 passwords: vault::VaultState::new(&dir),
+                browser: browser::Bridge::default(),
             });
+            // The browser extension: a local pipe, and the browsers told where Sompio is
+            browser::start(app.handle().clone());
+            let browser_on = app.state::<AppState>().passwords.settings.lock().map(|s| s.browser).unwrap_or(false);
+            if browser_on {
+                if let Err(e) = browser::register(app.handle(), true) {
+                    eprintln!("Browser extension: {e}");
+                }
+            }
             let shortcut = app.state::<AppState>().passwords_shortcut();
             if let Err(e) = vault::register_shortcut(app.handle(), "", &shortcut) {
                 eprintln!("{e}");
@@ -754,6 +770,11 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            browser::browser_answer,
+            browser::browser_clients,
+            browser::browser_forget,
+            browser::browser_extension_folder,
+            browser::browser_open_extension_folder,
             has_data,
             updates_on,
             lock_status,

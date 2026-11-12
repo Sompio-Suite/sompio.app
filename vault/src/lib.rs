@@ -2,6 +2,7 @@
 //! No network. Auto-type keystrokes are sent by the desktop shell (see `typing`).
 
 pub mod autotype;
+pub mod browser;
 pub mod csvfile;
 pub mod generator;
 pub mod health;

@@ -1208,3 +1208,14 @@ svg.logo { display: block; }
 }
 .guide-head .grow, .req-actions .grow, .row-head .grow { flex: 1; }
 .guide .bar { margin-top: -0.3rem; }
+
+/* Browser extension */
+.pair-ask { width: min(460px, 100%); }
+.pair-ask h2 { font-size: var(--t-l); }
+.pair-code { font: 700 1.8rem/1.2 Consolas, "Cascadia Mono", monospace; letter-spacing: 0.1em; text-align: center; padding: 0.8rem; background: var(--sunken); border-radius: var(--r-m); }
+.browser-steps { display: grid; gap: 0.5rem; background: var(--sunken); border-radius: var(--r-m); padding: 0.8rem 1rem; }
+.browser-steps ol { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; }
+.browser-steps code, .folder-path { font-size: var(--t-xs); background: var(--surface); border: 1px solid var(--line); border-radius: 3px; padding: 0.05rem 0.3rem; overflow-wrap: anywhere; }
+.browser-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
+.browser-list li { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.6rem; border: 1px solid var(--line); border-radius: var(--r-m); background: var(--surface); }
+.browser-list li > span { flex: 1; }

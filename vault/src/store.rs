@@ -181,7 +181,7 @@ pub fn otp_link(raw: &str, title: &str, username: &str) -> String {
 }
 
 pub struct Vault {
-    db: Database,
+    pub(crate) db: Database,
     path: PathBuf,
     key: Zeroizing<[u8; 32]>,
 }
@@ -285,7 +285,7 @@ impl Vault {
     }
 
     /// True if the group is the recycle bin or inside it.
-    fn in_bin(&self, mut group: GroupId) -> bool {
+    pub(crate) fn in_bin(&self, mut group: GroupId) -> bool {
         let Some(bin) = self.bin_id() else { return false };
         loop {
             if group == bin {
@@ -1019,6 +1019,8 @@ impl Vault {
         let mut copy = self.db.clone();
         copy.config.kdf_config = export_kdf();
         copy.meta.generator = Some("Sompio".into());
+        // The keys of paired browsers stay on this PC
+        copy.meta.custom_data.remove(crate::browser::CLIENTS_KEY);
         let mut buf = Vec::new();
         copy.save(&mut buf, user_key(password, keyfile)?).map_err(|e| anyhow!("Couldn't write the file: {e}"))?;
         std::fs::write(dest, buf)?;

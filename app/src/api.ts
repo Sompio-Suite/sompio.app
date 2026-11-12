@@ -168,7 +168,9 @@ export type HealthIssue =
   | { kind: "no_password" };
 export interface HealthReport { checked: number; weak: number; reused: number; expired: number; old: number; score: number; items: { entry: VaultEntry; issues: HealthIssue[]; severity: number }[] }
 export interface VaultImport { entries: number; groups: number; skipped_attachments: number; group_id: string; warnings: string[] }
-export interface VaultSettings { shortcut: string; clear_seconds: number; lock_after_type: boolean; auto_icons: boolean }
+export interface VaultSettings { shortcut: string; clear_seconds: number; lock_after_type: boolean; auto_icons: boolean; browser: boolean }
+export interface BrowserClient { id: string; browser: string; added: number; last_used: number }
+export interface BrowserPairAsk { id: string; browser: string; code: string }
 export interface AutoTypeMatch { entry: VaultEntry; sequence: string; because: string }
 
 
@@ -315,6 +317,11 @@ export const api = {
   vaultExportKdbx: (path: string, password: string) => call<void>("vault_export_kdbx", { path, password }),
   vaultExportCsv: (path: string) => call<void>("vault_export_csv", { path }),
   vaultSettings: () => call<VaultSettings>("vault_settings"),
+  browserClients: () => call<BrowserClient[]>("browser_clients"),
+  browserForget: (id: string) => call<void>("browser_forget", { id }),
+  browserAnswer: (id: string, allow: boolean) => call<void>("browser_answer", { id, allow }),
+  browserExtensionFolder: () => call<string>("browser_extension_folder"),
+  browserOpenExtensionFolder: () => call<void>("browser_open_extension_folder"),
   vaultSetSettings: (settings: VaultSettings) => call<void>("vault_set_settings", { settings }),
   vaultAutotypeMatches: () => call<{ window: string; matches: AutoTypeMatch[] }>("vault_autotype_matches"),
   vaultAutotypeChoose: (id: string, sequence: string | null) => call<void>("vault_autotype_choose", { id, sequence }),

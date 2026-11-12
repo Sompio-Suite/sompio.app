@@ -209,6 +209,36 @@ Keys you make are saved as CSV files in `Documents\Sompio Keys\`. For scripts an
 The `public.key` in the repository belongs to a throwaway development key. Builds made by the script replace it
 with yours; CI builds still carry the throwaway one until a release key is set up.
 
+# Browser extension
+
+`extension/` is the Sompio Vault extension for Chrome, Edge, Brave (Manifest V3) and Firefox (115+, same files).
+It fills and saves logins like Proton Pass or Bitwarden, but talks only to the Sompio app on the same PC:
+
+```
+extension ⇄ native messaging (the browser starts sompio-browser.exe) ⇄ local pipe ⇄ Sompio app
+```
+
+- **Off by default.** Turning it on in Vault › Settings registers the native messaging host for this user
+  (HKCU registry keys for Chrome, Edge, Chromium, Brave, Vivaldi and Firefox, manifests in the app data folder).
+  It's registered again at every start, so an update that moves Sompio still works.
+- **The helper.** `browserhost/` builds `sompio-browser.exe`, a 300 KB console program the installer puts next to
+  Sompio.exe (Tauri `externalBin`, Windows only; `Build Sompio.bat` builds it first). It passes length-prefixed JSON
+  between stdin/stdout and the pipe
+  (`\\.\pipe\sompio-browser-<user>`, remote clients refused), and holds no secrets. Without the helper (a
+  local build), Sompio.exe itself does the same when a browser starts it.
+- **Pairing.** The extension makes a random id and a 32-byte key; Sompio asks the person to allow it, showing a
+  code derived from the key that the extension shows too. Paired keys are stored in the vault's meta custom
+  data (encrypted with the vault, removed from KeePass exports).
+- **Requests** are AES-256-GCM sealed with that key (direction in the associated data), carry a nonce and a
+  time stamp (±2 minutes, each nonce answered once), and are refused while Sompio is locked.
+- **Site checks.** Fill and 2FA requests use the URL the browser reports for the frame, and Sompio refuses
+  entries saved for another site (`sompio_vault::browser::match_score`: same host, parent host, or same
+  registrable domain; look-alikes never match).
+- **Extension id.** The `key` in `manifest.json` fixes the Chromium id at `phmimpfbhcneblnnojaialplfglbkoke`
+  (allowed in the host manifest); Firefox uses `browser@sompio.org`.
+- The installer ships the folder as a resource (`extension/` next to Sompio.exe). For testers it's loaded
+  unpacked; publishing in the Chrome Web Store, Edge Add-ons and Firefox Add-ons comes later.
+
 # Sompio Trace
 
 The code still calls it `clean` (the crate, the database file and the commands), so existing data keeps working.

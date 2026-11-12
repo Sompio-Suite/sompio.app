@@ -25,18 +25,20 @@ pub struct VaultSettings {
     pub lock_after_type: bool,
     /// Get an entry's icon from its website when it's saved
     pub auto_icons: bool,
+    /// Let the Sompio browser extension ask for logins (it still has to be paired)
+    pub browser: bool,
 }
 
 impl Default for VaultSettings {
     fn default() -> Self {
-        Self { shortcut: "Ctrl+Alt+A".into(), clear_seconds: 20, lock_after_type: false, auto_icons: true }
+        Self { shortcut: "Ctrl+Alt+A".into(), clear_seconds: 20, lock_after_type: false, auto_icons: true, browser: false }
     }
 }
 
 pub struct VaultState {
     open: Mutex<Option<Vault>>,
     settings_path: PathBuf,
-    settings: Mutex<VaultSettings>,
+    pub(crate) settings: Mutex<VaultSettings>,
     /// Bumps with every copy, so an older auto-clear doesn't wipe a newer copy
     copy_serial: AtomicU64,
     /// The window auto-type was asked for, while the chooser is open
@@ -74,7 +76,7 @@ fn err(e: impl std::fmt::Display) -> String {
 }
 
 /// Runs `f` on the open vault, opening it first. Refuses while Sompio is locked.
-async fn with_vault<T, F>(app: &AppHandle, f: F) -> CmdResult<T>
+pub(crate) async fn with_vault<T, F>(app: &AppHandle, f: F) -> CmdResult<T>
 where
     T: Send + 'static,
     F: FnOnce(&mut Vault) -> anyhow::Result<T> + Send + 'static,
@@ -554,7 +556,9 @@ pub fn vault_set_settings(app: AppHandle, state: State<'_, AppState>, settings: 
         register_shortcut(&app, &old, &settings.shortcut)?;
     }
     std::fs::write(&state.passwords.settings_path, serde_json::to_string_pretty(&settings).map_err(err)?).map_err(err)?;
+    let browser = settings.browser;
     *state.passwords.settings.lock().map_err(err)? = settings;
+    crate::browser::register(&app, browser).map_err(err)?;
     Ok(())
 }
 

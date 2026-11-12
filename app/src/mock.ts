@@ -86,6 +86,7 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const page = <T,>(all: T[], offset: number, limit: number): Page<T> => ({ total: all.length, offset, items: all.slice(offset, offset + limit) });
 const listeners: Record<string, ((p: unknown) => void)[]> = {};
 const emit = (e: string, p: unknown) => (listeners[e] || []).forEach((cb) => cb(p));
+(globalThis as { __mockEmit?: typeof emit }).__mockEmit = emit; // the preview only: lets screenshots show events
 
 function scan() {
   findings = [];

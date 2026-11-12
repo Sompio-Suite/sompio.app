@@ -1,13 +1,13 @@
 HOW TO TEST SOMPIO
 ==================
 
-Thank you for testing! This is a test version of Sompio 0.8.0 for Windows 10 and 11.
+Thank you for testing! This is a test version of Sompio 0.9.0 for Windows 10 and 11.
 Everything you put in it stays on your PC. Nothing is sent to us, and there's no account.
 
 
 1. INSTALLING
 -------------
-Run Sompio_0.8.0_x64-setup.exe.
+Run Sompio_0.9.0_x64-setup.exe.
 
 Windows will probably show a blue "Windows protected your PC" box. That's because this test
 version isn't signed with a Microsoft certificate yet (the real release will be). To go on:
@@ -82,6 +82,21 @@ Vault
     (like blizzard.com for Battle.net), or choose a picture file. "Get icons for all entries"
     is under "Auto-type, import and export".
   - Health check, password generator, earlier versions of an entry, attachments.
+  - NEW: the browser extension (Chrome, Edge, Brave or Firefox).
+      1. In Sompio: Vault, the "Auto-type, import and export" tab, turn on "Let the Sompio
+         extension use my vault". Copy the folder it shows.
+      2. Chrome/Edge/Brave: open chrome://extensions (or edge://extensions), turn on
+         Developer mode, click "Load unpacked" and choose that folder.
+         Firefox: about:debugging, This Firefox, Load Temporary Add-on, pick manifest.json
+         in that folder.
+      3. Restart the browser. Click the Sompio button in the toolbar (pin it from the
+         puzzle-piece menu), "Connect to Sompio", and click Allow in Sompio if the codes
+         match.
+      4. Add a sample entry with a real website's address (or use a sample), open that
+         site's login page, click the Sompio button in the login field, and pick it.
+      5. Sign in somewhere new (a made-up account on a test site is fine): Sompio should
+         offer to save it. On a sign-up page, try "Use a strong password".
+      6. Lock Sompio and try again: the extension should say it's locked.
   - Auto-type: open Notepad and press Ctrl+Alt+A. Sompio picks the "Notepad" sample entry
     and types it in. The test login page in the sample files works the same way. (The shortcut
     can be changed in Vault, "Auto-type, import and export".)
