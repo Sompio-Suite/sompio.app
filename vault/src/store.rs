@@ -1107,7 +1107,7 @@ mod tests {
             assert!(d.summary.has_totp);
             assert_eq!(v.totp(&id).unwrap().unwrap().code.len(), 6);
             assert_eq!(v.entries(Some(&folder), "").unwrap().len(), 1);
-            assert_eq!(v.entries(None, "battle skip").unwrap().len(), 1);
+            assert_eq!(v.entries(None, "battle sam").unwrap().len(), 1);
             assert!(v.add_entry(&EntryInput { title: " ".into(), ..Default::default() }).is_err());
         }
         let raw = std::fs::read(&path).unwrap();
