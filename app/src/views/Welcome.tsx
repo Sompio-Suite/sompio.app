@@ -55,7 +55,7 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
         </div>
         <div className="lede">
           <h1>
-            See what your chats and files say about <span className="redact">y••</span>.
+            See what your chats and files say about <span className="redact-bar" role="img" aria-label="you" />.
           </h1>
           <p className="muted">
             Sompio reads your data exports from Discord, WhatsApp, Instagram, Facebook, TikTok, Snapchat, Reddit, Telegram, X,
