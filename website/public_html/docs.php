@@ -168,7 +168,7 @@ if (!signed_in()) {
           <li><strong>Off until you turn it on.</strong> The extension does nothing until you turn it on in Sompio (Vault, Settings).</li>
         </ul>
         <h3>Setting it up (test version)</h3>
-        <p>While Sompio is in testing, the extension isn't in the browser stores yet, so you add it by hand. Sompio installs its files for you.</p>
+        <p>While Sompio is in testing, the extension isn't in the browser stores yet, so you add it by hand. Sompio installs its files and walks you through it: open <strong>Vault</strong> and click <strong>Set it up</strong> in the "Fill passwords in your browser" bar (or <em>Set it up step by step</em> in Vault's settings). It turns the extension on, opens your browser's extensions page and copies the folder for you. The same steps by hand:</p>
         <ol class="points">
           <li>In Sompio, open <strong>Vault</strong>, then <strong>Settings</strong> (the "Auto-type, import and export" tab), and turn on <strong>Let the Sompio extension use my vault</strong>. Copy the folder it shows.</li>
           <li><strong>Chrome, Edge or Brave:</strong> open <code>chrome://extensions</code> (Edge: <code>edge://extensions</code>), turn on <em>Developer mode</em>, click <em>Load unpacked</em>, and choose that folder.<br><strong>Firefox:</strong> open <code>about:debugging</code>, choose <em>This Firefox</em>, then <em>Load Temporary Add-on</em>, and pick <code>manifest.json</code> in that folder. Firefox removes it when it closes, until the extension is published.</li>

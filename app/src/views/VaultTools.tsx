@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  api, copyText, listen, pickOpen, pickSave,
+  api, copyText, listen, openExternal, pickOpen, pickSave,
   type BrowserClient, type HealthReport, type VaultLeak, type PassphraseRules, type PasswordRules, type Strength, type VaultSettings,
 } from "../api";
 import Icon from "../Icon";
@@ -399,6 +399,7 @@ function BrowserSettings({ s, save, onDone }: { s: VaultSettings; save: (n: Vaul
   const [clients, setClients] = useState<BrowserClient[]>([]);
   const [folder, setFolder] = useState("");
   const [forget, setForget] = useState<string | null>(null);
+  const [guide, setGuide] = useState(false);
   const load = () => api.browserClients().then(setClients).catch(() => setClients([]));
   useEffect(() => {
     if (s.browser) {
@@ -416,6 +417,8 @@ function BrowserSettings({ s, save, onDone }: { s: VaultSettings; save: (n: Vaul
         Fill and save website logins in Chrome, Edge, Brave and Firefox, like other password managers do. The extension talks only to Sompio on this
         PC, never to the internet, and only after you allow each browser here once.
       </p>
+      <div className="toolbar"><button className="primary" onClick={() => setGuide(true)}><Icon name="browser" size={16} />Set it up step by step</button></div>
+      {guide && <BrowserSetup onClose={() => { setGuide(false); load(); }} />}
       <label className="check">
         <input type="checkbox" checked={s.browser} onChange={(e) => {
           const on = e.target.checked;
@@ -465,5 +468,135 @@ function BrowserSettings({ s, save, onDone }: { s: VaultSettings; save: (n: Vaul
         </>
       )}
     </section>
+  );
+}
+
+export const DOCS_URL = "https://sompio.org/docs.php";
+
+const BROWSER_NAMES: Record<string, string> = { chrome: "Chrome", edge: "Edge", brave: "Brave", firefox: "Firefox" };
+
+/** Step-by-step setup of the browser extension, for people who never open the documentation. */
+export function BrowserSetup({ onClose }: { onClose: (connected: boolean) => void }) {
+  const [settings, setSettings] = useState<VaultSettings | null>(null);
+  const [folder, setFolder] = useState("");
+  const [installed, setInstalled] = useState<string[]>([]);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [clients, setClients] = useState<BrowserClient[] | null>(null);
+  const [before, setBefore] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadClients = () => api.browserClients().then((c) => { setClients(c); setBefore((b) => (b == null ? c.length : b)); }).catch(() => setClients([]));
+  useEffect(() => {
+    api.vaultSettings().then(setSettings).catch(() => {});
+    api.browserInstalled().then((b) => setInstalled(b.length ? b : ["chrome", "edge", "brave", "firefox"])).catch(() => setInstalled(["chrome", "edge", "brave", "firefox"]));
+    loadClients();
+    const un = listen("browser-pair-done", () => setTimeout(loadClients, 600));
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose(false);
+    window.addEventListener("keydown", onKey);
+    return () => { un.then((f) => f()); window.removeEventListener("keydown", onKey); };
+  }, []);
+  useEffect(() => {
+    if (settings?.browser) api.browserExtensionFolder().then(setFolder).catch((e) => setError(String(e)));
+  }, [settings?.browser]);
+
+  const turnOn = async () => {
+    if (!settings) return;
+    const n = { ...settings, browser: true };
+    try {
+      await api.vaultSetSettings(n);
+      setSettings(n);
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+  const openBrowser = async (b: string) => {
+    setPicked(b);
+    setError(null);
+    if (folder) await copyText(folder);
+    api.browserOpenExtensionsPage(b).catch((e) => setError(`${String(e)} Open ${BROWSER_NAMES[b]}'s extensions page yourself, as described below.`));
+  };
+  const on = !!settings?.browser;
+  const connected = clients != null && before != null && clients.length > before;
+  const chromium = picked && picked !== "firefox";
+
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <div className="modal browser-setup" role="dialog" aria-modal="true" aria-labelledby="bs-title">
+        <div className="guide-head">
+          <Icon name="browser" size={20} />
+          <h2 id="bs-title">Use Sompio in your browser</h2>
+          <span className="grow" />
+          <button className="quiet" onClick={() => onClose(connected)}>Close</button>
+        </div>
+        <p className="muted">
+          Fill and save logins in Chrome, Edge, Brave or Firefox with one click. The extension talks only to Sompio on this PC, never to the
+          internet. <button className="link" onClick={() => openExternal(`${DOCS_URL}#extension`)}>How it works and why it's private</button>
+        </p>
+
+        <ol className="bs-steps">
+          <li className={on ? "done" : "current"}>
+            <strong>Turn it on</strong>
+            {on ? <span className="small muted">Done. Browsers can now ask Sompio, once you allow them.</span> : (
+              <>
+                <span className="small muted">Off until you turn it on. Nothing can reach your vault before that.</span>
+                <div><button className="primary" onClick={turnOn}>Turn on the browser extension</button></div>
+              </>
+            )}
+          </li>
+
+          <li className={!on ? "" : connected ? "done" : "current"}>
+            <strong>Add it to your browser</strong>
+            {on && (
+              <>
+                <span className="small muted">Pick your browser. Sompio opens its extensions page and copies the extension's folder for you.</span>
+                <div className="browser-picks">
+                  {installed.map((b) => (
+                    <button key={b} aria-pressed={picked === b} onClick={() => openBrowser(b)}>{BROWSER_NAMES[b]}</button>
+                  ))}
+                </div>
+                {picked && (
+                  <ol className="small sub-steps">
+                    {chromium ? (
+                      <>
+                        <li>On the page that opened, turn on <strong>Developer mode</strong> ({picked === "edge" ? "on the left" : "top right"}).</li>
+                        <li>Click <strong>Load unpacked</strong>.</li>
+                        <li>In the folder window, click the address bar at the top, press <strong>Ctrl+V</strong> and <strong>Enter</strong>, then click <strong>Select Folder</strong>.</li>
+                        <li>Pin it: click the puzzle piece in the toolbar, then the pin next to <strong>Sompio Vault</strong>.</li>
+                      </>
+                    ) : (
+                      <>
+                        <li>On the page that opened, click <strong>Load Temporary Add-on…</strong></li>
+                        <li>Click the address bar at the top of the file window, press <strong>Ctrl+V</strong> and <strong>Enter</strong>, then open <strong>manifest.json</strong>.</li>
+                        <li>Firefox removes it when it closes, until the extension is published. Repeat these steps after a restart.</li>
+                      </>
+                    )}
+                  </ol>
+                )}
+                {folder && (
+                  <div className="inline-fields small">
+                    <span className="muted">Folder:</span>
+                    <code className="selectable folder-path">{folder}</code>
+                    <button className="small-btn" onClick={() => copyText(folder)}><Icon name="copy" size={14} />Copy</button>
+                    <button className="small-btn" onClick={() => api.browserOpenExtensionFolder().catch((e) => setError(String(e)))}><Icon name="folder" size={14} />Show</button>
+                  </div>
+                )}
+              </>
+            )}
+          </li>
+
+          <li className={connected ? "done" : on && picked ? "current" : ""}>
+            <strong>Connect</strong>
+            {connected ? <span className="small">Connected. Open a login page and click the Sompio button in the password field.</span> : on && (
+              <span className="small muted">
+                Click the <strong>Sompio Vault</strong> button in your browser's toolbar, then <strong>Connect to Sompio</strong>. Sompio asks you to allow it;
+                check the code matches and click Allow. This step finishes by itself.
+              </span>
+            )}
+          </li>
+        </ol>
+        {error && <p className="error small" role="alert">{error}</p>}
+        {connected && <div className="guide-actions"><button className="primary" onClick={() => onClose(true)}>Done</button></div>}
+      </div>
+    </div>
   );
 }

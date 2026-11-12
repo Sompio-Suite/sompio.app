@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { api, listen, type BrowserPairAsk, type KindKey, type LicenceStatus, type LockStatus, type ScanSummary } from "./api";
+import { api, listen, openExternal, type BrowserPairAsk, type KindKey, type LicenceStatus, type LockStatus, type ScanSummary } from "./api";
 import { n } from "./format";
 import Icon, { type IconName } from "./Icon";
 import Logo from "./Logo";
@@ -16,6 +16,7 @@ import LockScreen from "./views/LockScreen";
 import Security from "./views/Security";
 import Calendar from "./views/Calendar";
 import Vault from "./views/Vault";
+import { DOCS_URL } from "./views/VaultTools";
 import Samples from "./views/Samples";
 import { SUITE, accessText } from "./licence";
 import { autoCheckEnabled, checkForUpdate, dueForCheck, type UpdateInfo } from "./updates";
@@ -237,6 +238,11 @@ export default function App() {
         {navButton("samples", "Samples", "sparkle")}
         {navButton("security", "Security", "lock")}
         {navButton("licences", "Licences", "ticket")}
+        <button className="nav" aria-label="Documentation (opens sompio.org)" title="How Sompio works, on sompio.org (needs the tester password)" onClick={() => openExternal(DOCS_URL).catch(() => {})}>
+          <Icon name="book" />
+          <span className="label">Documentation</span>
+          <Icon name="external" size={13} />
+        </button>
         {update && (
           <div className="update-card" role="status">
             <strong>Sompio {update.version} is ready</strong>

@@ -4,7 +4,7 @@ import Icon from "../Icon";
 import { dateTime, plural } from "../format";
 import VaultEntryDialog from "./VaultEntryDialog";
 import { reloadIcons } from "../vaultIcons";
-import { Avatar, Generator, Health, VaultSettingsPanel } from "./VaultTools";
+import { Avatar, BrowserSetup, Generator, Health, VaultSettingsPanel } from "./VaultTools";
 
 type Tab = "passwords" | "health" | "generator" | "settings";
 type SortKey = "title" | "username" | "url" | "group" | "modified";
@@ -14,6 +14,26 @@ interface Props { readOnly: boolean; onAddKey: () => void }
 
 export default function Vault({ readOnly, onAddKey }: Props) {
   const [tab, setTab] = useState<Tab>("passwords");
+  // "Use Sompio in your browser": shown until a browser is connected or it's hidden
+  const [extTip, setExtTip] = useState(false);
+  const [extSetup, setExtSetup] = useState(false);
+  useEffect(() => {
+    let hidden = false;
+    try {
+      hidden = localStorage.getItem("sompio.vault.extensionTip") === "hidden";
+    } catch {
+      /* shown */
+    }
+    if (!hidden) api.browserClients().then((c) => setExtTip(c.length === 0)).catch(() => {});
+  }, []);
+  const hideExtTip = () => {
+    setExtTip(false);
+    try {
+      localStorage.setItem("sompio.vault.extensionTip", "hidden");
+    } catch {
+      /* not remembered */
+    }
+  };
   const [groups, setGroups] = useState<VaultGroup[]>([]);
   const [group, setGroup] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -158,6 +178,16 @@ export default function Vault({ readOnly, onAddKey }: Props) {
           <button onClick={onAddKey}>Add a key</button>
         </div>
       )}
+
+      {extTip && tab === "passwords" && (
+        <div className="notice ext-tip">
+          <Icon name="browser" />
+          <div><strong>Fill passwords in your browser</strong><span>Add the Sompio extension to Chrome, Edge, Brave or Firefox. It talks only to Sompio on this PC.</span></div>
+          <button className="primary" onClick={() => setExtSetup(true)}>Set it up</button>
+          <button className="quiet" aria-label="Hide this" title="Hide this. You can set it up later in Auto-type, import and export." onClick={hideExtTip}>×</button>
+        </div>
+      )}
+      {extSetup && <BrowserSetup onClose={(ok) => { setExtSetup(false); if (ok) setExtTip(false); }} />}
 
       {tab === "passwords" && (
         <>

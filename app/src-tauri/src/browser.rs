@@ -305,6 +305,51 @@ pub async fn browser_forget(app: AppHandle, id: String) -> CmdResult<()> {
     .await
 }
 
+/// The browsers the setup can open, with the page where an extension is added by hand.
+const BROWSERS: &[(&str, &str, &str)] = &[
+    ("chrome", "chrome.exe", "chrome://extensions"),
+    ("edge", "msedge.exe", "edge://extensions"),
+    ("brave", "brave.exe", "brave://extensions"),
+    ("firefox", "firefox.exe", "about:debugging#/runtime/this-firefox"),
+];
+
+/// Where a browser is installed, from Windows' list of installed programs ("App Paths").
+#[cfg(windows)]
+fn browser_exe(exe: &str) -> Option<std::path::PathBuf> {
+    use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
+    use winreg::RegKey;
+    for hive in [HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE] {
+        if let Ok(k) = RegKey::predef(hive).open_subkey(format!(r"Software\Microsoft\Windows\CurrentVersion\App Paths\{exe}")) {
+            if let Ok(p) = k.get_value::<String, _>("") {
+                let p = std::path::PathBuf::from(p.trim_matches('"'));
+                if p.exists() {
+                    return Some(p);
+                }
+            }
+        }
+    }
+    None
+}
+
+#[cfg(not(windows))]
+fn browser_exe(_exe: &str) -> Option<std::path::PathBuf> {
+    None
+}
+
+/// Which of Chrome, Edge, Brave and Firefox are installed.
+#[tauri::command]
+pub fn browser_installed() -> Vec<String> {
+    BROWSERS.iter().filter(|(_, exe, _)| browser_exe(exe).is_some()).map(|(k, _, _)| k.to_string()).collect()
+}
+
+/// Opens a browser on its extensions page, where the Sompio extension is added.
+#[tauri::command]
+pub fn browser_open_extensions_page(browser: String) -> CmdResult<()> {
+    let (_, exe, page) = BROWSERS.iter().find(|(k, _, _)| *k == browser).ok_or("Unknown browser.")?;
+    let path = browser_exe(exe).ok_or("That browser doesn't seem to be installed.")?;
+    std::process::Command::new(path).arg(page).spawn().map(|_| ()).map_err(|e| format!("Couldn't open the browser: {e}"))
+}
+
 /// Opens the extension's folder in File Explorer.
 #[tauri::command]
 pub fn browser_open_extension_folder(app: AppHandle) -> CmdResult<()> {

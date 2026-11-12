@@ -82,7 +82,8 @@ Vault
     (like blizzard.com for Battle.net), or choose a picture file. "Get icons for all entries"
     is under "Auto-type, import and export".
   - Health check, password generator, earlier versions of an entry, attachments.
-  - NEW: the browser extension (Chrome, Edge, Brave or Firefox).
+  - NEW: the browser extension (Chrome, Edge, Brave or Firefox). Easiest: in Vault, click
+    "Set it up" in the green bar and follow the three steps. By hand:
       1. In Sompio: Vault, the "Auto-type, import and export" tab, turn on "Let the Sompio
          extension use my vault". Copy the folder it shows.
       2. Chrome/Edge/Brave: open chrome://extensions (or edge://extensions), turn on

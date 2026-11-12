@@ -199,6 +199,8 @@ export const vaultHandlers: Record<string, (a: any) => unknown> = {
   browser_answer: () => undefined,
   browser_extension_folder: () => "C:\\Users\\you\\AppData\\Local\\Sompio\\extension",
   browser_open_extension_folder: () => undefined,
+  browser_installed: () => ["chrome", "edge", "firefox"],
+  browser_open_extensions_page: () => undefined,
   vault_autotype_matches: () => ({ window: "Battle.net Login", matches: [{ entry: summary(items[0]), sequence: "{PASSWORD}{ENTER}", because: "window rule" }, { entry: summary(items[1]), sequence: "{USERNAME}{TAB}{PASSWORD}{ENTER}", because: "title" }] }),
   vault_autotype_choose: () => undefined,
   vault_autotype_now: () => undefined,
