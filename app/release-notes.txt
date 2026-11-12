@@ -1,2 +1,3 @@
+First version built in the cloud: from now on Sompio updates itself with "Update now".
 Browser extension: fill and save logins in Chrome, Edge, Brave and Firefox.
 Trace: new Requests tab and "Clean up one by one".

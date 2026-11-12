@@ -81,6 +81,11 @@ jobs:
           SOMPIO_UPDATE_TOKEN: ${{ secrets.SOMPIO_UPDATE_TOKEN }}
           SOMPIO_TG_API_ID: ${{ secrets.SOMPIO_TG_API_ID }}
           SOMPIO_TG_API_HASH: ${{ secrets.SOMPIO_TG_API_HASH }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sompio-${{ env.VERSION }}
+          path: app/src-tauri/target/release/bundle/nsis/*-setup.exe
+          retention-days: 14
       - name: Put it on sompio.org
         shell: bash
         env:
@@ -92,8 +97,3 @@ jobs:
           curl --fail-with-body -sS --retry 2 -X POST https://sompio.org/publish.php \
             -H "X-Sompio-Publish: $TOKEN" -A "Sompio-Publish" \
             -F "setup=@$EXE" -F "version=$VERSION" -F "signature=$(cat "$EXE.sig")" -F "notes=$NOTES"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Sompio-${{ env.VERSION }}
-          path: app/src-tauri/target/release/bundle/nsis/*-setup.exe
-          retention-days: 14
