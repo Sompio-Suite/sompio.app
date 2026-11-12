@@ -38,6 +38,8 @@ jobs:
           workspaces: |
             app/src-tauri -> target
             browserhost -> target
+          # Keep what was compiled even when a later step fails, so the next run is quick
+          cache-on-failure: true
       - name: Check the licence key is yours
         shell: bash
         run: |
@@ -60,6 +62,17 @@ jobs:
           fi
           V=$(node -p "require('./app/src-tauri/tauri.conf.json').version")
           echo "VERSION=$V" >> "$GITHUB_ENV"
+      - name: Tidy the secrets
+        shell: bash
+        env:
+          K: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          P: ${{ secrets.SOMPIO_PUBLISH_TOKEN }}
+          U: ${{ secrets.SOMPIO_UPDATE_TOKEN }}
+        run: |
+          # A value pasted from Notepad can carry a line break or spaces; the key and codes never contain any
+          k=$(printf '%s' "$K" | tr -d ' \r\n\t'); p=$(printf '%s' "$P" | tr -d ' \r\n\t'); u=$(printf '%s' "$U" | tr -d ' \r\n\t')
+          echo "::add-mask::$k"; echo "::add-mask::$p"; echo "::add-mask::$u"
+          { echo "SIGN_KEY=$k"; echo "PUBLISH_TOKEN=$p"; echo "UPDATE_TOKEN=$u"; } >> "$GITHUB_ENV"
       - name: Build the browser extension helper
         working-directory: browserhost
         shell: bash
@@ -74,9 +87,9 @@ jobs:
         working-directory: app
         run: npx tauri build --config src-tauri/tauri.release.conf.json
         env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ env.SIGN_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
-          SOMPIO_UPDATE_TOKEN: ${{ secrets.SOMPIO_UPDATE_TOKEN }}
+          SOMPIO_UPDATE_TOKEN: ${{ env.UPDATE_TOKEN }}
           SOMPIO_TG_API_ID: ${{ secrets.SOMPIO_TG_API_ID }}
           SOMPIO_TG_API_HASH: ${{ secrets.SOMPIO_TG_API_HASH }}
       - uses: actions/upload-artifact@v4
@@ -87,7 +100,7 @@ jobs:
       - name: Put it on sompio.org
         shell: bash
         env:
-          TOKEN: ${{ secrets.SOMPIO_PUBLISH_TOKEN }}
+          TOKEN: ${{ env.PUBLISH_TOKEN }}
         run: |
           EXE="app/src-tauri/target/release/bundle/nsis/Sompio_${VERSION}_x64-setup.exe"
           ls -la "$EXE" "$EXE.sig"
