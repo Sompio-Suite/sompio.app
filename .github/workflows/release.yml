@@ -105,6 +105,9 @@ jobs:
           EXE="app/src-tauri/target/release/bundle/nsis/Sompio_${VERSION}_x64-setup.exe"
           ls -la "$EXE" "$EXE.sig"
           NOTES=$(cat app/release-notes.txt 2>/dev/null || echo "")
-          curl --fail-with-body -sS --retry 2 -X POST https://sompio.org/publish.php \
+          code=$(curl -sS --retry 2 -o reply.txt -w '%{http_code}' -X POST https://sompio.org/publish.php \
             -H "X-Sompio-Publish: $TOKEN" -A "Sompio-Publish" \
-            -F "setup=@$EXE" -F "version=$VERSION" -F "signature=$(cat "$EXE.sig")" -F "notes=$NOTES"
+            -F "setup=@$EXE" -F "version=$VERSION" -F "signature=$(cat "$EXE.sig")" -F "notes=$NOTES")
+          cat reply.txt
+          # 409: this version is already on sompio.org (a rebuild without a version change), which is fine
+          if [ "$code" != "200" ] && [ "$code" != "409" ]; then echo "::error::sompio.org answered $code"; exit 1; fi
