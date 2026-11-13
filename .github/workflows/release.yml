@@ -115,6 +115,8 @@ jobs:
           cat reply.txt
           # 409: this version is already on sompio.org (a rebuild without a version change), which is fine
           if [ "$code" != "200" ] && [ "$code" != "409" ]; then echo "::error::sompio.org answered $code"; exit 1; fi
+          # Only a version that's new on sompio.org gets announced
+          if [ "$code" = "200" ]; then echo "NEW_VERSION=1" >> "$GITHUB_ENV"; fi
 
       - name: Put the checksum on GitHub
         # A second, independent place to check the installer against: if sompio.org were ever
@@ -138,3 +140,38 @@ jobs:
             echo "The tester portal shows the same fingerprint next to the download. If they ever differ, don't install it, and write to hello@sompio.org."
           } > release-body.md
           gh release create "v$VERSION" --title "Sompio $VERSION" --notes-file release-body.md --target "$GITHUB_SHA"
+
+      - name: Announce it on Discord
+        # Posts the release notes to the channel behind the DISCORD_WEBHOOK secret. Without that secret,
+        # or when this version was already on sompio.org, nothing is posted.
+        if: env.NEW_VERSION == '1'
+        shell: bash
+        env:
+          HOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          HOOK=$(printf '%s' "$HOOK" | tr -d ' \r\n\t')
+          if [ -z "$HOOK" ]; then echo "No DISCORD_WEBHOOK secret: skipping the announcement"; exit 0; fi
+          echo "::add-mask::$HOOK"
+          python - <<'PY' > discord.json
+          import json, os
+          version = os.environ["VERSION"]
+          try:
+              notes = open("app/release-notes.txt", encoding="utf-8").read().strip()
+          except OSError:
+              notes = ""
+          lines = [l.strip() for l in notes.splitlines() if l.strip()]
+          body = "\n".join("\u2022 " + l for l in lines) or "Bug fixes and improvements."
+          body += "\n\nOpen Sompio and click **Update now**, or get it from the [tester portal](https://sompio.org/tester.php)."
+          print(json.dumps({
+              "username": "Sompio",
+              "allowed_mentions": {"parse": []},
+              "embeds": [{
+                  "title": f"Sompio {version} is out",
+                  "url": f"https://github.com/Sompio-Suite/sompio.org/releases/tag/v{version}",
+                  "description": body[:4000],
+                  "color": 0x2E7D32,
+              }],
+          }))
+          PY
+          code=$(curl -sS -o reply.txt -w '%{http_code}' -H "Content-Type: application/json" --data @discord.json "$HOOK")
+          if [ "$code" != "204" ] && [ "$code" != "200" ]; then cat reply.txt; echo "::warning::Discord answered $code; the release itself is fine"; fi
