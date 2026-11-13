@@ -74,6 +74,14 @@ site_header('privacy');
         <p>Like any website, sompio.org records each request in a log: the IP address, the time, the page asked for and the browser's self-description. This is needed to run the website and keep it secure. We don't use these logs to track or profile anyone, and we don't keep archives of them: the server discards them within about a day.</p>
         <p>All visits to sompio.org pass through Cloudflare, which protects the site against attacks and overload. To do that, Cloudflare sees the same request details, including your IP address, and keeps them under its own short retention periods.</p>
 
+        <h3>When you buy a key</h3>
+        <ul class="points">
+          <li><strong>What:</strong> the reseller that handles the payment (named at checkout) passes us your email address, your country, what you bought and the order number. We never see your card or bank details.</li>
+          <li><strong>Why:</strong> to send your key, help you if something goes wrong, and handle refunds.</li>
+          <li><strong>Legal basis:</strong> it's needed for the purchase (our contract with you), and bookkeeping law.</li>
+          <li><strong>How long:</strong> Dutch tax law requires us to keep sales records for seven years. We use them for nothing else, and never for marketing.</li>
+        </ul>
+
         <h3>When you email us</h3>
         <p>We keep your email for as long as needed to help you, and delete conversations that are no longer needed.</p>
 

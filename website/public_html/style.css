@@ -313,3 +313,23 @@ main.wrap.docs > * { margin-top: 2.2rem; }
 .support-button { flex: none; }
 .support-button:hover { border-color: #d0455b; }
 @media (max-width: 640px) { .support-strip { flex-direction: column; align-items: stretch; } }
+
+/* Pricing */
+.pricing-head { padding-top: 3rem; }
+.pricing-head h1, .pricing-head .lead, .launch-note { max-width: 720px; }
+.pricing-head h1 { font-size: 2.2rem; line-height: 1.15; margin-bottom: 0.8rem; }
+.launch-note { margin-top: 1rem; }
+.plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; padding-top: 2rem; align-items: stretch; }
+.plan { position: relative; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; padding: 1.5rem 1.4rem 1.3rem; background: #fff; }
+.plan.featured { border: 2px solid var(--green); box-shadow: 0 10px 30px rgba(46, 125, 50, 0.12); }
+.plan h2 { font-size: 1.1rem; color: var(--ink-2); margin: 0; }
+.plan .price { font-size: 2.6rem; font-weight: 700; line-height: 1.1; margin: 0.4rem 0 0; letter-spacing: -0.01em; }
+.plan .per { margin: 0 0 0.9rem; }
+.plan .ticks { color: var(--ink-2); flex: 1; margin: 0 0 1.2rem; font-size: 0.95rem; }
+.plan .button { width: 100%; }
+.plan-badge { position: absolute; top: -0.75rem; left: 1.2rem; margin: 0; background: var(--green); color: #fff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.15rem 0.6rem; border-radius: 999px; }
+.button.disabled { opacity: 0.6; cursor: default; pointer-events: none; }
+.plan-all { padding-top: 3rem; }
+.pricing-faq { padding-top: 2.5rem; }
+.pricing-faq .faq { max-width: 760px; }
+@media (max-width: 900px) { .plans { grid-template-columns: 1fr; max-width: 460px; } .pricing-head h1 { font-size: 1.7rem; } }
