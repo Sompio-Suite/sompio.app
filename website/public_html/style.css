@@ -333,3 +333,24 @@ main.wrap.docs > * { margin-top: 2.2rem; }
 .pricing-faq { padding-top: 2.5rem; }
 .pricing-faq .faq { max-width: 760px; }
 @media (max-width: 900px) { .plans { grid-template-columns: 1fr; max-width: 460px; } .pricing-head h1 { font-size: 1.7rem; } }
+
+/* Guides: one card per guide */
+.guides-head { padding-top: 3rem; max-width: 760px; }
+.guides-head h1 { font-size: 2.2rem; line-height: 1.15; margin-bottom: 0.8rem; }
+.guide-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.1rem; margin-top: 2rem; max-width: 960px; }
+.guide-grid.small { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.8rem; margin-top: 0.8rem; max-width: none; }
+@media (max-width: 700px) { .guide-grid { grid-template-columns: 1fr; } }
+.guide-card-link { display: flex; flex-direction: column; gap: 0.55rem; border: 1px solid var(--line); border-radius: 12px; padding: 1.25rem 1.3rem; background: #fff; color: inherit; text-decoration: none; transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s; }
+.guide-card-link:hover { border-color: var(--green); box-shadow: 0 8px 24px rgba(20, 35, 55, 0.08); transform: translateY(-2px); }
+.guide-card-link strong { font-size: 1.12rem; line-height: 1.3; }
+.guide-grid.small .guide-card-link { padding: 0.9rem 1rem; }
+.guide-grid.small .guide-card-link strong { font-size: 0.98rem; }
+.guide-tag { align-self: flex-start; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--green-2); background: #e9f4ea; border-radius: 999px; padding: 0.12rem 0.6rem; }
+.guide-summary { color: var(--ink-2); font-size: 0.94rem; flex: 1; }
+.guide-foot { display: flex; justify-content: space-between; align-items: center; gap: 1rem; border-top: 1px solid var(--line); padding-top: 0.7rem; margin-top: 0.2rem; }
+.guide-more { color: var(--green-2); font-weight: 600; font-size: 0.92rem; }
+.guides-note { margin-top: 2rem; }
+.more-guides { border-top: 1px solid var(--line); margin-top: 1.5rem; padding-top: 1.4rem; }
+.more-guides h2 { font-size: 1.2rem; }
+@media (max-width: 640px) { .guides-head h1 { font-size: 1.7rem; } .guide-card-link:hover { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .guide-card-link { transition: none; } .guide-card-link:hover { transform: none; } }

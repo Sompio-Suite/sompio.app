@@ -171,7 +171,7 @@ site_header('docs');
       </section>
 
       <div class="docs-end">
-        <a class="button primary" href="delete-discord-messages.php">Guide: delete your Discord messages</a>
+        <a class="button primary" href="guides.php">Guides: delete what you've shared</a>
         <a class="button" href="tester.php#feedback">Testers: send feedback</a>
       </div>
     </article>

@@ -87,11 +87,11 @@ site_header('home');
     <section class="wrap guide-promo">
       <div class="guide-card">
         <div>
-          <p class="eyebrow">Free guide</p>
-          <h2>Want your old Discord messages gone?</h2>
-          <p>Discord has no button to delete all your messages, and deleting your account leaves them behind. Here's what actually works, step by step.</p>
+          <p class="eyebrow">Free guides</p>
+          <h2>Take back what you've shared online</h2>
+          <p>Delete your old Discord messages and Reddit comments, see what's in your data package, and make companies erase what they hold about you. Step by step, free.</p>
         </div>
-        <a class="button primary" href="delete-discord-messages.php">Read the guide</a>
+        <a class="button primary" href="guides.php">Read the guides</a>
       </div>
     </section>
 

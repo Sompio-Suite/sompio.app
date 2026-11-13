@@ -15,10 +15,11 @@ site_header('guide');
       <a href="#ask">4. Ask Discord to erase it</a>
       <a href="#scripts">About delete-everything scripts</a>
       <a href="#faq">Questions</a>
+      <a href="guides.php" class="toc-back">← All guides</a>
     </aside>
 
     <article class="docs-body">
-      <p class="eyebrow">Guide · updated November 2026</p>
+      <p class="eyebrow">Discord · updated November 2026</p>
       <h1>How to delete your old Discord messages</h1>
       <p class="lead">Years of chats add up. Somewhere in there is probably a password you pasted, a bank number you sent a friend, or your home address. Here's how to find those messages and get rid of them, without risking your account.</p>
 
@@ -41,7 +42,7 @@ site_header('guide');
           <li>Make sure <strong>Messages</strong> is included, then confirm with <strong>Request My Data</strong>.</li>
         </ol>
         <p>Discord says it can take up to 30 days, but it often arrives much sooner. You get an email with a download link that works for 30 days. Download the zip file and keep it somewhere safe: it holds everything you've ever written on Discord.</p>
-        <p class="small muted">Discord explains what's inside on its own help page: <a href="https://support.discord.com/hc/en-us/articles/360004957991" rel="noopener noreferrer">Your Discord data package</a>.</p>
+        <p class="small muted">More on what's inside: <a href="discord-data-package.php">What's in your Discord data package</a>.</p>
       </section>
 
       <section id="step2">
@@ -102,6 +103,8 @@ site_header('guide');
           <dd>Sompio is in beta with a small group of testers, and the public release follows soon. Want to help test it? <a href="./#join">Join the beta</a>. Questions? Write to <a href="mailto:hello@sompio.org">hello@sompio.org</a>.</dd>
         </dl>
       </section>
+
+<?php more_guides('delete-discord-messages.php'); ?>
     </article>
   </main>
 <?php site_footer(); ?>
