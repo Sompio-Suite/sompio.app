@@ -624,10 +624,36 @@ fn open_external(app: AppHandle, url: String) -> CmdResult<()> {
     if !(lower.starts_with("https://") || lower.starts_with("http://") || lower.starts_with("mailto:")) {
         return Err("Only web and email links can be opened.".into());
     }
-    if u.len() > 32_000 || u.chars().any(|c| c.is_control()) {
+    if u.len() > 32_000 || u.chars().any(|c| c.is_control()) || !link_host_ok(u) {
         return Err("That link can't be opened.".into());
     }
     app.opener().open_url(u, None::<&str>).map_err(|e| format!("Couldn't open it: {e}"))
+}
+
+/// Web links must name their website plainly: no "name@" in front of it ("https://bank.com@evil.site"
+/// really goes to evil.site) and no backslashes, which browsers read in surprising ways.
+fn link_host_ok(url: &str) -> bool {
+    let Some(rest) = url.split_once("://").map(|(_, r)| r) else {
+        return true; // mailto: has no website part
+    };
+    let host = rest.split(['/', '?', '#']).next().unwrap_or("");
+    !host.is_empty() && !host.contains('@') && !host.contains('\\') && !rest.starts_with('/')
+}
+
+#[cfg(test)]
+mod link_tests {
+    use super::link_host_ok;
+
+    #[test]
+    fn disguised_links_are_refused() {
+        assert!(link_host_ok("https://sompio.org/pricing.php"));
+        assert!(link_host_ok("https://discord.com/channels/1/2/3?x=a@b"));
+        assert!(link_host_ok("mailto:privacy@example.com?subject=Hi"));
+        assert!(!link_host_ok("https://bank.com@evil.site/login"));
+        assert!(!link_host_ok("https://evil.site\\@bank.com"));
+        assert!(!link_host_ok("https:///evil"));
+        assert!(!link_host_ok("https://"));
+    }
 }
 
 // ---------- Trace: request centre ----------

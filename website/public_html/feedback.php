@@ -1,6 +1,7 @@
 <?php
-// Feedback from testers: saved in private/feedback (one text file each, plus the screenshot) and
-// emailed to the address in config.php. No IP address or browser details are kept.
+// Feedback from testers: emailed to the address in config.php, with the screenshot attached.
+// Nothing stays on the server: a message waits in private/outbox only while email can't go out.
+// No IP address or browser details are kept.
 //
 // Testers are signed out after 15 minutes without activity. Writing feedback can take longer, so
 // a message sent after that is kept, the password is asked again, and then it's sent (?resume=1).
@@ -90,17 +91,11 @@ $body = "Sompio beta feedback ($id)\n"
     . ($details !== '' ? "\nBug report details:\n$details\n" : '')
     . ($shot ? "\nScreenshot attached ($id.{$shot['ext']}).\n" : '');
 
-$dir = PRIVATE_DIR . '/feedback';
-$saved = @file_put_contents("$dir/$id.txt", $body, LOCK_EX) !== false;
 $picture = $shot ? base64_decode($shot['data']) : null;
-if ($shot) {
-    @file_put_contents("$dir/$id.{$shot['ext']}", $picture, LOCK_EX);
-}
 $subject = "Sompio beta: $kind ($area)" . ($name !== '' ? " from $name" : '');
-$mailed = send_mail($subject, $body, $shot ? ['name' => "$id.{$shot['ext']}", 'type' => $shot['type'], 'data' => $picture] : null);
-
-if (!$saved && !$mailed) {
-    back(false, 'Sorry, your feedback couldn\'t be saved. Please try again later, or send it another way.');
+// Emailed only; kept on the server just until it can be sent, if mail is down
+if (!deliver($subject, $body, $shot ? ['name' => "$id.{$shot['ext']}", 'type' => $shot['type'], 'data' => $picture] : null)) {
+    back(false, 'Sorry, your feedback couldn\'t be sent. Please try again later, or send it another way.');
 }
 $_SESSION['sent'][] = time();
 back(true, 'Thank you! Your feedback was sent.');

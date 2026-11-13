@@ -20,7 +20,7 @@ site_header('privacy');
     </aside>
 
     <article class="docs-body">
-      <p class="eyebrow">Last updated 13 November 2026</p>
+      <p class="eyebrow">Last updated 13 November 2026 (sign-ups and feedback are no longer stored on the web server)</p>
       <h1>Privacy statement</h1>
       <p class="lead">This page explains what sompio.org collects about you, why, how long it's kept, and how to have it removed. It covers this website, the beta sign-up, the tester portal and Sompio's update check.</p>
 
@@ -48,7 +48,7 @@ site_header('privacy');
           <li><strong>Why:</strong> to choose testers for each group and send you an invite. If you ticked the box, also to send you one email when Sompio launches.</li>
           <li><strong>Legal basis:</strong> your consent. You can withdraw it at any time by writing to us; we then delete your sign-up.</li>
           <li><strong>How long:</strong> until the beta ends. Then we delete every sign-up, except the email addresses of people who asked to hear about the launch. Those are deleted right after that one launch email.</li>
-          <li><strong>Where:</strong> in a file on our web server, and as a notification email in our mailbox.</li>
+          <li><strong>Where:</strong> only as an email in our mailbox. Nothing is kept on the web server, except briefly if mail is down, until the email can go out.</li>
         </ul>
 
         <h3>When you send feedback as a tester</h3>
@@ -57,7 +57,7 @@ site_header('privacy');
           <li><strong>Why:</strong> to find and fix problems, and to reply if you asked us to.</li>
           <li><strong>Legal basis:</strong> our legitimate interest in improving Sompio, which you choose to help with by sending feedback.</li>
           <li><strong>How long:</strong> until the issue is dealt with, and at most six months after the beta ends.</li>
-          <li><strong>Where:</strong> in a file on our web server, and as an email in our mailbox.</li>
+          <li><strong>Where:</strong> only as an email in our mailbox, with your screenshot attached. Nothing is kept on the web server, except briefly if mail is down.</li>
         </ul>
         <p>Please don't put real passwords, bank details or other sensitive information in feedback or screenshots.</p>
 

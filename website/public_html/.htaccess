@@ -12,6 +12,24 @@ Options -Indexes
 </FilesMatch>
 DirectoryIndex index.php
 
+# Leftovers that should never be downloadable: uploaded zips, backups, logs, editor copies
+<FilesMatch "(\.(zip|tar|gz|tgz|7z|rar|bak|old|orig|save|swp|log|sql|sqlite|db|sh|env|ini|csv|json|md|lock)|~)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Only the methods the site uses
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_METHOD} !^(GET|HEAD|POST)$
+    RewriteRule ^ - [F,L]
+</IfModule>
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
     # Always https
@@ -26,7 +44,11 @@ DirectoryIndex index.php
     Header always set X-Content-Type-Options "nosniff"
     Header always set Referrer-Policy "no-referrer"
     Header always set X-Frame-Options "DENY"
-    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=(), browsing-topics=()"
     Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
     Header always set Strict-Transport-Security "max-age=31536000"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
+    Header always set Cross-Origin-Resource-Policy "same-origin"
+    Header always unset X-Powered-By
+    Header unset X-Powered-By
 </IfModule>

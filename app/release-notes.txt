@@ -1,5 +1,2 @@
-Free trial is now 30 days (your current trial gets the extra days too).
-A reminder a week before your key runs out, with a button to get a new one.
-Keys for a month, a year or forever. Forever keys show as "Forever".
-"Get a key" buttons on the Licences page and in the trial and ended notices.
-Bug report details no longer include your Windows user name.
+Safer links: Sompio refuses links that hide where they really go.
+Each version's installer fingerprint is now also published on GitHub, so you can check your download.

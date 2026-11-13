@@ -2,6 +2,8 @@
 declare(strict_types=1);
 require __DIR__ . '/private/lib.php';
 start_session();
+// Anything waiting because mail was down goes out now
+flush_outbox();
 
 $error = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'])) {
@@ -85,8 +87,8 @@ $c = config();
           <p class="phone-note small">On a phone? Open this page on your Windows PC to install Sompio.</p>
           <div class="fingerprint">
             <p class="fp-label"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z M9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>File fingerprint (SHA-256)</p>
-            <code class="hash"><?= e($release['sha256']) ?></code>
-            <p class="small muted">To check your download is really ours, open PowerShell in your Downloads folder and run <code><span class="nowrap">Get-FileHash</span> <span class="nowrap">.\<?= e($release['name']) ?></span></code>. The Hash it shows must match the one above.</p>
+            <code class="hash"><?= e(strtoupper($release['sha256'])) ?></code>
+            <p class="small muted">To check your download is really ours, open PowerShell in your Downloads folder and run <code><span class="nowrap">Get-FileHash</span> <span class="nowrap">.\<?= e($release['name']) ?></span></code>. The Hash it shows must match the one above, and the one on <a href="<?= e(SOURCE_URL) ?>/releases/tag/v<?= e($release['version']) ?>" rel="noopener noreferrer">GitHub</a>, which is published separately. This step is optional.</p>
           </div>
         <?php else: ?>
           <h2>Coming soon</h2>

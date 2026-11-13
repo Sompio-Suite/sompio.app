@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 const PRIVATE_DIR = __DIR__;
 date_default_timezone_set('Europe/Amsterdam');
+// Never show PHP errors to visitors: they can reveal folder paths and settings
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+// Only session ids this server made itself are accepted
+ini_set('session.use_strict_mode', '1');
+ini_set('session.use_only_cookies', '1');
+header_remove('X-Powered-By');
 
 function config(): array
 {
@@ -24,7 +31,7 @@ function start_session(): void
         'path' => '/',
         'secure' => $https,
         'httponly' => true,
-        'samesite' => 'Lax',
+        'samesite' => 'Strict',
     ]);
     session_start();
 }
@@ -167,6 +174,48 @@ function send_mail(string $subject, string $body, ?array $attachment = null): bo
         . chunk_split(base64_encode($attachment['data']))
         . "--$boundary--\r\n";
     return @mail($to, $subject, $msg, implode("\r\n", $headers), '-f' . $from);
+}
+
+/**
+ * Emails a sign-up or feedback message to the mailbox. Nothing is kept on the server, unless the
+ * email can't be sent right now: then it waits in private/outbox until it can, and is deleted as
+ * soon as it goes out. Returns false only when it could neither be sent nor kept.
+ */
+function deliver(string $subject, string $body, ?array $attachment = null): bool
+{
+    flush_outbox();
+    if (send_mail($subject, $body, $attachment)) {
+        return true;
+    }
+    $dir = PRIVATE_DIR . '/outbox';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0700, true);
+    }
+    $item = ['subject' => $subject, 'body' => $body, 'attachment' => $attachment === null ? null : [
+        'name' => $attachment['name'], 'type' => $attachment['type'], 'data' => base64_encode($attachment['data']),
+    ]];
+    return @file_put_contents($dir . '/' . date('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.json', json_encode($item), LOCK_EX) !== false;
+}
+
+/** Tries again to send what's waiting in the outbox; whatever goes out is deleted. */
+function flush_outbox(): void
+{
+    foreach (glob(PRIVATE_DIR . '/outbox/*.json') ?: [] as $f) {
+        $item = json_decode((string) @file_get_contents($f), true);
+        if (!is_array($item)) {
+            @unlink($f);
+            continue;
+        }
+        $a = $item['attachment'] ?? null;
+        if ($a !== null) {
+            $a['data'] = base64_decode((string) $a['data']);
+        }
+        if (send_mail((string) $item['subject'], (string) $item['body'], $a)) {
+            @unlink($f);
+        } else {
+            return; // mail still down: try again next time
+        }
+    }
 }
 
 /** What the "Join the beta" form offers (index.php shows them, signup.php keeps only these). */
