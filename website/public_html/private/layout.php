@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 const SOURCE_URL = 'https://github.com/Sompio-Suite/sompio.org';
-/** Prices in euros, including VAT. Change them here and every page follows. */
+/** Prices in euros, including VAT, for the pricing and terms pages waiting in private/drafts (not shown yet). */
 const PRICES = ['month' => 4, 'year' => 30, 'forever' => 50];
 /** The guides, newest first. guides.php shows them as cards; each guide page links to the others. */
 const GUIDES = [
@@ -70,7 +70,6 @@ function site_header(string $here): void
         <?= $link('./#tools', 'Features', 'features') ?>
         <?= $link('guides.php', 'Guides', 'guide') ?>
         <?= $link('docs.php', 'Documentation', 'docs') ?>
-        <?= $link('pricing.php', 'Pricing', 'pricing') ?>
         <a href="<?= e(SOURCE_URL) ?>" class="gh-link" rel="noopener noreferrer" aria-label="Source code on GitHub" title="Source code on GitHub"><?= GITHUB_ICON ?><span class="gh-label">Source code</span></a>
         <a class="nav-tester<?= $here === 'tester' ? ' on' : '' ?>" href="tester.php"<?= $here === 'tester' ? ' aria-current="page"' : '' ?>>Tester portal</a>
       </nav>
@@ -108,8 +107,6 @@ function site_footer(): void
         <a href="docs.php">Documentation</a>
         <a href="guides.php">Guides</a>
         <a href="<?= e(SOURCE_URL) ?>" class="gh-link" rel="noopener noreferrer"><?= GITHUB_ICON ?>Source code</a>
-        <a href="pricing.php">Pricing</a>
-        <a href="terms.php">Terms of sale</a>
         <a href="privacy.php">Privacy</a>
         <a href="mailto:hello@sompio.org">hello@sompio.org</a>
         <a href="<?= e(SUPPORT_URL) ?>" class="support-link" rel="noopener noreferrer"><?= HEART_ICON ?>Support Sompio</a>

@@ -10,8 +10,7 @@
   <a href="https://sompio.org">Website</a> ·
   <a href="https://sompio.org/#join">Join the beta</a> ·
   <a href="https://sompio.org/docs.php">Documentation</a> ·
-  <a href="https://sompio.org/guides.php">Guides</a> ·
-  <a href="https://sompio.org/pricing.php">Pricing</a>
+  <a href="https://sompio.org/guides.php">Guides</a>
 </p>
 
 Sompio is one Windows program with three tools:

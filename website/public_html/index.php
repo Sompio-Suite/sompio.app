@@ -78,7 +78,7 @@ site_header('home');
           <div><h3>Works offline</h3><p>Sompio does all its work on your PC. The only thing it fetches on its own is the newest version number, and you can switch that off. <a href="docs.php#private">See every time it goes online</a>.</p></div>
           <div><h3>Encrypted with your lock</h3><p>Your password plus a key picture only you have. Nobody can open it without both, not even us.</p></div>
           <div><h3>Code you can check</h3><p>The full source is <a href="<?= e(SOURCE_URL) ?>" rel="noopener noreferrer">on GitHub</a>, so anyone can see what Sompio does with your data.</p></div>
-          <div><h3>No subscription</h3><p>A key for a month, a year or forever, checked on your PC without going online. Nothing renews by itself. <a href="pricing.php">See pricing</a>.</p></div>
+          <div><h3>A key, not an account</h3><p>Sompio is unlocked with a licence key, like a game key, checked on your PC without going online. No sign-up, nothing to log in to.</p></div>
           <div><h3>Made for Windows</h3><p>Windows 10 and 11, 64-bit. One small program, no extra installs.</p></div>
         </div>
       </div>

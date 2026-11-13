@@ -27,7 +27,7 @@ site_header('docs');
       <section id="what">
         <h2>What Sompio is</h2>
         <p>Sompio is a private toolkit for your Windows PC: a calendar, a tool that finds and removes what you've shared online, and a password vault, in one program. Everything works on your own computer. There is no account to make, no cloud, and no server of ours that holds your data.</p>
-        <p>All three tools sit behind one lock, the <strong>Sompio Lock</strong>, so one password (plus your key picture) opens everything and keeps it encrypted when you're away. You unlock it with a licence key, like a game key, for a month, a year or forever (see <a href="pricing.php">pricing</a>). Nothing renews by itself, and the key is checked on your PC without going online.</p>
+        <p>All three tools sit behind one lock, the <strong>Sompio Lock</strong>, so one password (plus your key picture) opens everything and keeps it encrypted when you're away. You unlock it with a licence key, like a game key, checked on your PC without going online.</p>
         <div class="tools">
           <a class="tool" href="#calendar"><strong>Calendar</strong><span>Reminders that pop up on time, for you or a whole group, even when Sompio is locked.</span></a>
           <a class="tool" href="#trace"><strong>Trace</strong><span>Finds personal information you've shared online (bank numbers, passwords, addresses…), helps you remove it, and gets companies to delete what they hold.</span></a>

@@ -1,5 +1,7 @@
 User-agent: *
 Disallow: /tester.php
+Disallow: /pricing.php
+Disallow: /terms.php
 Disallow: /download.php
 Disallow: /feedback.php
 Disallow: /update.php
