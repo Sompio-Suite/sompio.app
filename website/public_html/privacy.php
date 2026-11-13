@@ -53,7 +53,7 @@ site_header('privacy');
 
         <h3>When you send feedback as a tester</h3>
         <ul class="points">
-          <li><strong>What:</strong> your message, the part of Sompio it's about, and anything optional you add: a name or nickname, an email address for a reply, bug report details and a screenshot. Bug report details come from Sompio's "Copy details for a bug report" and contain the app's version, your Windows version and recent app messages. They can include your Windows user name as part of a folder path; remove it before sending if you prefer.</li>
+          <li><strong>What:</strong> your message, the part of Sompio it's about, and anything optional you add: a name or nickname, an email address for a reply, bug report details and a screenshot. Bug report details come from Sompio's "Copy details for a bug report" and contain the app's version, your Windows version and recent app messages. Sompio takes your Windows user name out of folder paths in these details.</li>
           <li><strong>Why:</strong> to find and fix problems, and to reply if you asked us to.</li>
           <li><strong>Legal basis:</strong> our legitimate interest in improving Sompio, which you choose to help with by sending feedback.</li>
           <li><strong>How long:</strong> until the issue is dealt with, and at most six months after the beta ends.</li>

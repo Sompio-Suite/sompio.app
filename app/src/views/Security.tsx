@@ -281,7 +281,7 @@ function ReportProblem() {
       <h3>Something wrong?</h3>
       <p className="muted">
         When something goes wrong, Sompio writes a short line about it to a problems log on this PC. It holds error
-        messages only, never your passwords, messages or files, and nothing is sent anywhere. To report a problem, copy
+        messages only, never your passwords, messages or files. Your Windows user name is left out, and nothing is sent anywhere. To report a problem, copy
         the details below and send them along with what you were doing.
       </p>
       <div className="toolbar">

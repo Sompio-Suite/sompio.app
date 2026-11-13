@@ -5273,7 +5273,7 @@ dependencies = [
 
 [[package]]
 name = "sompio"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "active-win-pos-rs",
  "aes-gcm",

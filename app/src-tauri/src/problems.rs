@@ -18,6 +18,7 @@ fn stamp() -> String {
 
 pub fn write(line: &str) {
     let Some(path) = LOG.get() else { return };
+    let line = redact(line);
     // Keep it small: start over when it grows too big
     if std::fs::metadata(path).map(|m| m.len() > MAX_BYTES).unwrap_or(false) {
         let _ = std::fs::rename(path, path.with_extension("old.log"));
@@ -64,9 +65,80 @@ pub fn app_details(app: AppHandle) -> CmdResult<Details> {
     Ok(Details {
         version: app.package_info().version.to_string(),
         os: format!("{} {} ({})", std::env::consts::OS, os_version(), std::env::consts::ARCH),
-        log: log.display().to_string(),
-        recent,
+        log: redact(&log.display().to_string()),
+        recent: recent.iter().map(|l| redact(l)).collect(),
     })
+}
+
+/// Takes the Windows user name out of folder paths, so a bug report doesn't say who you are:
+/// "C:\\Users\\Anna\\AppData" becomes "C:\\Users\\you\\AppData" (also /home/anna and /Users/anna).
+pub fn redact(text: &str) -> String {
+    let mut out = text.to_string();
+    // This PC's own home folder first: exact, even when the name has spaces in it
+    for (var, generic) in [("USERPROFILE", r"C:\Users\you"), ("HOME", "/home/you")] {
+        if let Ok(home) = std::env::var(var) {
+            if home.len() > 3 {
+                out = replace_ignoring_case(&out, &home, generic);
+            }
+        }
+    }
+    // Then any other user folder
+    for marker in ["\\users\\", "/users/", "/home/"] {
+        out = mask_after(&out, marker);
+    }
+    // The name on its own too (for example in an error message), when it's long enough not to be a common word
+    if let Some(name) = std::env::var("USERNAME").ok().or_else(|| std::env::var("USER").ok()) {
+        if name.chars().count() >= 4 && !name.eq_ignore_ascii_case("you") {
+            out = replace_ignoring_case(&out, &name, "you");
+        }
+    }
+    out
+}
+
+/// Replaces the folder name right after `marker` (matched ignoring case) with "you".
+fn mask_after(text: &str, marker: &str) -> String {
+    let lower = text.to_ascii_lowercase();
+    let mut out = String::with_capacity(text.len());
+    let mut i = 0;
+    while let Some(found) = lower[i..].find(marker) {
+        let start = i + found + marker.len();
+        out.push_str(&text[i..start]);
+        let end = text[start..].find(|c: char| c == '\\' || c == '/' || c.is_whitespace() || c == '"' || c == '\'' || c == ':' || c == ')').map_or(text.len(), |n| start + n);
+        let name = &text[start..end];
+        let keep = name.is_empty() || ["you", "public", "default", "all users"].iter().any(|k| name.eq_ignore_ascii_case(k));
+        out.push_str(if keep { name } else { "you" });
+        i = end;
+    }
+    out.push_str(&text[i..]);
+    out
+}
+
+fn replace_ignoring_case(text: &str, find: &str, with: &str) -> String {
+    let (lower, needle) = (text.to_ascii_lowercase(), find.to_ascii_lowercase());
+    let mut out = String::with_capacity(text.len());
+    let mut i = 0;
+    while let Some(found) = lower[i..].find(&needle) {
+        out.push_str(&text[i..i + found]);
+        out.push_str(with);
+        i += found + needle.len();
+    }
+    out.push_str(&text[i..]);
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn user_names_leave_paths() {
+        assert_eq!(replace_ignoring_case(r"at c:\users\anna maria\AppData", r"C:\Users\Anna Maria", r"C:\Users\you"), r"at C:\Users\you\AppData");
+        assert_eq!(mask_after(r"C:\users\anna\x and D:\Users\Bob\y", "\\users\\"), r"C:\users\you\x and D:\Users\you\y");
+        assert_eq!(mask_after(r"C:\Users\Public\x", "\\users\\"), r"C:\Users\Public\x");
+        assert_eq!(mask_after("/home/anna/.cargo/registry", "/home/"), "/home/you/.cargo/registry");
+        assert_eq!(mask_after("no paths here", "/home/"), "no paths here");
+        assert_eq!(replace_ignoring_case("Failed for ANNA and anna", "Anna", "you"), "Failed for you and you");
+    }
 }
 
 #[tauri::command]
