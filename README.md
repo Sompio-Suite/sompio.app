@@ -1,6 +1,50 @@
-# Sompio Suite
+<p align="center">
+  <img src="brand/sompio-app-icon.svg" width="96" height="96" alt="Sompio">
+</p>
 
-Private tools that keep your data on your PC, unlocked with a key instead of an account.
+<h1 align="center">Sompio</h1>
+
+<p align="center"><strong>Private tools for your PC. Nothing leaves it.</strong></p>
+
+<p align="center">
+  <a href="https://sompio.org">Website</a> ·
+  <a href="https://sompio.org/#join">Join the beta</a> ·
+  <a href="https://sompio.org/docs.php">Documentation</a> ·
+  <a href="https://sompio.org/guides.php">Guides</a> ·
+  <a href="https://sompio.org/pricing.php">Pricing</a>
+</p>
+
+Sompio is one Windows program with three tools:
+
+- **Trace** finds what you've shared online over the years (passwords, bank numbers, addresses…) in the data exports
+  that Discord, Reddit, WhatsApp and others must give you, helps you delete it, and writes the GDPR letters that make
+  companies delete what they hold.
+- **Vault** keeps your passwords in the KeePass format, fills them in your browser with the Sompio extension, and
+  never locks you in.
+- **Calendar** pops up reminders on time, for you or a whole group, even while Sompio is locked.
+
+There's no account, no cloud and no server of ours holding your data. Everything stays on your PC, encrypted with
+your own lock. This repository holds the complete source, so anyone can check that.
+
+<p align="center">
+  <img src="brand/screenshots/trace.png" width="860" alt="Trace listing passwords, bank numbers and addresses found in sample Discord messages">
+</p>
+
+<p align="center">
+  <img src="brand/screenshots/vault.png" width="425" alt="Vault with sample logins">
+  <img src="brand/screenshots/calendar.png" width="425" alt="Calendar with a personal and a shared schedule">
+</p>
+
+<sub>Screenshots use the made-up sample data that ships with Sompio.</sub>
+
+**Status:** in beta on Windows 10 and 11. Want to test it? [Join the beta](https://sompio.org/#join).
+Bugs and ideas from testers go through the feedback form in the [tester portal](https://sompio.org/tester.php).
+
+---
+
+## For developers
+
+How the suite is put together, app by app.
 
 | App | Status |
 | --- | --- |
@@ -8,8 +52,6 @@ Private tools that keep your data on your PC, unlocked with a key instead of an 
 | **Calendar** | Built: Desk Reminders rebuilt, encrypted, with privacy routines (below) |
 | **Vault** | Built (round 1 of 3): KeePass-compatible password manager with auto-type (below) |
 | **Voice** | On hold: taken out of the app in 0.7.0. The code is kept in `voice/` (below) |
-
-The plan lives in the "Sompio Suite plan" doc.
 
 ## Sompio Calendar
 
