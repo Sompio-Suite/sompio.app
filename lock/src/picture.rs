@@ -1,4 +1,5 @@
-//! The key picture: a night sky with the polar sun, and a 256-bit secret hidden inside.
+//! The key picture: a night sky with the polar sun in Sompio's white and green, and a 256-bit
+//! secret hidden inside.
 //!
 //! The secret is stored twice so ordinary file handling doesn't lose it:
 //! * in a private PNG chunk ("smKy"), and
@@ -112,10 +113,11 @@ fn mix(a: [f32; 3], b: [f32; 3], t: f32) -> [f32; 3] {
 pub fn make_picture(secret: &PictureSecret) -> Result<Vec<u8>> {
     let (w, h) = (W as usize, H as usize);
     let mut px = vec![0u8; w * h * 3];
-    let top = [11.0, 20.0, 36.0];
-    let bottom = [22.0, 39.0, 63.0];
-    let ice = [220.0, 232.0, 242.0];
-    let amber = [242.0, 179.0, 91.0];
+    // Sompio's colours: the dark of the icon, a white and a green half
+    let top = [14.0, 21.0, 28.0];
+    let bottom = [31.0, 45.0, 58.0];
+    let ice = [255.0, 255.0, 255.0];
+    let amber = [76.0, 175.0, 80.0];
     // The polar sun: two half discs split at the horizon and pulled apart.
     let (r, ax, ay, bx, by) = (300.0f32, 480.0f32, 600.0f32, 600.0f32, 640.0f32);
 

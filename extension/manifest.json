@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Sompio Vault",
-  "version": "0.9.7",
+  "version": "0.9.8",
   "description": "Fill and save passwords from Sompio Vault. Talks only to the Sompio app on your PC, never to the internet.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1VOUR1DLfazGGOT0y10JoGGHm9bMw75JCciWjyv8HcKnvAP7A1Lbwecmo2qB3cs4ZPuZ1NAKC56GdrB2Cx3QEZBXWvIjDyv8nnHmYH6QUb8ophXFKEc7f7rCcvPDs2aS/GoOOA5vV9US65e94W5wEAisXRjqwIzYZVqOF1wtKql1uquEIQa1FWTxPj4cgtG+MXMFgS6Na/6vqCcOWXzaIRK0vBqI6gEH5Rk0jj+DE9TxEzhuCKLR3Odp0afDS35lew74cc9rKLGMdqfqfn/VckRvK85vmiZWCj9qcrEFPRs4suGJY6YTcIUgxgJYa0mHdI9pz5D4/kXeM82zCqQcMQIDAQAB",
   "icons": {
