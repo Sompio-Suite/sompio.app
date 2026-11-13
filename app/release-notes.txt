@@ -1,2 +1,2 @@
-Safer links: Sompio refuses links that hide where they really go.
-Each version's installer fingerprint is now also published on GitHub, so you can check your download.
+The browser extension now has the green Sompio icon, like the app and the website.
+New versions are announced in the Sompio Discord.

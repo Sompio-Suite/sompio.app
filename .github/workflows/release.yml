@@ -159,19 +159,12 @@ jobs:
               notes = open("app/release-notes.txt", encoding="utf-8").read().strip()
           except OSError:
               notes = ""
-          lines = [l.strip() for l in notes.splitlines() if l.strip()]
-          body = "\n".join("\u2022 " + l for l in lines) or "Bug fixes and improvements."
-          body += "\n\nOpen Sompio and click **Update now**, or get it from the [tester portal](https://sompio.org/tester.php)."
-          print(json.dumps({
-              "username": "Sompio",
-              "allowed_mentions": {"parse": []},
-              "embeds": [{
-                  "title": f"Sompio {version} is out",
-                  "url": f"https://github.com/Sompio-Suite/sompio.org/releases/tag/v{version}",
-                  "description": body[:4000],
-                  "color": 0x2E7D32,
-              }],
-          }))
+          lines = [l.strip() for l in notes.splitlines() if l.strip()] or ["Bug fixes and improvements."]
+          # Changelog style: the notes in a grey code box, like a release log
+          box = "\n".join("- " + l.replace("`", "'") for l in lines)
+          text = (f"**Sompio {version}**\n```\n{box}\n```\n"
+                  f"Open Sompio and click **Update now** \u00b7 <https://github.com/Sompio-Suite/sompio.org/releases/tag/v{version}>")
+          print(json.dumps({"username": "Sompio", "allowed_mentions": {"parse": []}, "content": text[:2000]}))
           PY
           code=$(curl -sS -o reply.txt -w '%{http_code}' -H "Content-Type: application/json" --data @discord.json "$HOOK")
           if [ "$code" != "204" ] && [ "$code" != "200" ]; then cat reply.txt; echo "::warning::Discord answered $code; the release itself is fine"; fi

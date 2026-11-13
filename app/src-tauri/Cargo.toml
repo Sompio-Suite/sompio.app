@@ -1,6 +1,6 @@
 [package]
 name = "sompio"
-version = "0.9.6"
+version = "0.9.7"
 description = "Sompio Suite: offline privacy tools."
 edition = "2021"
 
