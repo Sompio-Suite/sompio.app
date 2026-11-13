@@ -2,7 +2,7 @@
 // Pricing: a month, a year or forever. Keys don't renew by themselves. Prices live in layout.php.
 declare(strict_types=1);
 require __DIR__ . '/private/lib.php';
-page_head('Pricing · Sompio', 'Sompio for a month, a year or forever. One key works on all your own devices, nothing renews by itself, and you can try everything free for 14 days.');
+page_head('Pricing · Sompio', 'Sompio for a month, a year or forever. One key works on all your own devices, nothing renews by itself, and you can try everything free for 30 days.');
 site_header('pricing');
 $p = PRICES;
 $eur = fn(int $n): string => '€' . $n;
@@ -11,7 +11,7 @@ $eur = fn(int $n): string => '€' . $n;
     <section class="wrap pricing-head">
       <p class="eyebrow">Pricing</p>
       <h1>Pay for the time you want. Nothing renews by itself.</h1>
-      <p class="lead">Every plan unlocks all of Sompio: Calendar, Trace and Vault. One key works on all your own devices. Try everything free for 14 days first, no key needed.</p>
+      <p class="lead">Every plan unlocks all of Sompio: Calendar, Trace and Vault. One key works on all your own devices. Try everything free for 30 days first, no key needed.</p>
       <p class="note launch-note">Sompio is in beta, so keys aren't on sale yet. <a href="./#join">Join the beta</a> to try it now, or tick "email me at launch" there to hear when they are.</p>
     </section>
 

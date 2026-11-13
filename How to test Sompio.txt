@@ -19,7 +19,7 @@ When Sompio starts, it walks you through the Sompio Lock in four steps:
      Put it somewhere you'll find it again (a copy off this PC is best).
   3. Choose your password.
   4. Write down or print the recovery code.
-You get a 14-day trial of everything. No licence key is needed for testing.
+You get a 30-day trial of everything. No licence key is needed for testing.
 
 Please use made-up data while testing, not your real passwords or messages. The Samples page
 in the menu has made-up data for everything (see step 2).

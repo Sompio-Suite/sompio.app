@@ -23,7 +23,7 @@ const DAY_MS: i64 = 86_400_000;
 const EPOCH_DAY: i64 = 19_723;
 /// A key has to be entered within this many days of being made, so old keys don't circulate forever.
 pub const ACTIVATE_WITHIN_DAYS: i64 = 365;
-pub const TRIAL_DAYS: i64 = 14;
+pub const TRIAL_DAYS: i64 = 30;
 /// A "forever" key: the most days a key can hold (about 179 years). Shown as "Forever".
 pub const FOREVER_DAYS: u16 = u16::MAX;
 
@@ -527,13 +527,14 @@ mod tests {
         book.start_trial(T0 + 5 * DAY_MS); // only the first counts
         let st = book.status(T0 + DAY_MS, &p);
         assert!(st.apps.iter().all(|a| a.active && a.trial_only));
-        assert!(!book.allows(App::Clean, T0 + 15 * DAY_MS, &p));
+        assert!(book.allows(App::Clean, T0 + 29 * DAY_MS, &p));
+        assert!(!book.allows(App::Clean, T0 + (TRIAL_DAYS + 1) * DAY_MS, &p));
         // A key bought during the trial starts when the trial ends
         let mut book2 = Book::default();
         book2.start_trial(T0);
         book2.add(&issue(&s, Apps::of(&[App::Clean]), 30, T0, false).unwrap(), T0 + 2 * DAY_MS, &p).unwrap();
         let clean = book2.status(T0 + 3 * DAY_MS, &p).apps.into_iter().find(|a| a.app == App::Clean).unwrap();
-        assert_eq!(clean.ends_at, Some(T0 + 44 * DAY_MS));
+        assert_eq!(clean.ends_at, Some(T0 + (TRIAL_DAYS + 30) * DAY_MS));
     }
 
     #[test]

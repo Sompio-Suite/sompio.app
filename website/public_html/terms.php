@@ -45,7 +45,7 @@ $p = PRICES;
           <li>Prices include VAT for buyers in the EU. The checkout shows the exact amount before you pay.</li>
           <li><strong>Nothing renews by itself.</strong> A month or a year is a one-time payment for that time. We never charge you again unless you buy a new key.</li>
           <li>Your key arrives by email right after payment. Add it in Sompio within one year of buying. Its time starts when you add it, or when your current time ends if you still have some.</li>
-          <li>Before buying, you can try everything free for 14 days, without a key.</li>
+          <li>Before buying, you can try everything free for 30 days, without a key.</li>
         </ul>
       </section>
 

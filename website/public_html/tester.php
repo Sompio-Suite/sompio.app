@@ -114,7 +114,7 @@ $c = config();
         </li>
         <li>
           <h3>4. Set up the lock</h3>
-          <p>Sompio walks you through it: how the lock works, then your key picture, then your password, then a recovery code. Read the first screen: nobody can reset the lock for you, not even us. You get 14 days of everything, no licence key needed.</p>
+          <p>Sompio walks you through it: how the lock works, then your key picture, then your password, then a recovery code. Read the first screen: nobody can reset the lock for you, not even us. You get 30 days of everything, no licence key needed.</p>
         </li>
       </ol>
       <p class="small muted">To update later, download the new version here and install it over the old one. Your data stays.</p>

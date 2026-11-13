@@ -175,13 +175,13 @@ const reset = () => {
 };
 const discordSource = (): SourceView => ({ platform: "discord", label: "Discord", origin: "C:\\Users\\you\\Downloads\\package.zip", imported_at: Date.now(), channels: baseChannels.length, messages: baseMessages.length });
 
-// Licences in the browser preview: a 14-day trial that started 3 days ago; any long SOMPIO- key adds 30 suite days.
+// Licences in the browser preview: a 30-day trial that started 3 days ago; any long SOMPIO- key adds 30 suite days.
 const DAY = 86_400_000;
 const trialStart = Date.now() - 3 * DAY;
 const mockKeys: { key: string; at: number }[] = [];
 function licenceStatus() {
   const now = Date.now();
-  const trialEnd = trialStart + 14 * DAY;
+  const trialEnd = trialStart + 30 * DAY;
   let end = trialEnd;
   for (const k of mockKeys) end = Math.max(end, k.at) + (k.key.includes("FOREVER") ? 65535 : 30) * DAY;
   let paid = mockKeys.length > 0;

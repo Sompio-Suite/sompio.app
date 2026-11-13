@@ -197,7 +197,7 @@ are simply off in them (Security says so), and you get a new version by running 
 A key holds which apps it unlocks, for how many days, the day it was made and a random serial, signed with
 Ed25519 (`licence/`). The app has only the public half (`licence/public.key`), so it can check keys offline but
 never make them. Keys stack: new days start where the current ones end. A key must be added within a year of
-being made. Every new install gets a 14-day suite trial. The app remembers the latest date it has seen, so setting
+being made. Every new install gets a 30-day suite trial. The app remembers the latest date it has seen, so setting
 the clock back gains nothing. When access ends, Trace turns read-only: everything stays visible and exportable.
 
 **Making keys.** `Build Sompio.bat` builds `Sompio Key Maker.exe` next to the app. Double-click it for a menu
