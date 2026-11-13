@@ -1245,3 +1245,12 @@ svg.logo { display: block; }
 .browser-picks button[aria-pressed="true"] { border-color: var(--select-line); background: var(--select); }
 .sub-steps { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.3rem; }
 .nav .icon + .label + .icon { margin-left: auto; opacity: 0.55; }
+
+/* Pass ending soon: reminder bar at the top of every page */
+.pass-bar { background: var(--raised); color: var(--ink); border-bottom: 1px solid var(--line-strong); }
+.pass-bar-text { display: flex; align-items: flex-start; gap: 0.45rem; }
+.pass-bar-text .icon { flex: none; margin-top: 0.15rem; color: var(--risk-mid); }
+.pass-bar-actions { display: inline-flex; align-items: center; gap: 0.4rem; flex: none; }
+.pass-bar .icon-btn { padding: 0.3rem; background: none; border-color: transparent; }
+.pass-bar .icon-btn .icon { color: var(--ink-2); margin: 0; }
+.notice-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; flex: none; }

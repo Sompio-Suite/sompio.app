@@ -6,11 +6,11 @@
 //!
 //! For scripts and, later, the website:
 //!   sompio-keymaker init --public-out <file>     create the signing key if needed, write its public half
-//!   sompio-keymaker issue --apps suite --days 30 [--count 5] [--test]
+//!   sompio-keymaker issue --apps suite --days month|year|forever|<n> [--count 5] [--test]
 //!   sompio-keymaker check <key>
 
 use anyhow::{bail, Context, Result};
-use sompio_licence::{issue, new_signing_key, parse, signing_key_from_hex, to_hex, App, Apps};
+use sompio_licence::{issue, new_signing_key, parse, parse_days, length_label, signing_key_from_hex, to_hex, App, Apps};
 use std::io::{BufRead, Write};
 use std::path::PathBuf;
 
@@ -76,7 +76,7 @@ fn make(apps: Apps, days: u16, count: usize, test: bool) -> Result<(Vec<String>,
     let dir = keys_dir();
     std::fs::create_dir_all(&dir)?;
     let stamp = now / 1000;
-    let file = dir.join(format!("{} {} days {}{}.csv", apps.label(), days, date(now), format!(" {stamp}")));
+    let file = dir.join(format!("{} {} {}{}.csv", apps.label(), length_label(days), date(now), format!(" {stamp}")));
     let mut csv = String::from("key,apps,days,made,test,serial\n");
     let public = signing.verifying_key();
     for k in &keys {
@@ -133,12 +133,12 @@ fn interactive() -> Result<()> {
                     println!("I didn't understand that.\n");
                     continue;
                 };
-                let days = match ask("How many days? (30, 90, 365 or any number, Enter for 30) > ").as_str() {
-                    "" => 30,
-                    d => match d.parse::<u16>() {
-                        Ok(n) if n > 0 => n,
-                        _ => {
-                            println!("That's not a number of days.\n");
+                let days = match ask("How long? (month, year, forever, or a number of days; Enter for a month) > ").as_str() {
+                    "" => 31,
+                    d => match parse_days(d) {
+                        Some(n) => n,
+                        None => {
+                            println!("Type month, year, forever or a number of days.\n");
                             continue;
                         }
                     },
@@ -153,16 +153,16 @@ fn interactive() -> Result<()> {
                 if keys.len() > 20 {
                     println!("…and {} more.", keys.len() - 20);
                 }
-                println!("{} {} for {}, {} days{}.", keys.len(), if keys.len() == 1 { "key" } else { "keys" }, apps.label(), days, if test { ", marked as test" } else { "" });
+                println!("{} {} for {}, {}{}.", keys.len(), if keys.len() == 1 { "key" } else { "keys" }, apps.label(), length_label(days), if test { ", marked as test" } else { "" });
                 println!("Saved to:\n  {}\n", file.display());
             }
             "2" => {
                 let k = ask("Paste the key > ");
                 match parse(&k, &signing.verifying_key()) {
                     Ok(key) => println!(
-                        "\nValid. {} for {} days, made {}{}. Must be added before {}. Serial {}.\n",
+                        "\nValid. {} for {}, made {}{}. Must be added before {}. Serial {}.\n",
                         key.apps.label(),
-                        key.days,
+                        length_label(key.days),
                         date(key.issued_ms),
                         if key.test { ", test key" } else { "" },
                         date(key.activate_by_ms()),
@@ -215,7 +215,7 @@ fn run(args: &[String]) -> Result<()> {
         }
         Some("issue") => {
             let apps = Apps::parse(&flag(args, "--apps").unwrap_or_else(|| "suite".into())).context("--apps: suite, or names like clean,vault")?;
-            let days: u16 = flag(args, "--days").unwrap_or_else(|| "30".into()).parse().context("--days must be a number")?;
+            let days: u16 = parse_days(&flag(args, "--days").unwrap_or_else(|| "31".into())).context("--days: month, year, forever or a number")?;
             let count: usize = flag(args, "--count").unwrap_or_else(|| "1".into()).parse().context("--count must be a number")?;
             let (keys, file) = make(apps, days, count, args.iter().any(|a| a == "--test"))?;
             for k in keys {
@@ -227,7 +227,7 @@ fn run(args: &[String]) -> Result<()> {
         Some("check") => {
             let (signing, _) = signing_key(false)?;
             let k = parse(args.get(1).context("check <key>")?, &signing.verifying_key())?;
-            println!("Valid: {} for {} days, made {}, serial {}", k.apps.label(), k.days, date(k.issued_ms), k.serial_hex());
+            println!("Valid: {} for {}, made {}, serial {}", k.apps.label(), length_label(k.days), date(k.issued_ms), k.serial_hex());
             Ok(())
         }
         Some(other) => bail!("Unknown command {other}. Run without arguments for the menu."),

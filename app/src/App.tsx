@@ -18,7 +18,8 @@ import Calendar from "./views/Calendar";
 import Vault from "./views/Vault";
 import { DOCS_URL } from "./views/VaultTools";
 import Samples from "./views/Samples";
-import { SUITE, accessText } from "./licence";
+import { BUY_URL, SUITE, accessText, passEnding } from "./licence";
+import { date } from "./format";
 import { autoCheckEnabled, checkForUpdate, dueForCheck, type UpdateInfo } from "./updates";
 
 /** Suite pages, then Clean's pages. */
@@ -31,6 +32,14 @@ export interface Jump { channelId: string; messageId?: string }
 export default function App() {
   const [ready, setReady] = useState<boolean | null>(null);
   const [demo, setDemo] = useState(false);
+  // The day the pass reminder was last closed (it comes back the next day)
+  const [snoozedOn, setSnoozedOn] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem("sompio.passReminder");
+    } catch {
+      return null;
+    }
+  });
   const [view, setView] = useState<View>("overview");
   const [licence, setLicence] = useState<LicenceStatus | null>(null);
   const [lock, setLock] = useState<LockStatus | null>(null);
@@ -160,6 +169,18 @@ export default function App() {
   if (ready === null) return null;
 
   const toReview = scan ? scan.open : 0;
+  // A paid pass running out soon: a reminder at the top, at most once a day once closed
+  const ending = passEnding(licence);
+  const today = new Date().toDateString();
+  const remindShown = snoozedOn !== today;
+  const snoozePass = () => {
+    setSnoozedOn(today);
+    try {
+      localStorage.setItem("sompio.passReminder", today);
+    } catch {
+      /* still hidden for now */
+    }
+  };
   const cleanAccess = licence?.apps.find((a) => a.app === "clean");
   const cleanLocked = licence != null && !cleanAccess?.active;
   const inClean = CLEAN_VIEWS.includes(view);
@@ -270,13 +291,32 @@ export default function App() {
         </div>
       </nav>
       <main>
+        {ending && remindShown && (
+          <div className="demo-bar pass-bar" role="status">
+            <span className="pass-bar-text">
+              <Icon name="clock" size={16} />
+              <span>
+                Your Sompio pass ends {ending.daysLeft === 1 ? "tomorrow" : `in ${ending.daysLeft} days`}, on {date(ending.endsAt)}.
+                After that, everything stays readable, but you can't add or change things.
+              </span>
+            </span>
+            <span className="pass-bar-actions">
+              <button className="primary" onClick={() => openExternal(BUY_URL).catch(() => {})}>Get a new key</button>
+              <button onClick={() => setView("licences")}>Add a key</button>
+              <button className="icon-btn" aria-label="Remind me tomorrow" title="Remind me tomorrow" onClick={snoozePass}><Icon name="x" size={14} /></button>
+            </span>
+          </div>
+        )}
         {inClean && cleanLocked && (
           <div className="demo-bar locked-bar" role="status">
             <span>
               <Icon name="lock" size={16} /> Trace is read-only: {accessText(cleanAccess, licence?.now ?? Date.now()).text.toLowerCase()}. You can look at
               everything, but not import, scan or delete.
             </span>
-            <button onClick={() => setView("licences")}>Add a key</button>
+            <span className="pass-bar-actions">
+              <button onClick={() => openExternal(BUY_URL).catch(() => {})}>Get a key</button>
+              <button onClick={() => setView("licences")}>Add a key</button>
+            </span>
           </div>
         )}
         {inClean && demo && (

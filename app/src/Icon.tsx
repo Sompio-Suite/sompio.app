@@ -30,6 +30,7 @@ const PATHS: Record<string, string> = {
   edit: "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
   filter: "M4 5h16l-6 8v6l-4-2v-4z",
   user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6",
+  x: "M6 6l12 12M18 6 6 18",
 };
 
 export type IconName = keyof typeof PATHS;

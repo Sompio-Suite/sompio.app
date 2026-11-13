@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { api, type LicenceStatus, type Occurrence, type ScanSummary } from "../api";
+import { api, openExternal, type LicenceStatus, type Occurrence, type ScanSummary } from "../api";
 import { date, n, plural } from "../format";
 import Icon from "../Icon";
-import { accessText, SUITE } from "../licence";
+import { accessText, BUY_URL, SUITE } from "../licence";
 import type { View } from "../App";
 
 interface Props {
@@ -35,7 +35,10 @@ export default function Overview({ licence, scan, cleanReady, onGo }: Props) {
             <strong>You're on the free trial until {date(licence.trial_ends_at)}.</strong>
             <span>Everything is unlocked. Add a key before then to keep going; nothing you add here is lost either way.</span>
           </div>
-          <button onClick={() => onGo("licences")}>Add a key</button>
+          <div className="notice-actions">
+            <button onClick={() => openExternal(BUY_URL).catch(() => {})}>Get a key</button>
+            <button onClick={() => onGo("licences")}>Add a key</button>
+          </div>
         </div>
       )}
       {licence && !anyActive && (
@@ -45,7 +48,10 @@ export default function Overview({ licence, scan, cleanReady, onGo }: Props) {
             <strong>Your access has ended.</strong>
             <span>Everything you added is still here and readable. Add a key to keep cleaning and syncing.</span>
           </div>
-          <button className="primary" onClick={() => onGo("licences")}>Add a key</button>
+          <div className="notice-actions">
+            <button className="primary" onClick={() => openExternal(BUY_URL).catch(() => {})}>Get a key</button>
+            <button onClick={() => onGo("licences")}>Add a key</button>
+          </div>
         </div>
       )}
 

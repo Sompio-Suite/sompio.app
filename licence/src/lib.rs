@@ -24,6 +24,23 @@ const EPOCH_DAY: i64 = 19_723;
 /// A key has to be entered within this many days of being made, so old keys don't circulate forever.
 pub const ACTIVATE_WITHIN_DAYS: i64 = 365;
 pub const TRIAL_DAYS: i64 = 14;
+/// A "forever" key: the most days a key can hold (about 179 years). Shown as "Forever".
+pub const FOREVER_DAYS: u16 = u16::MAX;
+
+/// "forever" or "31 days", for messages and file names.
+pub fn length_label(days: u16) -> String {
+    if days == FOREVER_DAYS { "forever".into() } else { format!("{days} days") }
+}
+
+/// "forever" or a number of days, as typed in the key maker.
+pub fn parse_days(s: &str) -> Option<u16> {
+    match s.trim().to_ascii_lowercase().as_str() {
+        "forever" | "lifetime" => Some(FOREVER_DAYS),
+        "month" => Some(31),
+        "year" => Some(365),
+        d => d.parse::<u16>().ok().filter(|n| *n > 0),
+    }
+}
 /// How far the clock may go backwards before Sompio stops trusting it (time zones, small corrections).
 const CLOCK_SLACK_MS: i64 = 36 * 3_600_000;
 
@@ -472,6 +489,22 @@ mod tests {
         assert!(clean.active && !clean.trial_only);
         assert!(!book.allows(App::Clean, T0 + 31 * DAY_MS, &p));
         assert!(book.allows(App::Vault, T0 + 31 * DAY_MS, &p));
+    }
+
+    #[test]
+    fn forever_keys_and_day_words() {
+        let (s, p) = pair();
+        let mut book = Book::default();
+        book.add(&issue(&s, Apps::SUITE, 31, T0, false).unwrap(), T0, &p).unwrap();
+        book.add(&issue(&s, Apps::SUITE, FOREVER_DAYS, T0, false).unwrap(), T0, &p).unwrap();
+        // 100 years on, still unlocked
+        assert!(book.allows(App::Vault, T0 + 36_500 * DAY_MS, &p));
+        assert_eq!(parse_days("forever"), Some(FOREVER_DAYS));
+        assert_eq!(parse_days(" Year "), Some(365));
+        assert_eq!(parse_days("month"), Some(31));
+        assert_eq!(parse_days("0"), None);
+        assert_eq!(length_label(FOREVER_DAYS), "forever");
+        assert_eq!(length_label(31), "31 days");
     }
 
     #[test]

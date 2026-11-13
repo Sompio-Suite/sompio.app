@@ -183,13 +183,19 @@ function licenceStatus() {
   const now = Date.now();
   const trialEnd = trialStart + 14 * DAY;
   let end = trialEnd;
-  for (const k of mockKeys) end = Math.max(end, k.at) + 30 * DAY;
-  const paid = mockKeys.length > 0;
+  for (const k of mockKeys) end = Math.max(end, k.at) + (k.key.includes("FOREVER") ? 65535 : 30) * DAY;
+  let paid = mockKeys.length > 0;
+  // Screenshots: window.__mockPass = days left on a paid pass
+  const pass = (globalThis as { __mockPass?: number }).__mockPass;
+  if (typeof pass === "number") {
+    end = now + pass * DAY;
+    paid = true;
+  }
   return {
     apps: ["clean", "calendar", "vault"].map((app) => ({
       app, name: app[0].toUpperCase() + app.slice(1), active: end > now, ends_at: end, trial_only: !paid,
     })),
-    keys: mockKeys.map((k, i) => ({ serial: `a1b2c3d4e5f6070${i}`, label: "Sompio Suite", days: 30, activated_at: k.at, test: true, invalid: false })).reverse(),
+    keys: mockKeys.map((k, i) => ({ serial: `a1b2c3d4e5f6070${i}`, label: "Sompio Suite", days: k.key.includes("FOREVER") ? 65535 : 30, activated_at: k.at, test: true, invalid: false })).reverse(),
     trial_ends_at: trialEnd, clock_behind: false, now,
   };
 }
@@ -311,7 +317,7 @@ const handlers: Record<string, (a: any) => unknown> = {
     if (k.replace(/[^A-Z0-9]/g, "").length < 120) throw "That key is shorter than it should be. Copy it again, all of it.";
     if (mockKeys.some((m) => m.key === k)) throw "This key is already added on this device.";
     mockKeys.push({ key: k, at: Date.now() });
-    return { label: "Sompio Suite", days: 30, test: true, status: licenceStatus() };
+    return { label: "Sompio Suite", days: k.includes("FOREVER") ? 65535 : 30, test: true, status: licenceStatus() };
   },
   has_data: () => loaded,
   is_demo: () => demo,

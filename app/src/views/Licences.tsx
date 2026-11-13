@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { api, type LicenceStatus } from "../api";
+import { api, openExternal, type LicenceStatus } from "../api";
 import { date, dateTime } from "../format";
 import Icon from "../Icon";
-import { accessText, SUITE } from "../licence";
+import { accessText, BUY_URL, lengthText, SUITE } from "../licence";
 
 interface Props {
   licence: LicenceStatus | null;
@@ -22,7 +22,12 @@ export default function Licences({ licence, onChanged }: Props) {
       const added = await api.licenceAdd(key);
       onChanged(added.status);
       setKey("");
-      setResult({ ok: true, text: `Added ${added.label}, ${added.days} days${added.test ? " (test key)" : ""}. Its days start after what you already had.` });
+      setResult({
+        ok: true,
+        text: added.days >= 65535
+          ? `Added ${added.label}, forever${added.test ? " (test key)" : ""}. Thank you!`
+          : `Added ${added.label}, ${lengthText(added.days).toLowerCase()}${added.test ? " (test key)" : ""}. Its days start after what you already had.`,
+      });
     } catch (e) {
       setResult({ ok: false, text: String(e) });
     } finally {
@@ -37,6 +42,7 @@ export default function Licences({ licence, onChanged }: Props) {
           <h1>Licences</h1>
           <p className="muted">Keys are checked on this PC against Sompio's signature. Nothing is sent anywhere.</p>
         </div>
+        <button onClick={() => openExternal(BUY_URL).catch(() => {})}><Icon name="ticket" size={16} />Get a key</button>
       </div>
 
       {licence?.clock_behind && (
@@ -96,7 +102,7 @@ export default function Licences({ licence, onChanged }: Props) {
         {licence && licence.keys.length > 0 ? (
           <div className="panel">
             <table className="plain-table">
-              <thead><tr><th>Key</th><th>Days</th><th>Added</th><th>Serial</th></tr></thead>
+              <thead><tr><th>Key</th><th>Length</th><th>Added</th><th>Serial</th></tr></thead>
               <tbody>
                 {licence.keys.map((k, i) => (
                   <tr key={k.serial || i}>
@@ -104,7 +110,7 @@ export default function Licences({ licence, onChanged }: Props) {
                       {k.invalid ? <span className="access access-ended">Not valid</span> : k.label}
                       {k.test && <span className="tag">Test</span>}
                     </td>
-                    <td>{k.invalid ? "" : k.days}</td>
+                    <td>{k.invalid ? "" : lengthText(k.days)}</td>
                     <td>{dateTime(k.activated_at)}</td>
                     <td className="mono small">{k.serial}</td>
                   </tr>
@@ -113,7 +119,7 @@ export default function Licences({ licence, onChanged }: Props) {
             </table>
           </div>
         ) : (
-          <p className="muted">No keys yet. You get one on sompio.com after buying, or from us if you're a tester.</p>
+          <p className="muted">No keys yet. You get one on sompio.org after buying, or from us if you're a tester. A month, a year or forever: each key works on all your own devices.</p>
         )}
       </section>
     </div>
