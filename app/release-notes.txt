@@ -1,2 +1,2 @@
-New key pictures come in Sompio's white and green.
-Your current key picture keeps working exactly as before.
+New versions now pop up with what's new and an Update now button.
+Choose Later and it waits in the sidebar instead.

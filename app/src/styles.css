@@ -1254,3 +1254,8 @@ svg.logo { display: block; }
 .pass-bar .icon-btn { padding: 0.3rem; background: none; border-color: transparent; }
 .pass-bar .icon-btn .icon { color: var(--ink-2); margin: 0; }
 .notice-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; flex: none; }
+
+/* New version pop-up */
+.update-ask { width: min(480px, 100%); }
+.update-ask h2 { font-size: var(--t-l); }
+.update-notes { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.3rem; }

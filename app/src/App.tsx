@@ -20,7 +20,7 @@ import { DOCS_URL } from "./views/VaultTools";
 import Samples from "./views/Samples";
 import { BUY_URL, SUITE, accessText, passEnding } from "./licence";
 import { date } from "./format";
-import { autoCheckEnabled, checkForUpdate, dueForCheck, type UpdateInfo } from "./updates";
+import { autoCheckEnabled, checkForUpdate, dismissUpdate, dueForCheck, updateDismissed, type UpdateInfo } from "./updates";
 
 /** Suite pages, then Clean's pages. */
 export type View =
@@ -88,9 +88,17 @@ export default function App() {
   // Updates: checked quietly at start and every few hours, if the person hasn't turned it off.
   const [update, setUpdate] = useState<UpdateInfo | null>(null);
   const [installing, setInstalling] = useState<number | null | "error">(null);
+  // A new version found by the automatic check pops up once; "Later" keeps it in the sidebar only
+  const [updatePopup, setUpdatePopup] = useState(false);
   useEffect(() => {
     const run = () => {
-      if (autoCheckEnabled() && dueForCheck()) checkForUpdate().then(setUpdate).catch(() => {});
+      if (autoCheckEnabled() && dueForCheck())
+        checkForUpdate()
+          .then((u) => {
+            setUpdate(u);
+            if (u && !updateDismissed(u.version)) setUpdatePopup(true);
+          })
+          .catch(() => {});
     };
     run();
     const t = window.setInterval(run, 3_600_000);
@@ -373,6 +381,27 @@ export default function App() {
         )}
         {inClean && cleanPage()}
       </main>
+      {update && updatePopup && !pairAsk && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="modal update-ask" role="dialog" aria-modal="true" aria-labelledby="update-title">
+            <h2 id="update-title">Sompio {update.version} is ready</h2>
+            {update.notes.trim() && (
+              <ul className="update-notes">
+                {update.notes.split("\n").map((l) => l.trim()).filter(Boolean).map((l, i) => <li key={i}>{l.replace(/^[-•]\s*/, "")}</li>)}
+              </ul>
+            )}
+            {installing === null && <p className="small muted">It takes about a minute. Your data stays as it is, and Sompio restarts by itself.</p>}
+            {typeof installing === "number" && <p className="small">Downloading{installing ? ` ${installing}%` : "…"}. Sompio restarts by itself.</p>}
+            {installing === "error" && <p className="error" role="alert">The update didn't install. Try again later, or from Security.</p>}
+            <div className="guide-actions">
+              <button className="primary" disabled={typeof installing === "number"} onClick={installUpdate}>
+                {typeof installing === "number" ? "Updating…" : "Update now"}
+              </button>
+              <button disabled={typeof installing === "number"} onClick={() => { dismissUpdate(update.version); setUpdatePopup(false); }}>Later</button>
+            </div>
+          </div>
+        </div>
+      )}
       {pairAsk && (
         <div className="modal-backdrop" role="presentation">
           <div className="modal pair-ask" role="dialog" aria-modal="true" aria-labelledby="pair-title">

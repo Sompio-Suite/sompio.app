@@ -9,6 +9,24 @@ export interface UpdateInfo {
 
 const LAST_CHECK = "sompio.updates.lastCheck";
 const AUTO = "sompio.updates.auto";
+const DISMISSED = "sompio.updates.later";
+
+/** "Later" on the update pop-up: that version doesn't pop up again (it stays in the sidebar). */
+export function dismissUpdate(version: string) {
+  try {
+    localStorage.setItem(DISMISSED, version);
+  } catch {
+    /* it may pop up once more */
+  }
+}
+
+export function updateDismissed(version: string): boolean {
+  try {
+    return localStorage.getItem(DISMISSED) === version;
+  } catch {
+    return false;
+  }
+}
 
 export function autoCheckEnabled(): boolean {
   try {
