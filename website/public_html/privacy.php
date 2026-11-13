@@ -20,7 +20,7 @@ site_header('privacy');
     </aside>
 
     <article class="docs-body">
-      <p class="eyebrow">Last updated 13 November 2026 (sign-ups and feedback are no longer stored on the web server)</p>
+      <p class="eyebrow">Last updated 13 November 2026 (sign-ups and feedback now live only in our mailbox)</p>
       <h1>Privacy statement</h1>
       <p class="lead">This page explains what sompio.org collects about you, why, how long it's kept, and how to have it removed. It covers this website, the beta sign-up, the tester portal and Sompio's update check.</p>
 
