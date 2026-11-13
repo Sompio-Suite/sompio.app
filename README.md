@@ -26,14 +26,17 @@ Sompio is one Windows program with three tools:
 There's no account, no cloud and no server of ours holding your data. Everything stays on your PC, encrypted with
 your own lock. This repository holds the complete source, so anyone can check that.
 
-<p align="center">
-  <img src="brand/screenshots/trace.png" width="860" alt="Trace listing passwords, bank numbers and addresses found in sample Discord messages">
-</p>
+**Trace**: everything risky found in your exports, sorted by danger, with what to do about each.
 
-<p align="center">
-  <img src="brand/screenshots/vault.png" width="425" alt="Vault with sample logins">
-  <img src="brand/screenshots/calendar.png" width="425" alt="Calendar with a personal and a shared schedule">
-</p>
+<img src="brand/screenshots/trace.png" width="100%" alt="Trace listing passwords, bank numbers and addresses found in sample Discord messages">
+
+**Vault**: your logins in folders, in the KeePass format.
+
+<img src="brand/screenshots/vault.png" width="100%" alt="Vault with sample logins">
+
+**Calendar**: your own reminders and shared schedules for a team or guild.
+
+<img src="brand/screenshots/calendar.png" width="100%" alt="Calendar with a personal and a shared schedule">
 
 <sub>Screenshots use the made-up sample data that ships with Sompio.</sub>
 
