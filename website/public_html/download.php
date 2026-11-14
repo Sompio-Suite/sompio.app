@@ -39,6 +39,11 @@ site_header('download');
         <p class="status-pill"><span class="dot" aria-hidden="true"></span> Open beta · free until launch</p>
         <h1>Download the Sompio beta</h1>
         <p class="lead">Everything is unlocked during the beta, free, no key or account needed. When Sompio launches, you get the 30-day free trial on top.</p>
+        <ul class="ticks">
+          <li>Vault, Trace and Calendar in one program</li>
+          <li>No account and no cloud: your data stays on your PC, encrypted</li>
+          <li>New versions come to you inside Sompio</li>
+        </ul>
         <div class="beta-note">
           <h2>It's a beta</h2>
           <p>Sompio works, but things can still break or change. Two habits keep you safe: in Vault, save a copy of your passwords now and then (<em>Auto-type, import and export</em>, then <em>Save as KeePass file</em>), and keep the recovery sheet Sompio gives you when you set up the lock. Nobody can reset the lock for you, not even us.</p>
