@@ -8,39 +8,42 @@
 
 <p align="center">
   <a href="https://sompio.org">Website</a> ·
-  <a href="https://sompio.org/#join">Join the beta</a> ·
+  <a href="https://sompio.org/download.php">Download the beta</a> ·
   <a href="https://sompio.org/docs.php">Documentation</a> ·
   <a href="https://sompio.org/guides.php">Guides</a>
 </p>
 
 Sompio is one Windows program with three tools:
 
-- **Trace** finds what you've shared online over the years (passwords, bank numbers, addresses…) in the data exports
-  that Discord, Reddit, WhatsApp and others must give you, helps you delete it, and writes the GDPR letters that make
-  companies delete what they hold.
-- **Vault** keeps your passwords in the KeePass format, fills them in your browser with the Sompio extension, and
-  never locks you in.
-- **Calendar** pops up reminders on time, for you or a whole group, even while Sompio is locked.
+- **Vault** keeps your passwords, fills them in your browser with the Sompio extension, and tells you which to change
+  first: weak, reused, breached, or ones Trace found in your own chats. It saves in the open KeePass format, so you're
+  never locked in.
+- **Trace** finds what you've shared online over the years (passwords, bank, ID and passport numbers, backup codes,
+  addresses…) in your PC's folders, your sent mail and the data exports that Discord, Reddit, WhatsApp and others must
+  give you. It helps you delete it, and writes the GDPR letters that make companies delete what they hold.
+- **Calendar** pops up reminders on time, for you or a whole group, even while Sompio is locked. Type one in a line,
+  or bring in your phone's calendar file.
 
 There's no account, no cloud and no server of ours holding your data. Everything stays on your PC, encrypted with
 your own lock. This repository holds the complete source, so anyone can check that.
 
-**Trace**: everything risky found in your exports, sorted by danger, with what to do about each.
-
-<img src="brand/screenshots/trace.png" width="100%" alt="Trace listing passwords, bank numbers and addresses found in sample Discord messages">
-
-**Vault**: your logins in folders, in the KeePass format.
+**Vault**: your logins in folders, with 2FA codes, auto-type and a health check.
 
 <img src="brand/screenshots/vault.png" width="100%" alt="Vault with sample logins">
 
-**Calendar**: your own reminders and shared schedules for a team or guild.
+**Trace**: everything risky that was found, sorted by danger, with what to do about each.
 
-<img src="brand/screenshots/calendar.png" width="100%" alt="Calendar with a personal and a shared schedule">
+<img src="brand/screenshots/trace.png" width="100%" alt="Trace listing ID numbers, passport numbers, backup codes and bank numbers found in sample chats">
+
+**Calendar**: type a reminder in one line; your day, the month and what's next.
+
+<img src="brand/screenshots/calendar.png" width="100%" alt="Calendar with a reminder typed in one line">
 
 <sub>Screenshots use the made-up sample data that ships with Sompio.</sub>
 
-**Status:** in beta on Windows 10 and 11. Want to test it? [Join the beta](https://sompio.org/#join).
-Bugs and ideas from testers go through the feedback form in the [tester portal](https://sompio.org/tester.php).
+**Status:** open beta on Windows 10 and 11, free with everything unlocked until launch.
+[Download the beta](https://sompio.org/download.php), and send bugs and ideas through the
+[feedback form](https://sompio.org/feedback.php).
 
 ---
 
