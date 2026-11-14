@@ -158,6 +158,8 @@ export interface VaultEntryDetail extends VaultEntry {
 }
 export interface VaultMerge { added: number; updated: number; moved: number; deleted: number; warnings: string[] }
 export interface VaultLeak { entry: VaultEntry; seen: number }
+/** A saved password that also shows up in your own chats or files (what Trace imported). */
+export interface VaultInTrace { entry: VaultEntry; count: number; platforms: Platform[]; first_ts: number; last_ts: number }
 export interface VaultEntryInput {
   group_id: string | null; title: string; username: string; password: string | null; url: string; notes: string; tags: string[];
   expires: string | null; custom: { key: string; value: string | null; protected: boolean }[]; otp: string | null; autotype: AutoTypeSettings | null;
@@ -346,6 +348,7 @@ export const api = {
   vaultRemoveAttachment: (id: string, name: string) => call<void>("vault_remove_attachment", { id, name }),
   vaultMergeKdbx: (path: string, password: string, keyfile: string | null) => call<VaultMerge>("vault_merge_kdbx", { path, password, keyfile }),
   vaultCheckLeaks: () => call<VaultLeak[]>("vault_check_leaks"),
+  vaultInTrace: () => call<VaultInTrace[]>("vault_in_trace"),
   calAddSamples: () => call<number>("cal_add_samples"),
   samplesWrite: (which: "clean" | "calendar" | "vault") => call<{ folder: string; files: [string, string][] }>("samples_write", { which }),
 };

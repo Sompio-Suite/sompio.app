@@ -213,6 +213,7 @@ export const vaultHandlers: Record<string, (a: any) => unknown> = {
   vault_save_attachment: () => undefined,
   vault_remove_attachment: ({ id, name }) => { const i = find(id) as Item & { files?: { name: string }[] }; i.files = (i.files ?? []).filter((f) => f.name !== name); },
   vault_merge_kdbx: ({ password }) => { if (!password) throw "Enter the file's password, or choose its key file."; return { added: 1, updated: 2, moved: 0, deleted: 0, warnings: [] }; },
+  vault_in_trace: () => [],
   vault_check_leaks: () => items.filter((i) => ["hunter22", "password1"].includes(i.password)).map((i) => ({ entry: summary(i), seen: i.password === "password1" ? 2_418_984 : 1_337 })),
   vault_add_samples: () => {
     const g = { id: `g${seq++}`, parent: ROOT, name: "Samples", depth: 1, entries: 0, recycle_bin: false };

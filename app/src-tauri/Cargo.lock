@@ -5352,6 +5352,7 @@ dependencies = [
 name = "sompio-clean"
 version = "0.1.0"
 dependencies = [
+ "aho-corasick",
  "anyhow",
  "csv",
  "kamadak-exif",

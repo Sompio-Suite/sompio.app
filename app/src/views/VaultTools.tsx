@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  api, copyText, listen, openExternal, pickOpen, pickSave,
-  type BrowserClient, type HealthReport, type VaultLeak, type PassphraseRules, type PasswordRules, type Strength, type VaultSettings,
+  api, platformName, copyText, listen, openExternal, pickOpen, pickSave,
+  type BrowserClient, type HealthReport, type VaultInTrace, type VaultLeak, type PassphraseRules, type PasswordRules, type Strength, type VaultSettings,
 } from "../api";
 import Icon from "../Icon";
 import { plural } from "../format";
@@ -115,7 +115,12 @@ export function Health({ onOpen }: { onOpen: (id: string) => void }) {
   const [leaks, setLeaks] = useState<VaultLeak[] | null>(null);
   const [checking, setChecking] = useState(false);
   const [leakError, setLeakError] = useState<string | null>(null);
-  useEffect(() => { api.vaultHealth().then(setR).catch(() => {}); }, []);
+  const [inTrace, setInTrace] = useState<VaultInTrace[] | null>(null);
+  useEffect(() => {
+    api.vaultHealth().then(setR).catch(() => {});
+    // Runs on this PC only, so it can check straight away
+    api.vaultInTrace().then(setInTrace).catch(() => setInTrace([]));
+  }, []);
   const checkLeaks = async () => {
     setChecking(true);
     setLeakError(null);
@@ -141,6 +146,34 @@ export function Health({ onOpen }: { onOpen: (id: string) => void }) {
         </div>
         <p className="small muted">Checked {plural(r.checked, "password", "passwords")} on this PC. Nothing was sent anywhere.</p>
       </section>
+      {inTrace && inTrace.length > 0 && (
+        <section className="panel leak-check in-trace">
+          <div>
+            <strong>Passwords you've shared in your own chats</strong>
+            <span className="small muted">
+              Trace found these saved passwords in messages you sent or files on this PC. Anyone in those chats may have
+              seen them. Change them, then delete the messages in Trace. Checked on this PC; nothing was sent anywhere.
+            </span>
+          </div>
+          <ul className="health-list">
+            {inTrace.map((l) => (
+              <li key={l.entry.id}>
+                <button className="health-row" onClick={() => onOpen(l.entry.id)}>
+                  <Avatar title={l.entry.title} icon={l.entry.icon} />
+                  <span className="health-name"><strong>{l.entry.title}</strong><span className="small muted">{l.entry.username || l.entry.group_path}</span></span>
+                  <span className="health-issues">
+                    <span className="issue issue-weak">
+                      In {l.count === 1 ? "1 message" : `${l.count} messages`} on {l.platforms.map((p) => platformName[p] ?? p).join(", ")}
+                      {", "}{new Date(l.first_ts).getFullYear()}{new Date(l.last_ts).getFullYear() !== new Date(l.first_ts).getFullYear() && `–${new Date(l.last_ts).getFullYear()}`}
+                    </span>
+                  </span>
+                  <Icon name="arrow" size={16} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <section className="panel leak-check">
         <div>
           <strong>Have any of your passwords been in a data breach?</strong>

@@ -159,3 +159,13 @@ fn sample_data_loads_and_has_findings() {
     assert!(!store.is_demo().unwrap());
     assert_eq!(store.sources().unwrap().len(), 1, "sample data is gone");
 }
+
+#[test]
+fn finds_saved_passwords_in_your_own_messages() {
+    let mut store = Store::open_in_memory().unwrap();
+    load_demo(&mut store).unwrap();
+    let hits = store.find_texts(&["BrightMarble77".into(), "not-anywhere-123".into(), "Marble".into()]).unwrap();
+    assert_eq!(hits.len(), 1, "{hits:?}");
+    assert_eq!(hits[0].index, 0);
+    assert!(hits[0].count > 0 && !hits[0].platforms.is_empty());
+}

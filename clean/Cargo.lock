@@ -656,6 +656,7 @@ checksum = "149309498a5f7334b12ddae0cad8aba81ce785fe91755068867e017cf98fee46"
 name = "sompio-clean"
 version = "0.1.0"
 dependencies = [
+ "aho-corasick",
  "anyhow",
  "csv",
  "kamadak-exif",

@@ -322,3 +322,55 @@ impl Store {
         Ok(SearchPage { total, offset, items: self.finish(raw, false)? })
     }
 }
+
+/// Where one of the searched-for texts was found in your own messages and files.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct TextHit {
+    /// Which of the texts (its place in the list that was passed in)
+    pub index: usize,
+    pub count: i64,
+    pub platforms: Vec<String>,
+    pub first_ts: i64,
+    pub last_ts: i64,
+}
+
+impl Store {
+    /// Looks for each text (say, a saved password) in every imported message and file, as a whole
+    /// word: "Winter2024!" counts, "xWinter2024!x" doesn't. Nothing is stored or sent anywhere.
+    pub fn find_texts(&self, texts: &[String]) -> anyhow::Result<Vec<TextHit>> {
+        if texts.is_empty() {
+            return Ok(Vec::new());
+        }
+        let ac = aho_corasick::AhoCorasick::builder()
+            .match_kind(aho_corasick::MatchKind::LeftmostLongest)
+            .build(texts)?;
+        let mut hits: std::collections::BTreeMap<usize, TextHit> = Default::default();
+        let mut stmt = self.conn.prepare("SELECT m.content, c.platform, m.ts FROM messages m JOIN channels c ON c.id = m.channel_id")?;
+        let mut rows = stmt.query([])?;
+        while let Some(r) = rows.next()? {
+            let content: String = r.get(0)?;
+            let platform: String = r.get(1)?;
+            let ts: i64 = r.get(2)?;
+            let mut seen_here = std::collections::HashSet::new();
+            for m in ac.find_iter(&content) {
+                let before = content[..m.start()].chars().next_back();
+                let after = content[m.end()..].chars().next();
+                if before.is_some_and(|c| c.is_alphanumeric()) || after.is_some_and(|c| c.is_alphanumeric()) {
+                    continue;
+                }
+                let i = m.pattern().as_usize();
+                if !seen_here.insert(i) {
+                    continue;
+                }
+                let h = hits.entry(i).or_insert(TextHit { index: i, count: 0, platforms: vec![], first_ts: ts, last_ts: ts });
+                h.count += 1;
+                h.first_ts = h.first_ts.min(ts);
+                h.last_ts = h.last_ts.max(ts);
+                if !h.platforms.contains(&platform) {
+                    h.platforms.push(platform.clone());
+                }
+            }
+        }
+        Ok(hits.into_values().collect())
+    }
+}

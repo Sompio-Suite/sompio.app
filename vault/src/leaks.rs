@@ -34,6 +34,18 @@ pub fn plan(v: &Vault) -> Plan {
     Plan { prefixes }
 }
 
+/// Every saved password long enough to look for, with its entry, for the Trace check: Vault
+/// asks Trace whether any of them appear in your own chats and files. Runs on this PC only.
+pub fn passwords_to_find(v: &Vault) -> Vec<(String, EntrySummary)> {
+    v.live_entries()
+        .into_iter()
+        .filter_map(|e| {
+            let pw = field(&e, fields::PASSWORD);
+            (pw.chars().count() >= 6).then(|| (pw.to_string(), v.summary_of(&e)))
+        })
+        .collect()
+}
+
 /// How often a hash suffix appears in a range answer ("SUFFIX:COUNT" lines; padding has count 0).
 pub fn count_in(body: &str, suffix: &str) -> u64 {
     body.lines()

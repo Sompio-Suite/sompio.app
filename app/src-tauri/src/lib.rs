@@ -965,6 +965,7 @@ pub fn run() {
             vault::vault_remove_attachment,
             vault::vault_merge_kdbx,
             vault::vault_check_leaks,
+            vault::vault_in_trace,
             samples::samples_write,
             samples::cal_add_samples,
             problems::log_problem,

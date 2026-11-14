@@ -390,6 +390,39 @@ pub async fn vault_check_leaks(app: AppHandle) -> CmdResult<Vec<sompio_vault::le
     .map_err(err)?
 }
 
+/// One saved password that also appears in your own chats or files, as imported into Trace.
+#[derive(serde::Serialize)]
+pub struct InTrace {
+    entry: sompio_vault::EntrySummary,
+    count: i64,
+    platforms: Vec<String>,
+    first_ts: i64,
+    last_ts: i64,
+}
+
+/// Looks for each saved password in what Trace imported. Everything happens on this PC.
+#[tauri::command]
+pub async fn vault_in_trace(app: AppHandle, state: State<'_, AppState>) -> CmdResult<Vec<InTrace>> {
+    let wanted = with_vault(&app, |v| Ok(sompio_vault::leaks::passwords_to_find(v))).await?;
+    let Ok((path, key)) = state.vault.clean_db() else { return Ok(Vec::new()) };
+    tauri::async_runtime::spawn_blocking(move || -> anyhow::Result<Vec<InTrace>> {
+        if !path.exists() {
+            return Ok(Vec::new());
+        }
+        let store = sompio_clean::Store::open_encrypted(&path, &key)?;
+        let texts: Vec<String> = wanted.iter().map(|(pw, _)| pw.clone()).collect();
+        let mut hits = store.find_texts(&texts)?;
+        hits.sort_by(|a, b| b.count.cmp(&a.count));
+        Ok(hits
+            .into_iter()
+            .map(|h| InTrace { entry: wanted[h.index].1.clone(), count: h.count, platforms: h.platforms, first_ts: h.first_ts, last_ts: h.last_ts })
+            .collect())
+    })
+    .await
+    .map_err(err)?
+    .map_err(|e| e.to_string())
+}
+
 // ---------- Website icons ----------
 // Only the entry's own website is asked (or an address the person typed), never an icon service
 // in between, so no third party learns which sites are in the vault. Nothing is sent but a plain
