@@ -771,7 +771,11 @@ fn key(k: AtKey) -> enigo::Key {
         AtKey::Space => K::Space,
         AtKey::Backspace => K::Backspace,
         AtKey::Delete => K::Delete,
+        #[cfg(not(target_os = "macos"))]
         AtKey::Insert => K::Insert,
+        // Macs have no Insert key; auto-type isn't offered there yet anyway
+        #[cfg(target_os = "macos")]
+        AtKey::Insert => K::Space,
         AtKey::Up => K::UpArrow,
         AtKey::Down => K::DownArrow,
         AtKey::Left => K::LeftArrow,
