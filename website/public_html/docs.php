@@ -26,12 +26,12 @@ site_header('docs');
 
       <section id="what">
         <h2>What Sompio is</h2>
-        <p>Sompio is a private toolkit for your Windows PC: a calendar, a tool that finds and removes what you've shared online, and a password vault, in one program. Everything works on your own computer. There is no account to make, no cloud, and no server of ours that holds your data.</p>
+        <p>Sompio is a private toolkit for your Windows PC: a password vault, a tool that finds and removes what you've shared online, and a calendar, in one program. Everything works on your own computer. There is no account to make, no cloud, and no server of ours that holds your data.</p>
         <p>All three tools sit behind one lock, the <strong>Sompio Lock</strong>, so one password (plus your key picture) opens everything and keeps it encrypted when you're away. You unlock it with a licence key, like a game key, checked on your PC without going online.</p>
         <div class="tools">
-          <a class="tool" href="#calendar"><strong>Calendar</strong><span>Reminders that pop up on time, for you or a whole group, even when Sompio is locked.</span></a>
+          <a class="tool" href="#vault"><strong>Vault</strong><span>Keeps your passwords safe, fills them in for you (also in your browser, with the Sompio extension), and tells you which ones to change first.</span></a>
           <a class="tool" href="#trace"><strong>Trace</strong><span>Finds personal information you've shared online (bank numbers, passwords, addresses…), helps you remove it, and gets companies to delete what they hold.</span></a>
-          <a class="tool" href="#vault"><strong>Vault</strong><span>Keeps your passwords safe, fills them in for you (also in your browser, with the Sompio extension), and works with KeePass and KeePassXC files.</span></a>
+          <a class="tool" href="#calendar"><strong>Calendar</strong><span>Reminders that pop up on time, for you or a whole group, even when Sompio is locked.</span></a>
         </div>
       </section>
 
@@ -79,7 +79,9 @@ site_header('docs');
         <h2>Calendar</h2>
         <p>Calendar makes sure you don't miss things: a small pop-up appears at the right moment, on top of whatever you're doing, without stealing your keyboard while you type or play.</p>
         <ul class="points">
-          <li><strong>Schedules and reminders</strong> that repeat daily, weekly or on chosen days, with an optional heads-up a few minutes before.</li>
+          <li><strong>Type it in one line.</strong> "Dentist Tue 15:00" or "Gym every Monday 7:00", then Enter. Routines, groups and shared schedules sit under More, out of the way.</li>
+          <li><strong>Schedules and reminders</strong> that repeat daily, weekly, monthly or yearly, or on chosen days, with an optional heads-up a few minutes before.</li>
+          <li><strong>Your phone's calendar too.</strong> Export it as a file (.ics) from Google, Apple or Outlook, and bring it in under More. Sompio only reads the file; it never connects to your account.</li>
           <li><strong>Shared schedules for groups.</strong> Share a schedule as a file with your team, guild or club; everyone imports it, and reminders can target only certain groups. Time zones are handled, so a 20:00 event shows at the right local time for everyone.</li>
           <li><strong>Always on.</strong> Sompio sits in the tray and can start with Windows. Reminders keep coming even while Sompio is locked.</li>
           <li><strong>Brings in Desk Reminders</strong> schedules, if you used that app before.</li>
@@ -90,10 +92,11 @@ site_header('docs');
       <section id="trace">
         <h2>Trace</h2>
         <p>Trace shows you what personal information you've left behind online over the years, and helps you get rid of it. Most people are surprised: an old bank number sent to a friend, a password pasted in a chat, a home address in a server. Trace used to be called Clean.</p>
-        <p><strong>How it works.</strong> Every big platform must let you download your own data. You ask for that export, and Trace reads it on your PC. It never logs into your accounts to read them. Telegram and email can also be connected, for results in minutes. Starting with Discord? The <a href="delete-discord-messages.php">Discord guide</a> walks you through it step by step.</p>
+        <p><strong>How it works.</strong> Start with what's ready in minutes: folders on your PC, your sent mail (connect your mailbox), Telegram, or a WhatsApp chat exported from your phone. At the same time, ask Discord, Instagram, Reddit and the rest for your data: every big platform must let you download it. Tick "I've asked", and Trace reminds you when each export should be ready. Trace reads everything on your PC, and never logs into your accounts to read them. Starting with Discord? The <a href="delete-discord-messages.php">Discord guide</a> walks you through it step by step.</p>
         <ul class="points">
           <li><strong>Sources:</strong> Discord, Reddit, Telegram, X, Facebook, Instagram, TikTok, Snapchat, LinkedIn, WhatsApp, Gmail and other mailboxes, plus any folder on your own PC.</li>
-          <li><strong>What it finds:</strong> bank accounts (IBAN), payment cards, passwords and access tokens, street addresses, postcodes, phone numbers, email addresses, IP addresses, crypto wallets, and sensitive files on your PC. Add your own <strong>watch terms</strong> too, like your real name, school or street, which no pattern could guess.</li>
+          <li><strong>What it finds:</strong> passwords and access tokens, 2FA backup codes and wallet recovery phrases, payment cards, bank accounts (IBAN), national ID numbers (like a BSN), passport and ID card numbers, street addresses, postcodes, dates of birth, phone numbers, email addresses, IP addresses, number plates, exact locations, crypto wallets, and sensitive files on your PC. Add your own <strong>watch terms</strong> too, like your real name, school or street, which no pattern could guess.</li>
+          <li><strong>Pictures, only if you ask.</strong> When you scan folders, two extra checks are off until you tick them for that scan: reading the text in screenshots and scanned documents (with Windows' own text recognition, on your PC), and finding photos that hold the exact spot where they were taken. Nothing is ever scanned on its own, and Trace keeps only what it finds, never copies of your files.</li>
           <li><strong>One clear list.</strong> Everything found sits in a table, sorted by risk, with the message it was in and advice on what to do (for a leaked password: change it now; for a card: call your bank).</li>
           <li><strong>Clean it up, one by one.</strong> "Clean up" takes you through everything in turn: it opens each message where it was posted, you delete it there, and move on to the next. Connected Telegram and email messages are deleted straight from Sompio, and files on your PC go to the Recycle Bin.</li>
         </ul>
@@ -110,14 +113,14 @@ site_header('docs');
 
       <section id="vault">
         <h2>Vault</h2>
-        <p>Vault is a password manager that keeps every login in one encrypted place on your PC, so you can use a different, strong password everywhere without remembering them. It works like KeePassXC and uses the same open KeePass file format, so you're never locked in.</p>
+        <p>Vault is a password manager that keeps every login in one encrypted place on your PC, so you can use a different, strong password everywhere without remembering them. It saves in the open KeePass format, so your passwords also open in other apps and you're never locked in.</p>
         <ul class="points">
           <li><strong>Folders, search and a clear table</strong> of all your logins, with the selected entry shown underneath.</li>
           <li><strong>Fill in passwords for you.</strong> Auto-type types your username and password into the login window with one shortcut (Ctrl+Alt+A). Copying works too, with KeePassXC's shortcuts (Ctrl+B username, Ctrl+C password).</li>
           <li><strong>2FA codes</strong> for sites that use authenticator apps, right next to the password.</li>
           <li><strong>Password generator</strong> for strong passwords or easy-to-type passphrases.</li>
-          <li><strong>Health check</strong> that spots weak, reused, old and expired passwords, and an optional breach check (see <a href="#private">Why it's private</a>).</li>
-          <li><strong>Extras:</strong> earlier versions of each entry, attachments, a recycle bin, website icons, and import from KeePass, KeePassXC, Bitwarden, 1Password, Chrome and Firefox. Export to KeePass any time.</li>
+          <li><strong>Health check</strong> that spots weak, reused, old and expired passwords, saved passwords Trace found in your own chats and files (checked on your PC), and an optional breach check (see <a href="#private">Why it's private</a>).</li>
+          <li><strong>Extras:</strong> earlier versions of each entry, attachments, a recycle bin, website icons, and import from your browser (Vault shows the steps), KeePass, KeePassXC, Bitwarden and 1Password. Export to KeePass any time.</li>
         </ul>
         <p class="privacy-line"><strong>Privacy:</strong> unlike cloud password managers, your vault is never uploaded or synced to a company's servers. It's one encrypted file on your PC, opened only by your lock.</p>
       </section>
