@@ -1,0 +1,45 @@
+# Checks that the Windows build still compiles and the tests pass, on every push to master.
+# Publishes nothing: that's the Publish workflow, on the release branch.
+name: Check
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            app/src-tauri -> target
+          cache-on-failure: true
+      - name: Build the screens
+        working-directory: app
+        run: |
+          npm ci
+          npx tsc --noEmit -p .
+          npx vite build
+      - name: Compile for Windows
+        working-directory: app/src-tauri
+        run: cargo check --locked
+      - name: Trace tests
+        working-directory: clean
+        run: cargo test
