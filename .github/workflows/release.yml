@@ -1,5 +1,7 @@
-# Publishes a new Sompio version: builds the Windows installer in the cloud and puts it on sompio.org,
-# where testers download it and installed copies offer it under "Update now".
+# Publishes a new Sompio version: builds it for Windows, Mac and Linux in the cloud. The Windows installer
+# goes on sompio.org; the Mac and Linux files go on the GitHub release. sompio.org then tells installed
+# copies on every system about the update ("Update now"), and links the Mac and Linux downloads.
+# If the Mac or Linux build fails, Windows is still published.
 #
 # Runs when the "release" branch is pushed (or from the Actions tab: "Run workflow"). The version is the
 # one in app/src-tauri/tauri.conf.json; sompio.org refuses a version that isn't newer, unless it's run
@@ -32,9 +34,53 @@ permissions:
   contents: write
 
 jobs:
-  publish:
-    runs-on: windows-latest
-    timeout-minutes: 60
+  # Version and secrets, shared by the builds
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the licence key and the update setup
+        id: v
+        env:
+          K: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          P: ${{ secrets.SOMPIO_PUBLISH_TOKEN }}
+          U: ${{ secrets.SOMPIO_UPDATE_TOKEN }}
+        run: |
+          if grep -q "2b51fbc64627099647befc32bd63bddd1d74be5de905d795b4c95e5d784777f3" licence/public.key; then
+            echo "::error::licence/public.key is still the development key, so this build would refuse every key you make."; exit 1
+          fi
+          if grep -q "SET_UP_UPDATES_FIRST" app/src-tauri/tauri.release.conf.json; then
+            echo "::error::Updates aren't set up yet: run 'Set up updates.bat' and send the result."; exit 1
+          fi
+          if [ -z "$K" ] || [ -z "$P" ] || [ -z "$U" ]; then
+            echo "::error::A secret is missing. Add TAURI_SIGNING_PRIVATE_KEY, SOMPIO_PUBLISH_TOKEN and SOMPIO_UPDATE_TOKEN."; exit 1
+          fi
+          echo "version=$(node -p "require('./app/src-tauri/tauri.conf.json').version")" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+          - os: mac
+            runner: macos-latest
+            target: universal-apple-darwin
+            bundles: app,dmg
+          - os: linux
+            runner: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundles: appimage,deb
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 75
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -43,127 +89,190 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.os == 'mac' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
       - uses: swatinem/rust-cache@v2
         with:
+          key: ${{ matrix.os }}
           workspaces: |
             app/src-tauri -> target
             browserhost -> target
-          # Keep what was compiled even when a later step fails, so the next run is quick
           cache-on-failure: true
-      - name: Check the licence key is yours
-        shell: bash
+      - name: Linux build tools
+        if: matrix.os == 'linux'
         run: |
-          if grep -q "2b51fbc64627099647befc32bd63bddd1d74be5de905d795b4c95e5d784777f3" licence/public.key; then
-            echo "::error::licence/public.key is still the development key, so this build would refuse every key you make."
-            exit 1
-          fi
-      - name: Check updates are set up
-        shell: bash
-        env:
-          K: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          P: ${{ secrets.SOMPIO_PUBLISH_TOKEN }}
-          U: ${{ secrets.SOMPIO_UPDATE_TOKEN }}
-        run: |
-          if grep -q "SET_UP_UPDATES_FIRST" app/src-tauri/tauri.release.conf.json; then
-            echo "::error::Updates aren't set up yet: run 'Set up updates.bat' and send the result."; exit 1
-          fi
-          if [ -z "$K" ] || [ -z "$P" ] || [ -z "$U" ]; then
-            echo "::error::A secret is missing. Add TAURI_SIGNING_PRIVATE_KEY, SOMPIO_PUBLISH_TOKEN and SOMPIO_UPDATE_TOKEN."; exit 1
-          fi
-          V=$(node -p "require('./app/src-tauri/tauri.conf.json').version")
-          echo "VERSION=$V" >> "$GITHUB_ENV"
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf libssl-dev libdbus-1-dev libxdo-dev
       - name: Tidy the secrets
         shell: bash
         env:
           K: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          P: ${{ secrets.SOMPIO_PUBLISH_TOKEN }}
           U: ${{ secrets.SOMPIO_UPDATE_TOKEN }}
         run: |
           # A value pasted from Notepad can carry a line break or spaces; the key and codes never contain any
-          k=$(printf '%s' "$K" | tr -d ' \r\n\t'); p=$(printf '%s' "$P" | tr -d ' \r\n\t'); u=$(printf '%s' "$U" | tr -d ' \r\n\t')
-          echo "::add-mask::$k"; echo "::add-mask::$p"; echo "::add-mask::$u"
-          { echo "SIGN_KEY=$k"; echo "PUBLISH_TOKEN=$p"; echo "UPDATE_TOKEN=$u"; } >> "$GITHUB_ENV"
+          k=$(printf '%s' "$K" | tr -d ' \r\n\t'); u=$(printf '%s' "$U" | tr -d ' \r\n\t')
+          echo "::add-mask::$k"; echo "::add-mask::$u"
+          { echo "SIGN_KEY=$k"; echo "UPDATE_TOKEN=$u"; } >> "$GITHUB_ENV"
       - name: Build the browser extension helper
         working-directory: browserhost
         shell: bash
         run: |
-          cargo build --release
           mkdir -p ../app/src-tauri/binaries
-          cp target/release/sompio-browser.exe ../app/src-tauri/binaries/sompio-browser-x86_64-pc-windows-msvc.exe
+          case "${{ matrix.os }}" in
+            windows)
+              cargo build --release
+              cp target/release/sompio-browser.exe ../app/src-tauri/binaries/sompio-browser-x86_64-pc-windows-msvc.exe ;;
+            mac)
+              cargo build --release --target aarch64-apple-darwin
+              cargo build --release --target x86_64-apple-darwin
+              lipo -create -output ../app/src-tauri/binaries/sompio-browser-universal-apple-darwin \
+                target/aarch64-apple-darwin/release/sompio-browser target/x86_64-apple-darwin/release/sompio-browser ;;
+            linux)
+              cargo build --release
+              cp target/release/sompio-browser ../app/src-tauri/binaries/sompio-browser-x86_64-unknown-linux-gnu ;;
+          esac
       - name: Install interface packages
         working-directory: app
         run: npm ci
-      - name: Build the installer
+      - name: Build
         working-directory: app
-        run: npx tauri build --config src-tauri/tauri.release.conf.json
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" = "mac" ]; then
+            npx tauri build --config src-tauri/tauri.release.conf.json --target universal-apple-darwin --bundles ${{ matrix.bundles }}
+          else
+            npx tauri build --config src-tauri/tauri.release.conf.json --bundles ${{ matrix.bundles }}
+          fi
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ env.SIGN_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
           SOMPIO_UPDATE_TOKEN: ${{ env.UPDATE_TOKEN }}
           SOMPIO_TG_API_ID: ${{ secrets.SOMPIO_TG_API_ID }}
           SOMPIO_TG_API_HASH: ${{ secrets.SOMPIO_TG_API_HASH }}
+      - name: Collect the files
+        shell: bash
+        run: |
+          mkdir -p out
+          V="$VERSION"
+          case "${{ matrix.os }}" in
+            windows)
+              B=app/src-tauri/target/release/bundle
+              cp "$B/nsis/Sompio_${V}_x64-setup.exe" "$B/nsis/Sompio_${V}_x64-setup.exe.sig" out/ ;;
+            mac)
+              B=app/src-tauri/target/universal-apple-darwin/release/bundle
+              cp "$B"/dmg/*.dmg "out/Sompio_${V}_mac.dmg"
+              cp "$B"/macos/*.app.tar.gz "out/Sompio_${V}_mac.app.tar.gz"
+              cp "$B"/macos/*.app.tar.gz.sig "out/Sompio_${V}_mac.app.tar.gz.sig" ;;
+            linux)
+              B=app/src-tauri/target/release/bundle
+              cp "$B"/appimage/*.AppImage "out/Sompio_${V}_linux_x86_64.AppImage"
+              cp "$B"/appimage/*.AppImage.sig "out/Sompio_${V}_linux_x86_64.AppImage.sig"
+              cp "$B"/deb/*.deb "out/Sompio_${V}_linux_amd64.deb" ;;
+          esac
+          ls -la out
       - uses: actions/upload-artifact@v4
         with:
-          name: Sompio-${{ env.VERSION }}
-          path: app/src-tauri/target/release/bundle/nsis/*-setup.exe
+          name: sompio-${{ matrix.os }}
+          path: out/*
           retention-days: 3
-      - name: Put it on sompio.org
-        shell: bash
-        env:
-          TOKEN: ${{ env.PUBLISH_TOKEN }}
-        run: |
-          EXE="app/src-tauri/target/release/bundle/nsis/Sompio_${VERSION}_x64-setup.exe"
-          ls -la "$EXE" "$EXE.sig"
-          NOTES=$(cat app/release-notes.txt 2>/dev/null || echo "")
-          code=$(curl -sS --retry 2 -o reply.txt -w '%{http_code}' -X POST https://sompio.org/publish.php \
-            -H "X-Sompio-Publish: $TOKEN" -A "Sompio-Publish" \
-            -F "setup=@$EXE" -F "version=$VERSION" -F "signature=$(cat "$EXE.sig")" -F "notes=$NOTES" \
-            -F "replace=${{ github.event_name == 'workflow_dispatch' && inputs.replace && '1' || '0' }}")
-          cat reply.txt
-          # 409: this version is already on sompio.org (a rebuild without a version change), which is fine
-          if [ "$code" != "200" ] && [ "$code" != "409" ]; then echo "::error::sompio.org answered $code"; exit 1; fi
-          # Only a version that's new on sompio.org gets announced
-          if [ "$code" = "200" ]; then echo "NEW_VERSION=1" >> "$GITHUB_ENV"; fi
 
-      - name: Put the checksum on GitHub
-        # A second, independent place to check the installer against: if sompio.org were ever
-        # tampered with, its download wouldn't match this. The installer itself isn't attached.
-        shell: bash
+  publish:
+    needs: [prepare, build]
+    # Windows is enough to publish; Mac and Linux join when their builds worked
+    if: ${{ !cancelled() && needs.prepare.result == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Check the Windows build is there
+        run: |
+          ls -la dist
+          test -f "dist/Sompio_${VERSION}_x64-setup.exe" || { echo "::error::The Windows build failed, so nothing is published."; exit 1; }
+      - name: Put the Mac and Linux files and the checksums on GitHub
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          EXE="app/src-tauri/target/release/bundle/nsis/Sompio_${VERSION}_x64-setup.exe"
-          SUM=$(sha256sum "$EXE" | cut -d' ' -f1 | tr 'a-f' 'A-F')
+          cd dist
+          V="$VERSION"
+          sum() { sha256sum "$1" | cut -d' ' -f1 | tr 'a-f' 'A-F'; }
           {
-            cat app/release-notes.txt 2>/dev/null || true
+            cat ../app/release-notes.txt 2>/dev/null || true
             echo
             echo "---"
             echo
-            echo "**Installer:** \`Sompio_${VERSION}_x64-setup.exe\`, from [sompio.org/download.php](https://sompio.org/download.php)."
+            echo "**Downloads:** [sompio.org/download.php](https://sompio.org/download.php). SHA-256 fingerprints:"
             echo
-            echo "**SHA-256:** \`$SUM\`"
+            for f in "Sompio_${V}_x64-setup.exe" "Sompio_${V}_mac.dmg" "Sompio_${V}_linux_x86_64.AppImage" "Sompio_${V}_linux_amd64.deb"; do
+              [ -f "$f" ] && echo "- \`$f\`: \`$(sum "$f")\`"
+            done
             echo
-            echo "The download page shows the same fingerprint. If they ever differ, don't install it, and write to hello@sompio.org."
-          } > release-body.md
-          if gh release view "v$VERSION" > /dev/null 2>&1; then
-            # A replaced build: keep the release, refresh its notes and checksum
-            gh release edit "v$VERSION" --notes-file release-body.md
+            echo "The download page shows the same fingerprints. If they ever differ, don't install it, and write to hello@sompio.org."
+          } > ../release-body.md
+          ASSETS=$(ls Sompio_*_mac.* Sompio_*_linux_* 2>/dev/null | grep -v '\.sig$' || true)
+          if gh release view "v$V" > /dev/null 2>&1; then
+            gh release edit "v$V" --notes-file ../release-body.md
+            [ -n "$ASSETS" ] && gh release upload "v$V" $ASSETS --clobber
           else
-            gh release create "v$VERSION" --title "Sompio $VERSION" --notes-file release-body.md --target "$GITHUB_SHA"
+            gh release create "v$V" --title "Sompio $V" --notes-file ../release-body.md --target "$GITHUB_SHA" $ASSETS
           fi
-
+      - name: Put it on sompio.org
+        env:
+          P: ${{ secrets.SOMPIO_PUBLISH_TOKEN }}
+          REPLACE: ${{ github.event_name == 'workflow_dispatch' && inputs.replace && '1' || '0' }}
+        run: |
+          TOKEN=$(printf '%s' "$P" | tr -d ' \r\n\t'); echo "::add-mask::$TOKEN"
+          V="$VERSION"
+          EXE="dist/Sompio_${V}_x64-setup.exe"
+          export REL="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${V}"
+          # The Mac and Linux builds, for sompio.org's download page and update check
+          python3 - > platforms.json <<'PY'
+          import hashlib, json, os
+          v = os.environ["VERSION"]; rel = os.environ["REL"]
+          def item(name, sig=None):
+              p = f"dist/{name}"
+              if not os.path.exists(p):
+                  return None
+              d = {"name": name, "url": f"{rel}/{name}", "size": os.path.getsize(p),
+                   "sha256": hashlib.sha256(open(p, "rb").read()).hexdigest()}
+              if sig and os.path.exists(f"dist/{sig}"):
+                  d["signature"] = open(f"dist/{sig}").read().strip()
+                  d["update_url"] = f"{rel}/{sig[:-4]}"
+              return d
+          out = {
+              "mac": item(f"Sompio_{v}_mac.dmg"),
+              "mac_update": item(f"Sompio_{v}_mac.app.tar.gz", f"Sompio_{v}_mac.app.tar.gz.sig"),
+              "linux_appimage": item(f"Sompio_{v}_linux_x86_64.AppImage", f"Sompio_{v}_linux_x86_64.AppImage.sig"),
+              "linux_deb": item(f"Sompio_{v}_linux_amd64.deb"),
+          }
+          print(json.dumps({k: x for k, x in out.items() if x}))
+          PY
+          cat platforms.json
+          NOTES=$(cat app/release-notes.txt 2>/dev/null || echo "")
+          code=$(curl -sS --retry 2 -o reply.txt -w '%{http_code}' -X POST https://sompio.org/publish.php \
+            -H "X-Sompio-Publish: $TOKEN" -A "Sompio-Publish" \
+            -F "setup=@$EXE" -F "version=$V" -F "signature=$(cat "$EXE.sig")" -F "notes=$NOTES" \
+            -F "platforms=$(cat platforms.json)" -F "replace=$REPLACE")
+          cat reply.txt
+          # 409: this version is already on sompio.org (a rebuild without a version change), which is fine
+          if [ "$code" != "200" ] && [ "$code" != "409" ]; then echo "::error::sompio.org answered $code"; exit 1; fi
+          # Only a version that's new (or replaced) on sompio.org gets announced
+          if [ "$code" = "200" ]; then echo "NEW_VERSION=1" >> "$GITHUB_ENV"; fi
       - name: Announce it on Discord
         # Posts the release notes to the channel behind the DISCORD_WEBHOOK secret. Without that secret,
         # or when this version was already on sompio.org, nothing is posted.
         if: env.NEW_VERSION == '1'
-        shell: bash
         env:
           HOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
           HOOK=$(printf '%s' "$HOOK" | tr -d ' \r\n\t')
           if [ -z "$HOOK" ]; then echo "No DISCORD_WEBHOOK secret: skipping the announcement"; exit 0; fi
           echo "::add-mask::$HOOK"
-          python - <<'PY' > discord.json
+          python3 - <<'PY' > discord.json
           import json, os
           version = os.environ["VERSION"]
           try:
@@ -174,7 +283,7 @@ jobs:
           # Changelog style: the notes in a grey code box, like a release log
           box = "\n".join("- " + l.replace("`", "'") for l in lines)
           text = (f"**Sompio {version}**\n```\n{box}\n```\n"
-                  f"Open Sompio and click **Update now** \u00b7 <https://github.com/Sompio-Suite/sompio.org/releases/tag/v{version}>")
+                  f"Open Sompio and click **Update now**, or download it at <https://sompio.org/download.php>")
           print(json.dumps({"username": "Sompio", "allowed_mentions": {"parse": []}, "content": text[:2000]}))
           PY
           code=$(curl -sS -o reply.txt -w '%{http_code}' -H "Content-Type: application/json" --data @discord.json "$HOOK")

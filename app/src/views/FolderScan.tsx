@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { pickFolders, type PcScanOptions } from "../api";
 import Icon from "../Icon";
+import { isWindows } from "../platform";
 
 interface Props {
   disabled?: boolean;
@@ -44,13 +45,13 @@ export default function FolderScan({ disabled, onStart }: Props) {
       <button className="link small" onClick={choose}>Add another folder</button>
       <fieldset className="scan-checks">
         <legend className="small muted">Always checked: file names, text files and Word documents. Also:</legend>
-        <label className="check">
+        {isWindows() && <label className="check">
           <input type="checkbox" checked={imageText} onChange={(e) => setImageText(e.target.checked)} />
           <span>
             Read text in pictures
             <small className="muted">Screenshots and scanned letters or documents. Slower. Uses Windows' own text recognition, on this PC.</small>
           </span>
-        </label>
+        </label>}
         <label className="check">
           <input type="checkbox" checked={photoPlaces} onChange={(e) => setPhotoPlaces(e.target.checked)} />
           <span>

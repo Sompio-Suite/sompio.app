@@ -44,7 +44,18 @@ function latest_release(): ?array
         @file_put_contents($cache, hash_file('sha256', $best['path']));
     }
     $best['sha256'] = is_file($cache) ? trim((string) file_get_contents($cache)) : hash_file('sha256', $best['path']);
+    // The Mac and Linux builds of the same version, on the GitHub release (see publish.php)
+    $p = @file_get_contents($best['path'] . '.platforms.json');
+    $best['platforms'] = $p === false ? [] : (json_decode($p, true) ?: []);
     return $best;
+}
+
+/** The systems the newest version is out for: "Windows, Mac and Linux", or "Windows 10 and 11". */
+function systems_text(): string
+{
+    $p = latest_release()['platforms'] ?? [];
+    $more = array_values(array_filter([isset($p['mac']) ? 'Mac' : null, (isset($p['linux_appimage']) || isset($p['linux_deb'])) ? 'Linux' : null]));
+    return $more ? 'Windows, ' . implode(' and ', $more) : 'Windows 10 and 11';
 }
 
 function human_size(int $bytes): string

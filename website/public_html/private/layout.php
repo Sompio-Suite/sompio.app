@@ -15,6 +15,10 @@ const GUIDES = [
 
 const SUPPORT_URL = 'https://ko-fi.com/7ab9ne3021sn4b';
 const HEART_ICON = '<svg class="heart-icon" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.3C.9 8.2 3 4.5 6.6 4.5c2.1 0 3.6 1.2 4.4 2.5.8-1.3 2.3-2.5 4.4-2.5 3.6 0 5.7 3.7 4.2 7.2C19.5 16.4 12 21 12 21z"/></svg>';
+/** A plain onion outline: the menu's "Open in Tor" link */
+const TOR_ICON = '<svg class="tor-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7c-4.2 1.6-7 4.7-7 8.2C5 18.6 8.1 21 12 21s7-2.4 7-5.8c0-3.5-2.8-6.6-7-8.2z"/><path d="M12 9.6c-2.4 1.3-4 3.3-4 5.6 0 2.2 1.8 3.8 4 3.8s4-1.6 4-3.8c0-2.3-1.6-4.3-4-5.6z"/><path d="M12 12.4c-1 .8-1.6 1.8-1.6 2.8 0 .9.7 1.6 1.6 1.6s1.6-.7 1.6-1.6c0-1-.6-2-1.6-2.8z"/><path d="M12 7V3M12 5.2c1-1.3 2.3-1.9 3.6-1.9"/></g></svg>';
+/** A shield with a tick: next to download fingerprints */
+const SHIELD_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z M9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const GITHUB_ICON = '<svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>';
 
 /**
@@ -22,6 +26,12 @@ const GITHUB_ICON = '<svg class="gh-icon" viewBox="0 0 16 16" width="16" height=
  */
 function page_head(string $title, string $description, bool $public = true): void
 {
+    // Tor Browser shows ".onion available" when the site has an onion address (set in config.php)
+    $onion = onion_address();
+    if ($onion !== null && !headers_sent()) {
+        $here = strtok((string) ($_SERVER['REQUEST_URI'] ?? '/'), '#') ?: '/';
+        header('Onion-Location: http://' . $onion . $here);
+    }
     $css = 'style.css?v=' . filemtime(dirname(__DIR__) . '/style.css');
     // The address of this page on sompio.org, for link previews (front page without "index.php")
     $path = strtok((string) ($_SERVER['REQUEST_URI'] ?? '/'), '?#') ?: '/';
@@ -55,6 +65,13 @@ function page_head(string $title, string $description, bool $public = true): voi
 <?php
 }
 
+/** sompio.org's onion address for Tor Browser, once one is set up ('onion' in config.php). */
+function onion_address(): ?string
+{
+    $o = strtolower(trim((string) (config()['onion'] ?? '')));
+    return preg_match('/^[a-z2-7]{56}\.onion$/', $o) ? $o : null;
+}
+
 /** The top menu. $here is the page you're on: home, guide, docs, download or feedback. */
 function site_header(string $here): void
 {
@@ -71,6 +88,7 @@ function site_header(string $here): void
         <?= $link('guides.php', 'Guides', 'guide') ?>
         <?= $link('docs.php', 'Documentation', 'docs') ?>
         <a href="<?= e(SOURCE_URL) ?>" class="gh-link" rel="noopener noreferrer" aria-label="Source code on GitHub" title="Source code on GitHub"><?= GITHUB_ICON ?><span class="gh-label">Source code</span></a>
+        <a href="tor.php" class="gh-link tor-link"<?= $here === 'tor' ? ' aria-current="page"' : '' ?> aria-label="Open in Tor" title="Open sompio.org in Tor Browser"><?= TOR_ICON ?><span class="gh-label">Open in Tor</span></a>
         <a class="nav-tester<?= $here === 'download' ? ' on' : '' ?>" href="download.php"<?= $here === 'download' ? ' aria-current="page"' : '' ?>>Download</a>
       </nav>
     </div>

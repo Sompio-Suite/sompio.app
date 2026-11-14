@@ -4,6 +4,7 @@ import {
   type BrowserClient, type HealthReport, type VaultInTrace, type VaultLeak, type PassphraseRules, type PasswordRules, type Strength, type VaultSettings,
 } from "../api";
 import Icon from "../Icon";
+import { isWindows } from "../platform";
 import { plural } from "../format";
 import { reloadIcons, useIcon } from "../vaultIcons";
 
@@ -283,34 +284,41 @@ export function VaultSettingsPanel({ readOnly, onDone }: { readOnly: boolean; on
   };
   return (
     <div className="cal-settings">
+      {isWindows() ? (
       <section className="setting">
-        <h3>Auto-type</h3>
-        <p className="muted">
-          Click into a login form, press the shortcut, and Sompio types the username and password for the window in front.
-          It picks the entry by the window's title, the site's name, or a window rule you set on the entry.
-        </p>
-        <div className="inline-fields">
-          <span>Shortcut</span>
-          <input
-            ref={input}
-            type="text"
-            className="shortcut-input mono"
-            readOnly
-            value={capturing ? "Press the keys…" : s.shortcut || "Off"}
-            onFocus={() => setCapturing(true)}
-            onBlur={() => setCapturing(false)}
-            onKeyDown={(e) => {
-              e.preventDefault();
-              if (e.key === "Escape") return input.current?.blur();
-              const c = comboFrom(e);
-              if (c) { save({ ...s, shortcut: c }); input.current?.blur(); }
-            }}
-          />
-          <button className="small-btn" onClick={() => input.current?.focus()}>Change</button>
-          {s.shortcut && <button className="small-btn ghost" onClick={() => save({ ...s, shortcut: "" })}>Turn off</button>}
-        </div>
-        <label className="check"><input type="checkbox" checked={s.lock_after_type} onChange={(e) => save({ ...s, lock_after_type: e.target.checked })} /><span>Lock Sompio after auto-typing</span></label>
-      </section>
+          <h3>Auto-type</h3>
+          <p className="muted">
+            Click into a login form, press the shortcut, and Sompio types the username and password for the window in front.
+            It picks the entry by the window's title, the site's name, or a window rule you set on the entry.
+          </p>
+          <div className="inline-fields">
+            <span>Shortcut</span>
+            <input
+              ref={input}
+              type="text"
+              className="shortcut-input mono"
+              readOnly
+              value={capturing ? "Press the keys…" : s.shortcut || "Off"}
+              onFocus={() => setCapturing(true)}
+              onBlur={() => setCapturing(false)}
+              onKeyDown={(e) => {
+                e.preventDefault();
+                if (e.key === "Escape") return input.current?.blur();
+                const c = comboFrom(e);
+                if (c) { save({ ...s, shortcut: c }); input.current?.blur(); }
+              }}
+            />
+            <button className="small-btn" onClick={() => input.current?.focus()}>Change</button>
+            {s.shortcut && <button className="small-btn ghost" onClick={() => save({ ...s, shortcut: "" })}>Turn off</button>}
+          </div>
+          <label className="check"><input type="checkbox" checked={s.lock_after_type} onChange={(e) => save({ ...s, lock_after_type: e.target.checked })} /><span>Lock Sompio after auto-typing</span></label>
+        </section>
+      ) : (
+        <section className="setting">
+          <h3>Auto-type</h3>
+          <p className="muted">Typing logins into other apps works on Windows for now; it's coming to Mac and Linux. In your browser, the Sompio extension fills logins in for you.</p>
+        </section>
+      )}
       <BrowserSettings s={s} save={save} onDone={onDone} />
       <section className="setting">
         <h3>Website icons</h3>
@@ -343,7 +351,7 @@ export function VaultSettingsPanel({ readOnly, onDone }: { readOnly: boolean; on
             {[10, 20, 30, 60, 0].map((x) => <option key={x} value={x}>{x === 0 ? "never" : `${x} seconds`}</option>)}
           </select>
         </div>
-        <p className="small muted">Copied passwords stay out of Windows' clipboard history (Win+V) and cloud clipboard.</p>
+        {isWindows() && <p className="small muted">Copied passwords stay out of Windows' clipboard history (Win+V) and cloud clipboard.</p>}
       </section>
       <section className="setting">
         <h3>Bring passwords in</h3>

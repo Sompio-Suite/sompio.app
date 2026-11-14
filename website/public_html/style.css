@@ -356,3 +356,27 @@ main.wrap.docs > * { margin-top: 2.2rem; }
 .more-guides h2 { font-size: 1.2rem; }
 @media (max-width: 640px) { .guides-head h1 { font-size: 1.7rem; } .guide-card-link:hover { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .guide-card-link { transition: none; } .guide-card-link:hover { transform: none; } }
+
+/* "Open in Tor" in the menu, and the Tor page */
+.tor-icon { flex: none; }
+.eyebrow .tor-icon { vertical-align: -3px; margin-right: 0.15rem; }
+.tor-card { display: grid; gap: 0.6rem; margin: 1.4rem 0; }
+.tor-card h2 { margin: 0; }
+
+/* Download page: one system at a time */
+.os-tabs { display: flex; gap: 0.3rem; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 0.2rem; margin: 0.6rem 0 0.2rem; }
+.os-tab { flex: 1; text-align: center; padding: 0.35rem 0.5rem; border-radius: 6px; color: var(--ink-2); text-decoration: none; font-weight: 600; font-size: 0.92rem; }
+.os-tab:hover { background: var(--soft); }
+.os-tab.on { background: var(--green); color: #fff; }
+.os-panel { display: grid; gap: 0.6rem; }
+.os-panel[hidden] { display: none; }
+.download .os-panel .button { text-align: center; }
+.hash-label { font-family: inherit; font-weight: 600; color: var(--ink-2); margin-right: 0.3rem; }
+details.fingerprint summary { cursor: pointer; list-style: none; }
+details.fingerprint summary::-webkit-details-marker { display: none; }
+details.fingerprint summary::after { content: "▾"; margin-left: 0.3rem; font-size: 0.75rem; }
+details.fingerprint[open] summary::after { content: "▴"; }
+details.fingerprint[open] { display: grid; gap: 0.45rem; }
+.hero .download { display: flex; flex-direction: column; gap: 0.6rem; }
+.hero .download > * { margin-top: 0; margin-bottom: 0; }
+.download .card-foot { margin-top: auto !important; padding-top: 0.8rem; border-top: 1px solid var(--line); color: var(--ink-2); }

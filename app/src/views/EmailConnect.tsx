@@ -152,7 +152,7 @@ export default function EmailConnect({ onSynced, onStatus }: Props) {
           </div>
           <p className="small faint">
             An app password only opens your mail, can't change your account, and you can revoke it any time. Sompio keeps it
-            in Windows Credential Manager and only talks to your mail server. Outlook.com and Hotmail need Microsoft
+            in your computer's own password store (Windows Credential Manager, the Mac's Keychain) and only talks to your mail server. Outlook.com and Hotmail need Microsoft
             sign-in, which Sompio doesn't support yet.
           </p>
         </form>

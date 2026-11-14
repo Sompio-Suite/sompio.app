@@ -121,7 +121,7 @@ impl Kind {
             Kind::Passport => "With a passport or ID card number, someone can pose as you. Delete the message. If a photo of the document went out too, report it to your town hall or the police and consider replacing the document.",
             Kind::BackupCode => "Backup codes and recovery phrases get around your two-factor login or open a crypto wallet outright. Make new backup codes on that site now (that cancels the old ones), or move the coins to a new wallet, then delete the message.",
             Kind::BirthDate => "Your date of birth is a common security question and a key piece for identity fraud, together with your name. Delete the message if this is your own date of birth.",
-            Kind::Location => "This photo or map link shows an exact spot. If it's your home, school or work, delete the post. Before sharing a photo again, remove its location: in Windows, right-click the file, choose Properties, then Details, then Remove Properties and Personal Information.",
+            Kind::Location => "This photo or map link shows an exact spot. If it's your home, school or work, delete the post. Before sharing a photo again, remove its location. On Windows: right-click the file, Properties, Details, Remove Properties and Personal Information. On a Mac, in Photos: Image, Location, Hide Location.",
             Kind::NumberPlate => "A number plate can be tied to your car, and so to where you park and drive. Delete the message unless it's fine for this chat to know it.",
         }
     }

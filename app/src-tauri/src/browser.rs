@@ -331,9 +331,35 @@ fn browser_exe(exe: &str) -> Option<std::path::PathBuf> {
     None
 }
 
-#[cfg(not(windows))]
-fn browser_exe(_exe: &str) -> Option<std::path::PathBuf> {
-    None
+/// Where a browser is installed on a Mac: the program inside its .app, in /Applications or ~/Applications.
+#[cfg(target_os = "macos")]
+fn browser_exe(exe: &str) -> Option<std::path::PathBuf> {
+    let (app, bin) = match exe {
+        "chrome.exe" => ("Google Chrome.app", "Google Chrome"),
+        "msedge.exe" => ("Microsoft Edge.app", "Microsoft Edge"),
+        "brave.exe" => ("Brave Browser.app", "Brave Browser"),
+        "firefox.exe" => ("Firefox.app", "firefox"),
+        _ => return None,
+    };
+    let home = std::env::var("HOME").unwrap_or_default();
+    ["/Applications".to_string(), format!("{home}/Applications")]
+        .iter()
+        .map(|d| std::path::Path::new(d).join(app).join("Contents/MacOS").join(bin))
+        .find(|p| p.exists())
+}
+
+/// Where a browser is installed on Linux: the first of its usual command names on the PATH.
+#[cfg(all(unix, not(target_os = "macos")))]
+fn browser_exe(exe: &str) -> Option<std::path::PathBuf> {
+    let names: &[&str] = match exe {
+        "chrome.exe" => &["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"],
+        "msedge.exe" => &["microsoft-edge", "microsoft-edge-stable"],
+        "brave.exe" => &["brave-browser", "brave"],
+        "firefox.exe" => &["firefox", "firefox-esr"],
+        _ => return None,
+    };
+    let path = std::env::var_os("PATH")?;
+    names.iter().find_map(|n| std::env::split_paths(&path).map(|d| d.join(n)).find(|p| p.exists()))
 }
 
 /// Which of Chrome, Edge, Brave and Firefox are installed.
@@ -504,19 +530,41 @@ mod platform {
 mod platform {
     use super::*;
 
+    /// Each browser's folder for native messaging hosts, for this user only.
+    #[cfg(target_os = "macos")]
+    const CHROMIUM: &[&str] = &[
+        "Library/Application Support/Google/Chrome/NativeMessagingHosts",
+        "Library/Application Support/Chromium/NativeMessagingHosts",
+        "Library/Application Support/Microsoft Edge/NativeMessagingHosts",
+        "Library/Application Support/BraveSoftware/Brave-Browser/NativeMessagingHosts",
+        "Library/Application Support/Vivaldi/NativeMessagingHosts",
+    ];
+    #[cfg(target_os = "macos")]
+    const FIREFOX: &str = "Library/Application Support/Mozilla/NativeMessagingHosts";
+
+    #[cfg(not(target_os = "macos"))]
+    const CHROMIUM: &[&str] = &[
+        ".config/google-chrome/NativeMessagingHosts",
+        ".config/chromium/NativeMessagingHosts",
+        ".config/microsoft-edge/NativeMessagingHosts",
+        ".config/BraveSoftware/Brave-Browser/NativeMessagingHosts",
+        ".config/vivaldi/NativeMessagingHosts",
+    ];
+    #[cfg(not(target_os = "macos"))]
+    const FIREFOX: &str = ".mozilla/native-messaging-hosts";
+
     pub fn register(_dir: &std::path::Path, exe: &str, on: bool) -> anyhow::Result<()> {
         let home = std::path::PathBuf::from(std::env::var("HOME")?);
-        let chromium = [
-            ".config/google-chrome/NativeMessagingHosts",
-            ".config/chromium/NativeMessagingHosts",
-            ".config/microsoft-edge/NativeMessagingHosts",
-            ".config/BraveSoftware/Brave-Browser/NativeMessagingHosts",
-        ];
-        for d in chromium.iter().map(|d| (home.join(d), false)).chain([(home.join(".mozilla/native-messaging-hosts"), true)]) {
-            let file = d.0.join(format!("{HOST_NAME}.json"));
+        for (d, firefox) in CHROMIUM.iter().map(|d| (home.join(d), false)).chain([(home.join(FIREFOX), true)]) {
+            let file = d.join(format!("{HOST_NAME}.json"));
             if on {
-                std::fs::create_dir_all(&d.0)?;
-                std::fs::write(&file, serde_json::to_string_pretty(&manifest(exe, d.1))?)?;
+                // Only for browsers that are there: their settings folder already exists
+                let browser_dir = d.parent().map(|p| p.exists()).unwrap_or(false);
+                if !browser_dir {
+                    continue;
+                }
+                std::fs::create_dir_all(&d)?;
+                std::fs::write(&file, serde_json::to_string_pretty(&manifest(exe, firefox))?)?;
             } else {
                 let _ = std::fs::remove_file(file);
             }

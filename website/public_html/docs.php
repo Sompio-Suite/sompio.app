@@ -168,7 +168,7 @@ site_header('docs');
           <dt>Can you see my passwords or messages?</dt><dd>No. They never leave your PC, and we don't have your keys.</dd>
           <dt>What if I forget my password?</dt><dd>Use your recovery code. Without it, nobody can open your data, including us.</dd>
           <dt>Does the browser extension upload my passwords?</dt><dd>No. It has no server to send them to. It asks Sompio on your PC for one login when you click it, encrypted, and only for the website you're on.</dd>
-          <dt>Which systems?</dt><dd>Windows 10 and 11 today. Linux, Mac and phones are planned.</dd>
+          <dt>Which systems?</dt><dd><?= e(systems_text()) ?> today<?= strpos(systems_text(), 'Windows,') === 0 ? ' (on Mac and Linux, auto-type and reading text in pictures come later)' : '. Mac and Linux are on the way' ?>. Phones are planned.</dd>
           <dt>Does Trace send emails for me?</dt><dd>No. It writes the letter and opens it in your own email app, so you send it from your own address and the answer comes back to you.</dd>
         </dl>
       </section>

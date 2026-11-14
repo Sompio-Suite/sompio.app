@@ -18,6 +18,10 @@ return [
     'publish_token' => '',
     'update_token' => '',
 
+    // sompio.org's address inside the Tor network (56 letters and digits, then .onion), once there is
+    // one. Leave it empty until then; tor.php explains how to visit with Tor Browser meanwhile.
+    'onion' => '',
+
     // The newest setup file in private/releases is offered for download; its version number is
     // read from the file name (Sompio_0.7.1_x64-setup.exe).
 ];

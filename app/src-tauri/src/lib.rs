@@ -297,6 +297,12 @@ async fn scan_folders(
     .await
 }
 
+/// Which system Sompio runs on: "windows", "macos" or "linux". Some features are Windows-only for now.
+#[tauri::command]
+fn app_platform() -> &'static str {
+    std::env::consts::OS
+}
+
 /// The data exports the person said they asked for, and when (kept encrypted with everything else).
 #[tauri::command]
 async fn export_requests(state: State<'_, AppState>) -> CmdResult<String> {
@@ -855,6 +861,7 @@ pub fn run() {
             import_package,
             scan_folders,
             export_requests,
+            app_platform,
             set_export_requests,
             sources,
             remove_source,

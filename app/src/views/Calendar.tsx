@@ -610,7 +610,7 @@ function PopupSettings({ settings, run }: { settings: CalSettings; run: Run }) {
         {autostart !== null && (
           <label className="check">
             <input type="checkbox" checked={autostart} onChange={async (e) => { const on = e.target.checked; await run(() => api.calSetAutostart(on)); setAutostart(on); }} />
-            <span>Start Sompio when I sign in to Windows</span>
+            <span>Start Sompio when I sign in to this computer</span>
           </label>
         )}
       </section>

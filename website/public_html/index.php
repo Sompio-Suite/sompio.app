@@ -16,7 +16,7 @@ site_header('home');
             <a class="button primary" href="download.php">Download the beta</a>
             <a class="button" href="docs.php">See how it works</a>
           </div>
-          <p class="small muted">Free for Windows 10 and 11 during the beta. Everything unlocked, no account.</p>
+          <p class="small muted">Free for <?= e(systems_text()) ?> during the beta. Everything unlocked, no account.</p>
         </div>
         <figure class="shot shot-hero">
           <img src="img/trace.webp" width="1280" height="780" alt="Sompio's Trace tool listing ID numbers, passport numbers, backup codes and bank numbers found in sample chats, sorted by risk.">
@@ -80,7 +80,7 @@ site_header('home');
           <div><h3>Encrypted with your lock</h3><p>Your password plus a key picture only you have. Nobody can open it without both, not even us.</p></div>
           <div><h3>Code you can check</h3><p>The full source is <a href="<?= e(SOURCE_URL) ?>" rel="noopener noreferrer">on GitHub</a>, so anyone can see what Sompio does with your data.</p></div>
           <div><h3>A key, not an account</h3><p>Sompio is unlocked with a licence key, like a game key, checked on your PC without going online. No sign-up, nothing to log in to.</p></div>
-          <div><h3>Made for Windows</h3><p>Windows 10 and 11, 64-bit. One small program, no extra installs.</p></div>
+          <?php $sys = systems_text(); ?><div><h3>Runs on <?= e(strpos($sys, 'Windows,') === 0 ? 'your computer' : 'Windows') ?></h3><p><?= e($sys) ?>. One small program, no extra installs.</p></div>
         </div>
       </div>
     </section>
@@ -102,7 +102,7 @@ site_header('home');
         <h2>Try it now, free</h2>
         <p>The beta is open to everyone, with everything unlocked until launch. When Sompio launches, you get the 30-day free trial on top.</p>
         <ul class="ticks">
-          <li><a href="download.php">Download the beta</a> for Windows 10 and 11</li>
+          <li><a href="download.php">Download the beta</a> for <?= e(systems_text()) ?></li>
           <li>Found a problem or have an idea? <a href="feedback.php">Tell us</a>: it decides what gets fixed first</li>
           <li>New versions come to you inside Sompio</li>
         </ul>

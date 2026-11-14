@@ -150,7 +150,7 @@ export default function Security({ status, idleMinutes, onIdleMinutes, onLockNow
 
       <section className="setting">
         <h3>Coming to the lock</h3>
-        <p className="muted">Windows Hello for quick unlocking on this PC.</p>
+        <p className="muted">Quick unlocking with Windows Hello, and with Touch ID on a Mac.</p>
       </section>
     </div>
   );

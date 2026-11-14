@@ -31,15 +31,25 @@ if (isset($_GET['get'])) {
     exit;
 }
 $notes = @file_get_contents($r['path'] . '.notes');
+$platforms = [
+    'windows-x86_64' => [
+        'signature' => trim($sig),
+        'url' => 'https://' . ($_SERVER['HTTP_HOST'] ?? 'sompio.org') . '/update.php?get=1',
+    ],
+];
+// Mac (one build for Apple silicon and Intel) and Linux (the AppImage), downloaded from GitHub
+$mac = $r['platforms']['mac_update'] ?? null;
+if ($mac && $mac['signature'] !== '') {
+    $platforms['darwin-aarch64'] = $platforms['darwin-x86_64'] = ['signature' => $mac['signature'], 'url' => $mac['url']];
+}
+$linux = $r['platforms']['linux_appimage'] ?? null;
+if ($linux && $linux['signature'] !== '') {
+    $platforms['linux-x86_64'] = ['signature' => $linux['signature'], 'url' => $linux['url']];
+}
 header('Content-Type: application/json');
 echo json_encode([
     'version' => $r['version'],
     'notes' => $notes === false ? '' : trim($notes),
     'pub_date' => gmdate('Y-m-d\TH:i:s\Z', $r['date']),
-    'platforms' => [
-        'windows-x86_64' => [
-            'signature' => trim($sig),
-            'url' => 'https://' . ($_SERVER['HTTP_HOST'] ?? 'sompio.org') . '/update.php?get=1',
-        ],
-    ],
+    'platforms' => $platforms,
 ], JSON_UNESCAPED_SLASHES);
