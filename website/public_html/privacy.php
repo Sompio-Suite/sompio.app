@@ -1,5 +1,5 @@
 <?php
-// Privacy statement for sompio.org (the website, the beta sign-up, the tester portal and the
+// Privacy statement for sompio.org (the website, the update sign-up, beta downloads and feedback, and the
 // update check). The Sompio app itself is covered in the documentation: it keeps everything on your PC.
 declare(strict_types=1);
 require __DIR__ . '/private/lib.php';
@@ -20,9 +20,9 @@ site_header('privacy');
     </aside>
 
     <article class="docs-body">
-      <p class="eyebrow">Last updated 13 November 2026 (sign-ups and feedback now live only in our mailbox)</p>
+      <p class="eyebrow">Last updated 14 November 2026 (the beta is open to everyone: no tester portal, and no cookies)</p>
       <h1>Privacy statement</h1>
-      <p class="lead">This page explains what sompio.org collects about you, why, how long it's kept, and how to have it removed. It covers this website, the beta sign-up, the tester portal and Sompio's update check.</p>
+      <p class="lead">This page explains what sompio.org collects about you, why, how long it's kept, and how to have it removed. It covers this website, the update sign-up, beta downloads and feedback, and Sompio's update check.</p>
 
       <section id="short">
         <h2>In short</h2>
@@ -42,16 +42,17 @@ site_header('privacy');
       <section id="what">
         <h2>What we collect, and why</h2>
 
-        <h3>When you join the beta</h3>
+        <h3>When you sign up for updates</h3>
         <ul class="points">
-          <li><strong>What:</strong> your email address, the setup answers you pick (Windows version, browsers, apps, the tools you're interested in), your note if you write one, whether you ticked "email me at launch", and the date.</li>
-          <li><strong>Why:</strong> to choose testers for each group and send you an invite. If you ticked the box, also to send you one email when Sompio launches.</li>
+          <li><strong>What:</strong> your email address, the tools you're interested in if you tick any, and the date.</li>
+          <li><strong>Why:</strong> to email you when a big new version is out, and once when Sompio launches.</li>
           <li><strong>Legal basis:</strong> your consent. You can withdraw it at any time by writing to us; we then delete your sign-up.</li>
-          <li><strong>How long:</strong> until the beta ends. Then we delete every sign-up, except the email addresses of people who asked to hear about the launch. Those are deleted right after that one launch email.</li>
+          <li><strong>How long:</strong> until you ask us to remove it, and at the latest right after the launch email.</li>
+          <li><strong>Earlier sign-ups</strong> for the closed beta are handled the same way: we keep them only to send the launch email, then delete them.</li>
           <li><strong>Where:</strong> only as an email in our mailbox. Nothing is kept on the web server, except briefly if mail is down, until the email can go out.</li>
         </ul>
 
-        <h3>When you send feedback as a tester</h3>
+        <h3>When you send feedback</h3>
         <ul class="points">
           <li><strong>What:</strong> your message, the part of Sompio it's about, and anything optional you add: a name or nickname, an email address for a reply, bug report details and a screenshot. Bug report details come from Sompio's "Copy details for a bug report" and contain the app's version, your Windows version and recent app messages. Sompio takes your Windows user name out of folder paths in these details.</li>
           <li><strong>Why:</strong> to find and fix problems, and to reply if you asked us to.</li>
@@ -61,11 +62,11 @@ site_header('privacy');
         </ul>
         <p>Please don't put real passwords, bank details or other sensitive information in feedback or screenshots.</p>
 
-        <h3>When you sign in to the tester portal</h3>
-        <p>A cookie keeps you signed in (see <a href="#cookies">Cookies</a>). Nothing else is stored about you when you browse the portal or download Sompio.</p>
+        <h3>When you download Sompio</h3>
+        <p>Nothing is stored about you, apart from the count described next.</p>
 
         <h3>Protection against abuse</h3>
-        <p>To stop password guessing and spam, we briefly count attempts per network. We don't store your internet (IP) address itself, only a scrambled code made from it, and only for 15 minutes (tester passwords) or one hour (beta sign-ups).</p>
+        <p>To stop spam and runaway downloads, we briefly count sign-ups, feedback messages and downloads per network. We don't store your internet (IP) address itself, only a scrambled code made from it, and only for one hour.</p>
 
         <h3>When Sompio checks for updates</h3>
         <p>Sompio asks sompio.org for one small file with the newest version number, every few hours or when you click <em>Check now</em>. The request contains nothing about you or your data. You can switch this off in Sompio's Security settings.</p>
@@ -91,7 +92,7 @@ site_header('privacy');
 
       <section id="cookies">
         <h2>Cookies</h2>
-        <p>sompio.org sets one cookie, and only when you sign in to the tester portal: <code>sompio_beta</code>, which keeps you signed in. It's removed when you close your browser, and stops working after 15 minutes without activity. It's strictly necessary for the portal to work, so we don't ask for consent for it. Cloudflare, which protects the site, may also set a short-lived security cookie to tell people from bots. That's all: there are no tracking, advertising or analytics cookies of any kind.</p>
+        <p>sompio.org sets no cookies of its own. Cloudflare, which protects the site, may set a short-lived security cookie to tell people from bots. That's all: there are no tracking, advertising or analytics cookies of any kind.</p>
       </section>
 
       <section id="others">

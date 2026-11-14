@@ -172,7 +172,7 @@ site_header('docs');
 
       <div class="docs-end">
         <a class="button primary" href="guides.php">Guides: delete what you've shared</a>
-        <a class="button" href="tester.php#feedback">Testers: send feedback</a>
+        <a class="button" href="feedback.php">Send feedback</a>
       </div>
     </article>
   </main>

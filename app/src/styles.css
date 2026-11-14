@@ -672,7 +672,7 @@ input[type="range"] { accent-color: var(--accent); width: 9rem; }
 }
 .quick-add:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .quick-add > .icon { color: var(--accent-text); }
-.quick-add input { border: 0; background: none; padding: 0.35rem 0; font-size: var(--t-m); outline: none; box-shadow: none; width: 100%; }
+.quick-add input, .quick-add input[type="text"], .quick-add input[type="text"]:focus { border: 0; background: none; padding: 0.35rem 0; font-size: var(--t-m); outline: none; box-shadow: none; width: 100%; }
 .quick-add > span { grid-column: 2; }
 .cal-sub { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
 .cal-sub h2 { margin: 0; font-size: 1.15rem; }

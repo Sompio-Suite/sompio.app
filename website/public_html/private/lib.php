@@ -1,5 +1,6 @@
 <?php
-// Shared by every page: settings, the tester session, the newest release, small helpers.
+// Shared by every page: settings, the newest release, mail, spam limits, small helpers.
+// The site sets no cookies and keeps no sessions.
 declare(strict_types=1);
 
 const PRIVATE_DIR = __DIR__;
@@ -7,9 +8,6 @@ date_default_timezone_set('Europe/Amsterdam');
 // Never show PHP errors to visitors: they can reveal folder paths and settings
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
-// Only session ids this server made itself are accepted
-ini_set('session.use_strict_mode', '1');
-ini_set('session.use_only_cookies', '1');
 header_remove('X-Powered-By');
 
 function config(): array
@@ -18,107 +16,9 @@ function config(): array
     return $c ??= require PRIVATE_DIR . '/config.php';
 }
 
-function start_session(): void
-{
-    if (session_status() === PHP_SESSION_ACTIVE) {
-        return;
-    }
-    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
-    session_name('sompio_beta');
-    session_set_cookie_params([
-        // Gone when the browser closes; and see SIGN_OUT_AFTER
-        'lifetime' => 0,
-        'path' => '/',
-        'secure' => $https,
-        'httponly' => true,
-        'samesite' => 'Strict',
-    ]);
-    session_start();
-}
-
-/** Testers are signed out after this long without opening or sending anything. */
-const SIGN_OUT_AFTER = 15 * 60;
-
-/**
- * Signed in with the current password, and active in the last 15 minutes? Each visit resets the
- * clock. Changing the password in config.php signs everyone out.
- */
-function signed_in(): bool
-{
-    start_session();
-    $ok = isset($_SESSION['pw'], $_SESSION['seen'])
-        && hash_equals(password_fingerprint(), (string) $_SESSION['pw'])
-        && $_SESSION['seen'] > time() - SIGN_OUT_AFTER;
-    if ($ok) {
-        $_SESSION['seen'] = time();
-    } elseif (isset($_SESSION['pw'])) {
-        // Timed out: forget the sign-in (a feedback message being sent is kept, see feedback.php)
-        unset($_SESSION['pw'], $_SESSION['seen']);
-        $_SESSION['timed_out'] = true;
-    }
-    return $ok;
-}
-
-function password_fingerprint(): string
-{
-    return hash('sha256', 'sompio-beta|' . config()['password']);
-}
-
-function csrf_token(): string
-{
-    start_session();
-    if (empty($_SESSION['csrf'])) {
-        $_SESSION['csrf'] = bin2hex(random_bytes(16));
-    }
-    return $_SESSION['csrf'];
-}
-
-function csrf_ok(): bool
-{
-    start_session();
-    return isset($_POST['csrf'], $_SESSION['csrf']) && hash_equals($_SESSION['csrf'], (string) $_POST['csrf']);
-}
-
 function e(string $s): string
 {
     return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-}
-
-/**
- * Wrong passwords are limited per network address: 8 tries per 15 minutes. Only a hash of the
- * address is kept, for those 15 minutes.
- */
-function attempts_file(): string
-{
-    // Behind Cloudflare every visitor arrives from a Cloudflare address; it passes the real one along
-    $ip = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-    return PRIVATE_DIR . '/data/tries-' . substr(hash('sha256', 'sompio|' . $ip), 0, 24) . '.json';
-}
-
-function too_many_tries(): bool
-{
-    $f = attempts_file();
-    if (!is_file($f)) {
-        return false;
-    }
-    $t = json_decode((string) file_get_contents($f), true) ?: [];
-    $recent = array_filter($t, fn($x) => $x > time() - 900);
-    return count($recent) >= 8;
-}
-
-function note_wrong_try(): void
-{
-    $f = attempts_file();
-    $t = is_file($f) ? (json_decode((string) file_get_contents($f), true) ?: []) : [];
-    $t = array_values(array_filter($t, fn($x) => $x > time() - 900));
-    $t[] = time();
-    @file_put_contents($f, json_encode($t), LOCK_EX);
-    // Old counters go away by themselves
-    foreach (glob(PRIVATE_DIR . '/data/tries-*.json') ?: [] as $old) {
-        if (filemtime($old) < time() - 900) {
-            @unlink($old);
-        }
-    }
 }
 
 /** The newest Sompio_X.Y.Z_x64-setup.exe in private/releases. */
@@ -218,13 +118,48 @@ function flush_outbox(): void
     }
 }
 
-/** What the "Join the beta" form offers (index.php shows them, signup.php keeps only these). */
+/** What the "Get updates" form offers (index.php shows them, signup.php keeps only these). */
 const CHOICES = [
-    'windows' => ['Windows 11', 'Windows 10', 'Not sure'],
-    'browsers' => ['Chrome', 'Edge', 'Firefox', 'Brave', 'Other'],
-    'apps' => ['Discord', 'Reddit', 'WhatsApp', 'Telegram', 'X', 'Instagram or Facebook', 'Email', 'Other'],
-    'tools' => ['Trace', 'Vault', 'Calendar'],
+    'tools' => ['Vault', 'Trace', 'Calendar'],
 ];
+
+/**
+ * True when this network already did `$what` `$max` times in the last `$seconds`. Counts are kept
+ * under a scrambled code made from the address (never the address itself) and deleted after.
+ */
+function over_net_limit(string $what, int $max, int $seconds): bool
+{
+    $ip = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $dir = PRIVATE_DIR . '/data';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0700, true);
+    }
+    $f = $dir . '/' . $what . '-' . substr(hash('sha256', 'sompio-' . $what . '|' . $ip), 0, 24) . '.json';
+    $t = is_file($f) ? (json_decode((string) file_get_contents($f), true) ?: []) : [];
+    $t = array_values(array_filter($t, fn($x) => $x > time() - $seconds));
+    if (count($t) >= $max) {
+        return true;
+    }
+    $t[] = time();
+    @file_put_contents($f, json_encode($t), LOCK_EX);
+    foreach (glob($dir . '/' . $what . '-*.json') ?: [] as $old) {
+        if (filemtime($old) < time() - $seconds) {
+            @unlink($old);
+        }
+    }
+    return false;
+}
+
+/** A form's signed time stamp is real, at least 3 seconds old (people type; bots don't) and under a day. */
+function stamp_ok(string $stamp): bool
+{
+    [$t, $sig] = array_pad(explode('.', $stamp, 2), 2, '');
+    if (!ctype_digit($t) || !hash_equals(hash_hmac('sha256', 'signup|' . $t, form_secret()), $sig)) {
+        return false;
+    }
+    $age = time() - (int) $t;
+    return $age >= 3 && $age <= 86400;
+}
 
 /** A secret only this server knows, made once, for signing the form's time stamp. */
 function form_secret(): string

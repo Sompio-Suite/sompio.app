@@ -24,6 +24,14 @@ const EPOCH_DAY: i64 = 19_723;
 /// A key has to be entered within this many days of being made, so old keys don't circulate forever.
 pub const ACTIVATE_WITHIN_DAYS: i64 = 365;
 pub const TRIAL_DAYS: i64 = 30;
+/// Beta builds unlock everything until the beta ends. The free trial only starts with the first
+/// build after launch (set this to false then), so beta testers get their full 30 days too.
+pub const BETA: bool = true;
+
+/// The tests check the normal rules, as they'll be after launch.
+fn beta() -> bool {
+    BETA && !cfg!(test)
+}
 /// A "forever" key: the most days a key can hold (about 179 years). Shown as "Forever".
 pub const FOREVER_DAYS: u16 = u16::MAX;
 
@@ -331,6 +339,8 @@ pub struct Status {
     /// The PC's clock is behind a time Sompio has already seen
     pub clock_behind: bool,
     pub now: i64,
+    /// A beta build: everything is unlocked, and nothing counts down
+    pub beta: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -359,8 +369,13 @@ impl Book {
         self.last_seen
     }
 
-    /// Starts the free trial the first time Sompio runs on a device.
+    /// Starts the free trial the first time Sompio runs on a device. In a beta build it does the
+    /// opposite: it forgets any trial start, so the 30 days begin with the first build after launch.
     pub fn start_trial(&mut self, clock: i64) {
+        if beta() {
+            self.trial_started = None;
+            return;
+        }
         if self.trial_started.is_none() {
             let now = self.now(clock);
             self.trial_started = Some(now);
@@ -424,11 +439,12 @@ impl Book {
                     (k, t) => k.or(t),
                 };
                 let paid = key_end.is_some_and(|e| e > now) && by_key.get(i).copied().unwrap_or(false);
-                AppStatus { app, name: app.name(), active: end.is_some_and(|e| e > now), ends_at: end, trial_only: !paid }
+                let active = beta() || end.is_some_and(|e| e > now);
+                AppStatus { app, name: app.name(), active, ends_at: end, trial_only: !paid }
             })
             .collect();
         keys.reverse();
-        Status { apps, keys, trial_ends_at: trial_end, clock_behind, now }
+        Status { apps, keys, trial_ends_at: trial_end, clock_behind, now, beta: beta() }
     }
 
     /// Is this app usable right now?

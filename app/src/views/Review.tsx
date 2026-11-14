@@ -67,6 +67,7 @@ const NOUN: Record<KindKey, string> = {
   backup_code: "backup code",
   birth_date: "date of birth",
   number_plate: "number plate",
+  location: "location",
 };
 
 export default function Review({ scan, demo, initialKind, onScan, onOpen }: Props) {

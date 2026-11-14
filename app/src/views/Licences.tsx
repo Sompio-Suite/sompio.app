@@ -80,7 +80,7 @@ export default function Licences({ licence, onChanged }: Props) {
             <tbody>
               {SUITE.map((app) => {
                 const a = licence?.apps.find((x) => x.app === app.key);
-                const access = accessText(a, now);
+                const access = accessText(a, now, licence?.beta);
                 return (
                   <tr key={app.key}>
                     <td><span className="row-name"><Icon name={app.icon} size={16} />{app.name}</span></td>

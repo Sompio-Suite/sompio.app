@@ -4,6 +4,8 @@ import { date } from "./format";
 const DAY = 86_400_000;
 /** Where keys are bought. */
 export const BUY_URL = "https://sompio.org/pricing.php";
+/** Where anyone can report a problem or idea during the beta. */
+export const FEEDBACK_URL = "https://sompio.org/feedback.php";
 /** A forever key holds this many days. */
 export const FOREVER_DAYS = 65535;
 /** Access that ends more than 100 years from now came from a forever key. */
@@ -30,7 +32,8 @@ export function passEnding(l: LicenceStatus | null): { endsAt: number; daysLeft:
 export type Tone = "ok" | "trial" | "ended" | "none";
 
 /** "Trial, 12 days left", "Until 9 Dec 2026", "Ended 3 Nov 2026", "Not unlocked" */
-export function accessText(a: AppStatus | undefined, now: number): { text: string; tone: Tone } {
+export function accessText(a: AppStatus | undefined, now: number, beta = false): { text: string; tone: Tone } {
+  if (beta && a?.trial_only) return { text: "Beta, free until launch", tone: "ok" };
   if (!a || a.ends_at == null) return { text: "Not unlocked", tone: "none" };
   if (!a.active) return { text: `Ended ${date(a.ends_at)}`, tone: "ended" };
   if (isForever(a.ends_at, now)) return { text: "Forever", tone: "ok" };

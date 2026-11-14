@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api, openExternal, type LicenceStatus, type Occurrence, type ScanSummary } from "../api";
 import { date, n, plural } from "../format";
 import Icon from "../Icon";
-import { accessText, BUY_URL, SUITE } from "../licence";
+import { accessText, BUY_URL, FEEDBACK_URL, SUITE } from "../licence";
 import type { View } from "../App";
 
 interface Props {
@@ -28,7 +28,23 @@ export default function Overview({ licence, scan, cleanReady, onGo }: Props) {
         </div>
       </div>
 
-      {licence && trialOnly && anyActive && licence.trial_ends_at && (
+      {licence?.beta && (
+        <div className="notice">
+          <Icon name="sparkle" />
+          <div>
+            <strong>This is the Sompio beta: everything is unlocked, free.</strong>
+            <span>
+              Your 30-day free trial starts when Sompio launches. It's a beta, so things can still go wrong: keep a copy of
+              your passwords (Vault, then Auto-type, import and export, then Save as KeePass file) and your recovery sheet.
+              Found a problem or have an idea? Send it with the button.
+            </span>
+          </div>
+          <div className="notice-actions">
+            <button onClick={() => openExternal(FEEDBACK_URL).catch(() => {})}>Send feedback</button>
+          </div>
+        </div>
+      )}
+      {licence && !licence.beta && trialOnly && anyActive && licence.trial_ends_at && (
         <div className="notice">
           <Icon name="sparkle" />
           <div>
@@ -57,7 +73,7 @@ export default function Overview({ licence, scan, cleanReady, onGo }: Props) {
 
       <div className="suite-grid">
         {SUITE.map((app) => {
-          const access = accessText(licence?.apps.find((a) => a.app === app.key), now);
+          const access = accessText(licence?.apps.find((a) => a.app === app.key), now, licence?.beta);
           return (
             <article key={app.key} className={`suite-card${app.ready ? "" : " soon"}`}>
               <div className="suite-card-top">

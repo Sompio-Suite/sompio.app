@@ -24,6 +24,7 @@ const KINDS: Record<KindKey, [string, number, string]> = {
   passport: ["Passport & ID card numbers", 3, "With a passport or ID card number, someone can pose as you. Delete the message. If a photo of the document went out too, report it to your town hall or the police and consider replacing the document."],
   backup_code: ["Backup codes & recovery phrases", 3, "Backup codes and recovery phrases get around your two-factor login or open a crypto wallet outright. Make new backup codes on that site now (that cancels the old ones), or move the coins to a new wallet, then delete the message."],
   birth_date: ["Dates of birth", 2, "Your date of birth is a common security question and a key piece for identity fraud, together with your name. Delete the message if this is your own date of birth."],
+  location: ["Exact locations", 2, "This photo or map link shows an exact spot. If it's your home, school or work, delete the post. Before sharing a photo again, remove its location: in Windows, right-click the file, choose Properties, then Details, then Remove Properties and Personal Information."],
   number_plate: ["Number plates", 1, "A number plate can be tied to your car, and so to where you park and drive. Delete the message unless it's fine for this chat to know it."],
   crypto_wallet: ["Crypto wallets", 1, "Wallet addresses are public, but tying one to your account reveals its balance and history."],
 };
@@ -40,6 +41,7 @@ const LEAKS: [string, KindKey, string][] = [
   ["saving these here, ", "backup_code", "backup codes: 8f3k-2m9x"],
   ["party is on my birthday, ", "birth_date", "born on 14-03-1994"],
   ["I'm parked outside in ", "number_plate", "GZ-123-K"],
+  ["come over, we're here ", "location", "https://www.google.com/maps/@52.3731234,4.8903456,17z"],
 ];
 
 const channelDefs: [string, ChannelView["kind"], string | null][] = [
@@ -206,7 +208,7 @@ function licenceStatus() {
       app, name: app[0].toUpperCase() + app.slice(1), active: end > now, ends_at: end, trial_only: !paid,
     })),
     keys: mockKeys.map((k, i) => ({ serial: `a1b2c3d4e5f6070${i}`, label: "Sompio Suite", days: k.key.includes("FOREVER") ? 65535 : 30, activated_at: k.at, test: true, invalid: false })).reverse(),
-    trial_ends_at: trialEnd, clock_behind: false, now,
+    trial_ends_at: trialEnd, clock_behind: false, now, beta: true,
   };
 }
 

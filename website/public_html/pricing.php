@@ -9,10 +9,10 @@ site_header('pricing');
   <main class="wrap pricing-head">
     <p class="eyebrow">Licence keys</p>
     <h1>Keys go on sale at launch</h1>
-    <p class="lead">Sompio is in beta, so there's nothing to buy yet. Testers use it free for the whole beta.</p>
+    <p class="lead">Sompio is in open beta, so there's nothing to buy yet: everything is unlocked, free, until launch. After launch, you get the 30-day free trial on top.</p>
     <ul class="ticks">
-      <li>Already testing and your time is running out? Write to <a href="mailto:hello@sompio.org">hello@sompio.org</a> and we'll send you a new tester key.</li>
-      <li>Want to hear when keys are available? <a href="./#join">Join the beta</a> and tick "Also email me once when Sompio launches".</li>
+      <li>Using an older test version that asks for a key? <a href="download.php">Download the newest beta</a>: it unlocks everything.</li>
+      <li>Want to hear when keys are available? <a href="./#join">Get updates by email</a>.</li>
     </ul>
   </main>
 <?php site_footer(); ?>

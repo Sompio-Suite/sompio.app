@@ -1,8 +1,7 @@
 <?php
 // Sompio beta site settings. This is the only file you need to edit.
 return [
-    // The password testers type to get in. Change it to your own, and change it again to lock
-    // everyone out (they then need the new one).
+    // No longer used: the beta is open to everyone now, so there's no tester password.
     'password' => 'CHANGE-THIS-PASSWORD',
 
     // Where feedback is sent. A mailbox on your own domain works best (create it in cyberfolks).

@@ -8,7 +8,7 @@ import { listen as tauriListen, type UnlistenFn } from "@tauri-apps/api/event";
 export type KindKey =
   | "credential" | "card" | "iban" | "watch_term" | "address"
   | "phone" | "email" | "ip_address" | "postcode" | "crypto_wallet" | "sensitive_file"
-  | "id_number" | "passport" | "backup_code" | "birth_date" | "number_plate";
+  | "id_number" | "passport" | "backup_code" | "birth_date" | "number_plate" | "location";
 export type Status = "deleted" | "ok" | "later";
 export type Platform =
   | "discord" | "reddit" | "telegram" | "x" | "whatsapp" | "facebook" | "instagram"
@@ -104,7 +104,7 @@ export interface EmailProgress { done: number; total: number }
 export type AppKey = "clean" | "calendar" | "vault";
 export interface AppStatus { app: AppKey; name: string; active: boolean; ends_at: number | null; trial_only: boolean }
 export interface KeyView { serial: string; label: string; days: number; activated_at: number; test: boolean; invalid: boolean }
-export interface LicenceStatus { apps: AppStatus[]; keys: KeyView[]; trial_ends_at: number | null; clock_behind: boolean; now: number }
+export interface LicenceStatus { apps: AppStatus[]; keys: KeyView[]; trial_ends_at: number | null; clock_behind: boolean; now: number; beta: boolean }
 export interface Added { label: string; days: number; test: boolean; status: LicenceStatus }
 
 export interface HardwareKey { index: number; serial: number | null; label: string; slot: number; added_ms: number }
