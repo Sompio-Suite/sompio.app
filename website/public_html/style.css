@@ -52,13 +52,12 @@ main.wrap > .success, main.wrap > .error { margin-top: 1.2rem; }
 /* Intro and install steps on the left; the download card on the right stays in view while scrolling */
 /* Top row: intro + beta notice on the left, download card on the right, ending on the same line.
    The install steps follow underneath. */
-.hero { display: grid; grid-template-columns: 1.3fr 1fr; grid-template-areas: "intro card" "install install"; column-gap: 2rem; row-gap: 2.2rem; align-items: stretch; }
+.hero { display: grid; grid-template-columns: 1.3fr 1fr; grid-template-areas: "intro card" "install install"; column-gap: 2rem; row-gap: 2.2rem; align-items: start; }
 .hero-intro { grid-area: intro; display: flex; flex-direction: column; }
 /* The title starts level with the top of the download card (no space above its letters) */
 .hero-intro h1 { line-height: 1.1; margin: -0.12em 0 0.5rem; }
-/* The beta notice fits its text and sits at the bottom, level with the card's bottom edge;
-   any spare height goes above it, under the intro */
-.hero .beta-note { margin-top: auto; }
+/* The beta notice follows the intro straight away; the label keeps its own width */
+.hero-intro .status-pill { align-self: flex-start; }
 .hero .download { grid-area: card; }
 .hero-install { grid-area: install; align-self: start; }
 .lead { font-size: 1.05rem; color: var(--ink-2); }
