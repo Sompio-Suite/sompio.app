@@ -192,7 +192,7 @@ fn photo_places_only_when_turned_on() {
     let dir = tempfile::tempdir().unwrap();
     let photos = dir.path().join("Photos");
     std::fs::create_dir(&photos).unwrap();
-    std::fs::copy(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/photo-with-location.jpg"), photos.join("IMG_2041.jpg")).unwrap();
+    std::fs::copy(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/photo-with-location.jpg"), photos.join("IMG_2041.jpg")).unwrap();
 
     let (lat, lon) = sompio_clean::photo_location(&photos.join("IMG_2041.jpg")).expect("GPS in the test photo");
     assert!((lat - 52.3731).abs() < 0.001 && (lon - 4.8925).abs() < 0.001, "{lat} {lon}");

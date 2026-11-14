@@ -58,6 +58,41 @@ export default function Samples({ cleanHasData, onCleanDemo, onGo }: Props) {
       </div>
       {note && <div className={note.ok ? "success" : "error"} role="status">{note.text}</div>}
 
+      <section className="panel sample-card sample-all">
+        <header><Icon name="eye" /><h2>Everything at once</h2></header>
+        <div className="sample-row">
+          <div>
+            <strong>Meet Alex Rivers</strong>
+            <span className="small muted">
+              One made-up person across all of Sompio. Trace gets years of Alex's chats from Discord, Reddit, Telegram,
+              Instagram, WhatsApp and email, with every kind of leak Trace looks for. Vault gets Alex's logins, with 2FA codes
+              and weak and reused passwords. Calendar gets reminders that pop up within a minute, and Alex's guild schedule,
+              kept in New York time.
+            </span>
+          </div>
+          <button
+            className="primary"
+            disabled={!!busy}
+            onClick={() =>
+              run("all", async () => {
+                const done: string[] = [];
+                await api.vaultAddSamples();
+                done.push("Vault");
+                await api.calAddSamples();
+                done.push("Calendar");
+                if (!cleanHasData) {
+                  await onCleanDemo();
+                  done.push("Trace");
+                }
+                return `Added sample data to ${done.join(", ")}.${cleanHasData ? " Trace already has your own data, so it was left alone." : ""}`;
+              })
+            }
+          >
+            {busy === "all" ? "Adding…" : "Add Alex's sample data"}
+          </button>
+        </div>
+      </section>
+
       <section className="panel sample-card">
         <header><Icon name="calendar" /><h2>Calendar</h2></header>
         <div className="sample-row">

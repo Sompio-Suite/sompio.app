@@ -62,11 +62,14 @@ pub fn write_samples(dir: &Path) -> Result<Vec<SampleFile>> {
             (
                 "Messages/c333/messages.json",
                 r#"[{"ID": "1200000000000000000", "Timestamp": "2023-05-05 09:00:00", "Contents": "happy birthday! born 14/02/1994 right?", "Attachments": ""},
-                    {"ID": "1200000000000000001", "Timestamp": "2023-05-05 09:01:00", "Contents": "see you saturday", "Attachments": ""}]"#.into(),
+                    {"ID": "1200000000000000001", "Timestamp": "2023-05-05 09:01:00", "Contents": "see you saturday", "Attachments": ""},
+                    {"ID": "1200000000000000002", "Timestamp": "2023-05-06 11:00:00", "Contents": "parked outside, grey car GZ-123-K", "Attachments": ""},
+                    {"ID": "1200000000000000003", "Timestamp": "2023-05-07 15:30:00", "Contents": "come over https://www.google.com/maps/@52.3731234,4.8903456,17z", "Attachments": ""},
+                    {"ID": "1200000000000000004", "Timestamp": "2023-06-01 22:10:00", "Contents": "saving these here, discord backup codes: 8f3k-2m9x 7h2p-4q8z", "Attachments": ""}]"#.into(),
             ),
         ],
     )?;
-    add("Discord package.zip", "Discord", "A data package: a server with two channels and two DMs, with an email, phone, IBAN, card number, address, password and IP address in it.");
+    add("Discord package.zip", "Discord", "A data package: a server with two channels and two DMs, with an email, phone, IBAN, card number, address, password, IP address, date of birth, number plate, map link and backup codes in it.");
 
     zip(
         &dir.join("Reddit export.zip"),
@@ -83,13 +86,14 @@ pub fn write_samples(dir: &Path) -> Result<Vec<SampleFile>> {
                 "comments.csv",
                 "id,permalink,date,ip,subreddit,gildings,link,parent,body,media\n\
                  c1,/r/Amsterdam/comments/x/_/c1/,2023-02-03 04:05:06 UTC,,Amsterdam,0,,,\"DM me, alex.rivers@example.org\",\n\
-                 c2,/r/Amsterdam/comments/x/_/c2/,2023-02-04 04:05:06 UTC,,Amsterdam,0,,,just chatting,\n"
+                 c2,/r/Amsterdam/comments/x/_/c2/,2023-02-04 04:05:06 UTC,,Amsterdam,0,,,just chatting,\n\
+                 c3,/r/travel/comments/y/_/c3/,2024-04-04 04:05:06 UTC,,travel,0,,,\"is passport number: NXC4R9P12 ok for the form? new one\",\n"
                     .into(),
             ),
             ("messages.csv", "id,permalink,thread_id,date,ip,from,to,subject,body\nm1,/message/messages/m1,,2023-01-01 00:00:00 UTC,,alex_rivers,buyer1,Re: GPU,\"pay me at NL91 ABNA 0417 1643 00\"\n".into()),
         ],
     )?;
-    add("Reddit export.zip", "Reddit", "Posts, comments and a private message, with an IP address, street address, email and IBAN.");
+    add("Reddit export.zip", "Reddit", "Posts, comments and a private message, with an IP address, street address, email, IBAN and passport number.");
 
     let tg = r#"{
       "about": "Here is the data you requested.",
@@ -102,12 +106,13 @@ pub fn write_samples(dir: &Path) -> Result<Vec<SampleFile>> {
           {"id": 3, "type": "message", "date": "2024-01-02T09:00:00", "date_unixtime": "1704186000", "from": "Alex", "from_id": "user4242", "text": "my BSN is 111222333 for the form"}
         ]},
         {"name": "Builders", "type": "private_supergroup", "id": 1500100200, "messages": [
-          {"id": 55, "type": "message", "date": "2024-02-02T12:00:00", "date_unixtime": "1706875200", "from_id": "user4242", "text": "my password: Hunter2forreal", "photo": "photos/photo_1.jpg"}
+          {"id": 55, "type": "message", "date": "2024-02-02T12:00:00", "date_unixtime": "1706875200", "from_id": "user4242", "text": "my password: Hunter2forreal", "photo": "photos/photo_1.jpg"},
+          {"id": 56, "type": "message", "date": "2024-03-03T12:00:00", "date_unixtime": "1709467200", "from_id": "user4242", "text": "new wallet, seed phrase: abandon ability able about above absent absorb abstract absurd abuse access accident"}
         ]}
       ]}
     }"#;
     zip(&dir.join("Telegram export.zip"), &[("Telegram Desktop/DataExport_2026-11-01/result.json", tg.into())])?;
-    add("Telegram export.zip", "Telegram", "A full Telegram Desktop export: a private chat and a group, with a phone number, a BSN and a password.");
+    add("Telegram export.zip", "Telegram", "A full Telegram Desktop export: a private chat and a group, with a phone number, a BSN, a password and a wallet's recovery phrase.");
 
     zip(
         &dir.join("X (Twitter) archive.zip"),
@@ -229,7 +234,14 @@ pub fn write_samples(dir: &Path) -> Result<Vec<SampleFile>> {
         &pc.join("CV Alex Rivers.docx"),
         &[("word/document.xml", "<w:document><w:body><w:p><w:r><w:t>Alex Rivers</w:t></w:r></w:p><w:p><w:r><w:t>alex.rivers@example.org &amp; 06-12345678</w:t></w:r></w:p></w:body></w:document>".into())],
     )?;
-    add("Sample PC folder", "This PC", "A folder for \"Scan a folder\": notes with a password and IBAN, a passport scan's file name, contacts and a CV.");
+    std::fs::create_dir_all(pc.join("Pictures"))?;
+    std::fs::write(pc.join("Pictures/Screenshot 2024-06-01.png"), include_bytes!("../assets/screenshot-notes.png"))?;
+    std::fs::write(pc.join("Pictures/IMG_2041.jpg"), include_bytes!("../assets/photo-with-location.jpg"))?;
+    add(
+        "Sample PC folder",
+        "This PC",
+        "A folder for \"Scan folders\": notes with a password and IBAN, a passport scan's file name, contacts, a CV, a screenshot with backup codes and ID numbers (tick \"Read text in pictures\") and a photo that shows where it was taken (tick \"Check where photos were taken\").",
+    );
 
     let mut readme = String::from(
         "Sompio Trace samples\r\n====================\r\n\r\nMade-up exports to try every import in Sompio Trace. Nothing in them is real.\r\nIn Trace, open Sources, choose \"Add an export\" and pick one of these.\r\n\r\n",

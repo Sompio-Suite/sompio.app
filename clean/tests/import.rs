@@ -142,10 +142,13 @@ fn sample_data_loads_and_has_findings() {
     load_demo(&mut store).unwrap();
     assert!(store.is_demo().unwrap());
     let stats = store.stats().unwrap();
-    assert!(stats.messages > 2000 && stats.servers == 2 && stats.dms == 2);
-    assert_eq!(stats.sources.len(), 2);
+    assert!(stats.messages > 2000 && stats.servers == 2 && stats.dms == 8);
+    assert_eq!(stats.sources.len(), 6);
     let s = run_scan(&mut store, &ScanOptions::default(), &mut |_, _| {}).unwrap();
-    for k in ["email", "phone", "address", "iban", "card", "credential", "ip_address"] {
+    for k in [
+        "email", "phone", "address", "iban", "card", "credential", "ip_address", "id_number", "passport", "backup_code",
+        "birth_date", "number_plate", "location",
+    ] {
         assert!(count(&s, k) > 0, "sample data should show {k}");
     }
     // A real import replaces the sample flag

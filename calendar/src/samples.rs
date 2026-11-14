@@ -8,6 +8,8 @@ use chrono::{Duration, Local, NaiveDateTime};
 use std::path::Path;
 
 pub const SAMPLE_NAME: &str = "Sample reminders";
+/// The sample guild schedule, run from New York, so time zones can be seen at work.
+pub const GUILD_SAMPLE_NAME: &str = "Night Owls raids (sample)";
 
 const SHARED: &str = "#! name = Night Owls raids (sample)
 #! timezone = Europe/Amsterdam
@@ -40,6 +42,11 @@ pub fn add_live_samples(store: &CalendarStore, now: NaiveDateTime) -> Result<i64
         ],
     )?;
     store.set_options(id, None, None, None, Some(&["Team A".to_string()]), None)?;
+
+    // A guild's shared schedule, kept in New York time: Sompio shows each raid at your own local time.
+    let guild = SHARED.replace("Europe/Amsterdam", "America/New_York");
+    let gid = store.import(&guild, GUILD_SAMPLE_NAME, None, false)?;
+    store.set_options(gid, None, None, None, Some(&["Healers".to_string()]), None)?;
     Ok(id)
 }
 

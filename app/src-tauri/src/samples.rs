@@ -47,7 +47,9 @@ pub async fn cal_add_samples(state: State<'_, AppState>) -> CmdResult<i64> {
     let (path, key) = state.vault.calendar_db().map_err(|e| e.to_string())?;
     let id = tauri::async_runtime::spawn_blocking(move || -> anyhow::Result<i64> {
         let store = sompio_calendar::CalendarStore::open_encrypted(&path, &key)?;
-        if let Some(old) = store.load()?.into_iter().find(|l| l.view.name == sompio_calendar::samples::SAMPLE_NAME && l.view.owned) {
+        for old in store.load()?.into_iter().filter(|l| {
+            (l.view.name == sompio_calendar::samples::SAMPLE_NAME && l.view.owned) || l.view.name == sompio_calendar::samples::GUILD_SAMPLE_NAME
+        }) {
             store.remove_schedule(old.view.id)?;
         }
         sompio_calendar::samples::add_live_samples(&store, sompio_calendar::samples::now())
