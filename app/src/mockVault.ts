@@ -6,7 +6,7 @@ interface Item { d: VaultEntryDetail; password: string; otp: string | null; secr
 const ROOT = "root", BIN = "bin";
 let groups: VaultGroup[] = [
   { id: ROOT, parent: null, name: "Vault", depth: 0, entries: 0, recycle_bin: false },
-  { id: "g-games", parent: ROOT, name: "Games", depth: 1, entries: 0, recycle_bin: false },
+  { id: "g-work", parent: ROOT, name: "Work", depth: 1, entries: 0, recycle_bin: false },
   { id: "g-mail", parent: ROOT, name: "Email", depth: 1, entries: 0, recycle_bin: false },
   { id: "g-money", parent: ROOT, name: "Money", depth: 1, entries: 0, recycle_bin: false },
   { id: "g-social", parent: ROOT, name: "Social", depth: 1, entries: 0, recycle_bin: false },
@@ -24,8 +24,8 @@ const make = (group: string, title: string, username: string, url: string, passw
   password, otp, secrets: {}, history: [],
 });
 let items: Item[] = [
-  make("g-games", "Battle.net", "sam#2231", "https://battle.net", "Tundra-Velvet-Crane-42", { tags: ["gaming"], autotype: { enabled: true, sequence: "{PASSWORD}{ENTER}", windows: ["Battle.net*"] } }, "JBSWY3DPEHPK3PXP"),
-  make("g-games", "Steam", "sam_nl", "https://store.steampowered.com", "hunter22", {}, null, 900),
+  make("g-work", "Zoom", "alex.rivers@example.org", "https://zoom.us", "Tundra-Velvet-Crane-42", { tags: ["work"], autotype: { enabled: true, sequence: "{PASSWORD}{ENTER}", windows: ["Zoom*"] } }, "JBSWY3DPEHPK3PXP"),
+  make("g-work", "Slack", "alex.rivers@example.org", "https://slack.com", "hunter22", {}, null, 900),
   make("g-mail", "Proton Mail", "sam@proton.me", "https://account.proton.me", "quarry-lantern-fjord-pelican-amber", { notes: "Recovery phrase is in the safe." }, "JBSWY3DPEHPK3PXP"),
   make("g-mail", "Gmail (old)", "sam.old@gmail.com", "https://mail.google.com", "hunter22", {}, null, 1400),
   make("g-money", "ING", "sam", "https://mijn.ing.nl", "Plover!Mosaic-Ridge-9", { custom: [{ key: "PIN", value: null, protected: true }] }),
@@ -34,7 +34,7 @@ let items: Item[] = [
   make(ROOT, "Home Wi-Fi", "", "", "orbit-candle-meadow-tusk", { notes: "Guest network: Sompio-Guest" }),
 ];
 items[4].secrets.PIN = "4321";
-items[1].history.push({ password: "steam123", modified: ago(1200) });
+items[1].history.push({ password: "zoom-2023", modified: ago(1200) });
 let settings: VaultSettings = { shortcut: "Ctrl+Alt+A", clear_seconds: 20, lock_after_type: false, auto_icons: true, browser: false };
 let browsers = [{ id: "a1b2", browser: "Chrome", added: Date.now() - 86400000 * 3, last_used: Date.now() - 3600000 }];
 // In the preview, "downloaded" icons are drawn here: a coloured tile with the site's first letter
@@ -201,7 +201,7 @@ export const vaultHandlers: Record<string, (a: any) => unknown> = {
   browser_open_extension_folder: () => undefined,
   browser_installed: () => ["chrome", "edge", "firefox"],
   browser_open_extensions_page: () => undefined,
-  vault_autotype_matches: () => ({ window: "Battle.net Login", matches: [{ entry: summary(items[0]), sequence: "{PASSWORD}{ENTER}", because: "window rule" }, { entry: summary(items[1]), sequence: "{USERNAME}{TAB}{PASSWORD}{ENTER}", because: "title" }] }),
+  vault_autotype_matches: () => ({ window: "Zoom - Sign In", matches: [{ entry: summary(items[0]), sequence: "{PASSWORD}{ENTER}", because: "window rule" }, { entry: summary(items[1]), sequence: "{USERNAME}{TAB}{PASSWORD}{ENTER}", because: "title" }] }),
   vault_autotype_choose: () => undefined,
   vault_autotype_now: () => undefined,
   vault_add_attachment: ({ id, path }) => {
@@ -227,7 +227,7 @@ export const vaultHandlers: Record<string, (a: any) => unknown> = {
     files: which === "vault"
       ? [["Sample KeePass.kdbx", "A KeePass file. Its password is: sample-password"], ["Sample Bitwarden export.csv", "A Bitwarden export with a folder and a 2FA secret."], ["Test login page.html", "Open it in your browser to try auto-type."]]
       : which === "calendar"
-        ? [["Night Owls raids (sample).csv", "A shared schedule with groups."], ["Sample Desk Reminders folder", "A Desk Reminders folder to bring in."]]
+        ? [["Northwind team (sample).csv", "A shared team schedule with groups."], ["Sample Desk Reminders folder", "A Desk Reminders folder to bring in."]]
         : [["Discord package.zip", "Discord: a server with two channels and two DMs."], ["Telegram export.zip", "Telegram: a private chat and a group."], ["Sample PC folder", "This PC: a folder for Scan a folder."]],
   }),
 };

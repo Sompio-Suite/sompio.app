@@ -66,7 +66,7 @@ export default function Samples({ cleanHasData, onCleanDemo, onGo }: Props) {
             <span className="small muted">
               One made-up person across all of Sompio. Trace gets years of Alex's chats from Discord, Reddit, Telegram,
               Instagram, WhatsApp and email, with every kind of leak Trace looks for. Vault gets Alex's logins, with 2FA codes
-              and weak and reused passwords. Calendar gets reminders that pop up within a minute, and Alex's guild schedule,
+              and weak and reused passwords. Calendar gets reminders that pop up within a minute, and the schedule of Alex's team,
               kept in New York time.
             </span>
           </div>

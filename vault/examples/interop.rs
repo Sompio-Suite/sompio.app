@@ -5,8 +5,8 @@ fn main() {
     let dir = std::path::Path::new(&args[1]);
     let mut v = Vault::open(&dir.join("inner.kdbx"), &[5u8; 32]).unwrap();
     if args[2] == "export" {
-        let g = v.add_group(None, "Games").unwrap();
-        v.add_entry(&EntryInput { group_id: Some(g), title: "Battle.net".into(), username: "sam".into(), password: Some("Tundra-Velvet-42".into()), url: "https://battle.net".into(), otp: Some("JBSWY3DPEHPK3PXP".into()), notes: "line1\nline2".into(), tags: vec!["gaming".into()], custom: vec![FieldInput { key: "PIN".into(), value: Some("4321".into()), protected: true }], ..Default::default() }).unwrap();
+        let g = v.add_group(None, "Work").unwrap();
+        v.add_entry(&EntryInput { group_id: Some(g), title: "Zoom".into(), username: "sam".into(), password: Some("Tundra-Velvet-42".into()), url: "https://zoom.us".into(), otp: Some("JBSWY3DPEHPK3PXP".into()), notes: "line1\nline2".into(), tags: vec!["gaming".into()], custom: vec![FieldInput { key: "PIN".into(), value: Some("4321".into()), protected: true }], ..Default::default() }).unwrap();
         v.export_kdbx(&dir.join("out.kdbx"), "export-pass-123", None).unwrap();
         println!("exported");
     } else {

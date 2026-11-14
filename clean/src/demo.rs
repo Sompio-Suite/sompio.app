@@ -7,10 +7,18 @@ use anyhow::Result;
 
 const DISCORD_EPOCH_MS: i64 = 1_420_070_400_000;
 
-const WORDS: &[&str] = &[
-    "anyone", "up", "for", "a", "raid", "tonight", "the", "boss", "was", "rough", "need", "healer", "brb",
-    "dinner", "that", "patch", "broke", "my", "ui", "see", "you", "later", "nice", "drop", "gg", "honestly",
-    "no", "idea", "what", "happened", "lol", "server", "is", "lagging", "again", "who", "has", "spare", "mats",
+/// Everyday messages around the leaks.
+const CHATTER: &[&str] = &[
+    "morning everyone", "has anyone found a good dentist near the centre?", "thanks, that helped a lot",
+    "the meeting moved to 3 pm", "can you share the slides after the call?", "I'll be about ten minutes late",
+    "does anyone know if the post office is open on Saturday?", "great photos from the weekend",
+    "I'm looking for a second-hand bike, any tips?", "the train was delayed again", "see you tomorrow",
+    "happy birthday! hope you have a great day", "who's bringing what to the picnic?", "sounds good to me",
+    "my laptop keeps restarting after the update", "try turning off fast startup, that fixed it for me",
+    "the flat viewing is at 6, want to come along?", "rent went up again this year", "I'll send the invoice tonight",
+    "is the router supposed to blink orange?", "booked the flights, finally", "any recommendations for a tax adviser?",
+    "the kids loved the museum", "running late, start without me", "that recipe was amazing, thanks for sharing",
+    "anyone up for a run on Sunday morning?", "the landlord finally fixed the heating", "good luck with the interview!",
 ];
 
 /// One made-up person, Alex Rivers, the same as in the Vault and Calendar samples.
@@ -32,6 +40,22 @@ const LEAKS: &[&str] = &[
     "parked outside, the grey one, GZ-123-K",
     "come over, we're here https://www.google.com/maps/@52.3731234,4.8903456,17z",
     "seed phrase: abandon ability able about above absent absorb abstract absurd abuse access accident",
+    // Friends, family and work in other countries
+    "for the deposit in Berlin: IBAN DE89 3704 0044 0532 0130 00, Alex Rivers",
+    "pay the Paris flat to FR14 2004 1010 0505 0001 3M02 606 please",
+    "the Madrid landlord's account is ES91 2100 0418 4502 0005 1332",
+    "UK account for the refund: sort code 20-00-00, account number 12345678",
+    "for the US payroll: routing number 021000021 account 1234567890",
+    "the HR form needs my NI number, it's AB 12 34 56 C",
+    "copia del DNI para la reserva: 12345678Z",
+    "my codice fiscale for the contract is RSSMRA85T10A562S",
+    "PESEL for the clinic: 44051401359",
+    "new address: 12 rue de Rivoli, 75001 Paris",
+    "we moved to Calle Mayor 5, Madrid",
+    "the office is at Via Roma, 10 in Milan",
+    "call my US number +1 415 555 0132 when you land",
+    "my UK mobile is +44 7700 900123",
+    "in Germany I'm on +49 30 901820",
 ];
 
 struct Rng(u64, usize);
@@ -49,8 +73,7 @@ impl Rng {
         list[(self.next() * list.len() as f64) as usize % list.len()]
     }
     fn chatter(&mut self) -> String {
-        let len = 3 + (self.next() * 18.0) as usize;
-        (0..len).map(|_| self.pick(WORDS)).collect::<Vec<_>>().join(" ")
+        self.pick(CHATTER).to_string()
     }
 }
 
@@ -63,9 +86,9 @@ pub fn load_demo(store: &mut Store) -> Result<()> {
 
     // Discord
     let discord: &[(&str, &str, Option<(&str, &str)>)] = &[
-        ("general", "server", Some(("700000000000000001", "Night Owls Gaming"))),
-        ("raid-planning", "server", Some(("700000000000000001", "Night Owls Gaming"))),
-        ("trading", "server", Some(("700000000000000001", "Night Owls Gaming"))),
+        ("general", "server", Some(("700000000000000001", "Amsterdam Expats"))),
+        ("housing", "server", Some(("700000000000000001", "Amsterdam Expats"))),
+        ("marketplace", "server", Some(("700000000000000001", "Amsterdam Expats"))),
         ("help", "server", Some(("700000000000000002", "Home Lab Builders"))),
         ("Direct message with sam", "dm", None),
         ("Direct message with noor", "dm", None),
@@ -87,7 +110,7 @@ pub fn load_demo(store: &mut Store) -> Result<()> {
             counter += 1;
             let id = (((ts - DISCORD_EPOCH_MS) << 22) + (counter % 4096)).to_string();
             let text = if rng.next() < 0.012 { rng.leak().to_string() } else { rng.chatter() };
-            let att = if rng.next() < 0.04 { format!("https://cdn.discordapp.com/attachments/{cid_ext}/{id}/screenshot.png") } else { String::new() };
+            let att = if rng.next() < 0.04 { format!("https://cdn.discordapp.com/attachments/{cid_ext}/{id}/photo.jpg") } else { String::new() };
             let link = format!("https://discord.com/channels/{}/{cid_ext}/{id}", guild.map(|g| g.0).unwrap_or("@me"));
             w.message(&id, cid, ts, &text, &att, Some(&link))?;
         }

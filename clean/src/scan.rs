@@ -85,7 +85,7 @@ impl Kind {
         match self {
             Kind::Credential => "Passwords, tokens & keys",
             Kind::Card => "Payment cards",
-            Kind::Iban => "Bank accounts (IBAN)",
+            Kind::Iban => "Bank accounts",
             Kind::WatchTerm => "Your watch terms",
             Kind::Address => "Street addresses",
             Kind::Phone => "Phone numbers",
@@ -108,7 +108,7 @@ impl Kind {
         match self {
             Kind::Credential => "Change this password or revoke this token now. Deleting the message doesn't undo the leak, because others may already have seen it.",
             Kind::Card => "Contact your bank to block or replace this card, then delete the message.",
-            Kind::Iban => "An IBAN alone can't empty your account, but scammers use it to sound convincing. Delete the message unless you share this account number publicly anyway.",
+            Kind::Iban => "A bank account number (an IBAN, or a sort code or routing number with an account number) can't empty your account on its own, but scammers use it to sound convincing, and in some countries it's enough to set up a direct debit. Delete the message unless you share this account publicly anyway.",
             Kind::WatchTerm => "You told Sompio this is sensitive. Decide whether this message needs to go.",
             Kind::Address => "Delete the message unless you're fine with everyone in this chat knowing this address.",
             Kind::Phone => "Delete the message if you don't want this number linked to your account there.",
@@ -117,7 +117,7 @@ impl Kind {
             Kind::Postcode => "A postcode narrows down where you live. Low risk on its own, more so next to a street name.",
             Kind::CryptoWallet => "Wallet addresses are public, but tying one to your account reveals its balance and history.",
             Kind::SensitiveFile => "This file's name suggests an identity document, money matters or secrets. Keep it only if you need it, ideally in an encrypted folder or password manager, and move it to the Recycle Bin if you don't.",
-            Kind::IdNumber => "A national ID number (like a BSN, CNP or social security number) is what fraudsters need to open accounts in your name. Delete the message, and only give this number to official bodies, your employer, bank or doctor.",
+            Kind::IdNumber => "A national ID number (like a BSN, social security or National Insurance number, DNI, codice fiscale, PESEL or CNP) is what fraudsters need to open accounts in your name. Delete the message, and only give this number to official bodies, your employer, bank or doctor.",
             Kind::Passport => "With a passport or ID card number, someone can pose as you. Delete the message. If a photo of the document went out too, report it to your town hall or the police and consider replacing the document.",
             Kind::BackupCode => "Backup codes and recovery phrases get around your two-factor login or open a crypto wallet outright. Make new backup codes on that site now (that cancels the old ones), or move the coins to a new wallet, then delete the message.",
             Kind::BirthDate => "Your date of birth is a common security question and a key piece for identity fraud, together with your name. Delete the message if this is your own date of birth.",
@@ -166,12 +166,21 @@ impl Scanner {
             d(Kind::Credential, r"(?i)\b(?:password|passwd|pwd|pass|wachtwoord|passwort|parola|parolă)\s*(?:is\s*)?[:=]\s*\S{4,}")?,
             d(Kind::Card, r"\b[0-9](?:[ -]?[0-9]){12,18}\b")?,
             d(Kind::Iban, r"\b[A-Z]{2}[0-9]{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,3})?\b")?,
+            // UK: sort code and account number together
+            d(Kind::Iban, r"(?i)\bsort\s*code\W{0,4}[0-9]{2}[- ]?[0-9]{2}[- ]?[0-9]{2}\b[^\n]{0,25}?\b(?:account|acc|a/c)(?:\s*(?:no|number|nr))?\.?\W{0,4}[0-9]{8}\b")?,
+            // US: routing number and account number together (either order)
+            d(Kind::Iban, r"(?i)\b(?:routing|aba|rtn)(?:\s*(?:no|number|#))?\.?\W{0,4}[0-9]{9}\b[^\n]{0,25}?\b(?:account|acct|acc)(?:\s*(?:no|number|#))?\.?\W{0,4}[0-9]{6,17}\b")?,
+            d(Kind::Iban, r"(?i)\b(?:account|acct)(?:\s*(?:no|number|#))?\.?\W{0,4}[0-9]{6,17}\b[^\n]{0,25}?\b(?:routing|aba|rtn)(?:\s*(?:no|number|#))?\.?\W{0,4}[0-9]{9}\b")?,
             // Dutch / German / Belgian compound street names: "Prinsengracht 263", "Hauptstraße 5"
             d(Kind::Address, r"(?i)\b\p{L}{2}[\p{L}'-]*(?:straat|laan|weg|gracht|plein|kade|dijk|singel|steeg|strasse|straße|gasse|allee)\s+[0-9]{1,4}[a-z]?\b")?,
             // English: "221B Baker Street" (capitalised name words, to skip "5 minutes down the road")
             d(Kind::Address, r"\b[0-9]{1,5}[A-Za-z]?\s+(?:[A-Z][\p{L}'.-]*\s+){1,3}(?i:street|avenue|ave|road|rd|boulevard|blvd|lane)\b\.?")?,
             // Romanian: "Strada Lipscani nr. 12", "Bd. Unirii 5"
             d(Kind::Address, r"(?i)\b(?:strada|str\.|bulevardul|bd\.|calea|aleea|[șşs]oseaua|splaiul)\s+\p{L}[\p{L} .-]{1,40}?,?\s*(?:nr\.?\s*)?[0-9]{1,4}\b")?,
+            // French: "12 rue de Rivoli", "5 bis avenue Foch"
+            d(Kind::Address, r"(?i:\b[0-9]{1,4}(?:\s?(?:bis|ter))?,?\s+(?:rue|avenue|av\.|boulevard|bd|place|chemin|all[ée]e|impasse|quai|cours)\s+(?:de la |de l'|du |des |de |d')?)\p{Lu}[\p{L}'-]+")?,
+            // Spanish, Italian, Portuguese, Polish: "Calle Mayor 5", "Via Roma, 10", "Rua Augusta 24", "ul. Długa 7"
+            d(Kind::Address, r"(?i:\b(?:calle|c/|avenida|avda\.|plaza|paseo|carrer|via|viale|piazza|corso|rua|avenida|pra[çc]a|ulica|ul\.|aleja|al\.)\s+(?:de la |del |de |da |do |dos |della |dei )?)\p{Lu}[\p{L}'.-]*(?:\s\p{Lu}[\p{L}'.-]*){0,3},?\s*(?:n[º°o.]?\s*)?[0-9]{1,4}[a-zA-Z]?\b")?,
             d(Kind::Phone, r"(?:\+|\b00)[1-9][0-9 ().-]{7,18}[0-9]")?,
             d(Kind::Phone, r"\b0[1-9][0-9 -]{7,12}[0-9]\b")?,
             d(Kind::Phone, r"\(?\b[2-9][0-9]{2}\)?[ .-][0-9]{3}[ .-][0-9]{4}\b")?,
@@ -181,8 +190,17 @@ impl Scanner {
             d(Kind::CryptoWallet, r"\bbc1[a-z0-9]{25,59}\b|\b0x[a-fA-F0-9]{40}\b")?,
             // Dutch BSN, only next to its name (nine-digit numbers are everywhere); checked with the eleven test
             d(Kind::IdNumber, r"(?i)\b(?:bsn|burgerservicenummer|sofi-?nummer|citizen service number)\b\W{0,5}(?:(?:is|nr|nummer|number)\.?\s*:?\s*)?[0-9](?:[ .]?[0-9]){8}\b")?,
+            // Other countries' numbers next to their name: Polish PESEL, French social security (NIR),
+            // German tax ID, Belgian national number
+            d(Kind::IdNumber, r"(?i)\b(?:pesel|num[ée]ro de s[ée]curit[ée] sociale|s[ée]curit[ée] sociale|num[ée]ro de s[ée]cu|nir|steuer-?id|steueridentifikationsnummer|steuer-identifikationsnummer|rijksregisternummer|num[ée]ro national|national number)\b\W{0,5}(?:(?:is|nr|no|number|nummer|num[ée]ro)\.?\s*:?\s*)?[0-9](?:[ .-]?[0-9]){10,14}\b")?,
             // US social security number, 123-45-6789
             d(Kind::IdNumber, r"\b[0-8][0-9]{2}-[0-9]{2}-[0-9]{4}\b")?,
+            // UK National Insurance number, AB 12 34 56 C
+            d(Kind::IdNumber, r"\b[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z] ?[0-9]{2} ?[0-9]{2} ?[0-9]{2} ?[A-D]\b")?,
+            // Spanish DNI (12345678Z) and NIE (X1234567L), with their check letter
+            d(Kind::IdNumber, r"\b(?:[0-9]{8}|[XYZ]-?[0-9]{7})-?[A-HJ-NP-TV-Z]\b")?,
+            // Italian codice fiscale: RSSMRA85T10A562S
+            d(Kind::IdNumber, r"\b[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]\b")?,
             // Romanian CNP: 13 digits with a check digit and a real birth date inside
             d(Kind::IdNumber, r"\b[1-8][0-9]{12}\b")?,
             d(Kind::Passport, r"(?i:\b(?:passport|paspoort|pa[sș]aport|reisepass|id[ -]?card|identity card|identiteitskaart|id-kaart)(?:\s+(?:no|nr|number|nummer|num[aă]r))?\.?\s*(?:is\s+)?[:#]?\s*)[A-Z0-9]{6,9}\b")?,
@@ -310,7 +328,20 @@ fn validate(kind: Kind, text: &str, start: usize, end: usize) -> bool {
                 || p4 == 6011 || p2 == 65 || p2 == 35;
             len_ok && brand && luhn(&ds)
         }
-        Kind::Iban => iban_valid(m),
+        Kind::Iban => {
+            let lower = m.to_lowercase();
+            if lower.contains("routing") || lower.contains("aba") || lower.contains("rtn") {
+                // The 9-digit US routing number has its own check digit
+                let routing = m
+                    .split(|c: char| !c.is_ascii_digit())
+                    .find(|p| p.len() == 9)
+                    .map(|p| p.chars().map(|c| c as u32 - '0' as u32).collect::<Vec<_>>());
+                return routing.is_some_and(|d| {
+                    (3 * (d[0] + d[3] + d[6]) + 7 * (d[1] + d[4] + d[7]) + (d[2] + d[5] + d[8])) % 10 == 0 && d.iter().any(|x| *x != 0)
+                });
+            }
+            lower.contains("sort") || iban_valid(m)
+        }
         Kind::Phone => {
             let n = digits(m).len();
             let next_is_digit = after.chars().next().is_some_and(|c| c.is_ascii_digit());
@@ -331,20 +362,7 @@ fn validate(kind: Kind, text: &str, start: usize, end: usize) -> bool {
             !matches!(letters, "SA" | "SD" | "SS" | "AM" | "PM" | "GB" | "MB" | "KB" | "TB" | "HZ")
                 && !after.starts_with(|c: char| c.is_alphanumeric())
         }
-        Kind::IdNumber => {
-            let ds = digits(m);
-            if m.contains('-') {
-                // US SSN: never 000, 666 or 9xx in the first part, 00 or 0000 in the others
-                let area = ds[0] * 100 + ds[1] * 10 + ds[2];
-                return area != 0 && area != 666 && !(ds[3] == 0 && ds[4] == 0) && ds[5..].iter().any(|d| *d != 0)
-                    && !before.ends_with(|c: char| c.is_ascii_digit() || c == '-') && !after.starts_with('-');
-            }
-            match ds.len() {
-                9 => elfproef(&ds),
-                13 => cnp_valid(&ds),
-                _ => false,
-            }
-        }
+        Kind::IdNumber => id_valid(m, before, after),
         Kind::Passport => {
             let tail = m.rsplit(|c: char| !c.is_ascii_alphanumeric()).next().unwrap_or("");
             tail.chars().filter(|c| c.is_ascii_digit()).count() >= 2
@@ -375,6 +393,77 @@ fn validate(kind: Kind, text: &str, start: usize, end: usize) -> bool {
         }
         _ => true,
     }
+}
+
+fn id_valid(m: &str, before: &str, after: &str) -> bool {
+    let ds = digits(m);
+    let lower = m.to_lowercase();
+    let has = |w: &str| lower.contains(w);
+    // Numbers that came with their name
+    if has("pesel") {
+        const W: [u32; 10] = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3];
+        return ds.len() == 11 && (10 - ds[..10].iter().zip(W).map(|(d, w)| d * w).sum::<u32>() % 10) % 10 == ds[10];
+    }
+    if has("sécu") || has("secu") || has("nir") {
+        return ds.len() == 15 && matches!(ds[0], 1 | 2) && {
+            let n: u64 = ds[..13].iter().fold(0, |a, d| a * 10 + *d as u64);
+            97 - n % 97 == (ds[13] * 10 + ds[14]) as u64
+        };
+    }
+    if has("steuer") {
+        return ds.len() == 11 && ds[0] != 0;
+    }
+    if has("rijksregister") || has("national") {
+        return ds.len() == 11 && {
+            let n: u64 = ds[..9].iter().fold(0, |a, d| a * 10 + *d as u64);
+            let check = (ds[9] * 10 + ds[10]) as u64;
+            97 - n % 97 == check || 97 - (2_000_000_000 + n) % 97 == check
+        };
+    }
+    if has("bsn") || has("burgerservice") || has("sofi") || has("citizen") {
+        return ds.len() == 9 && elfproef(&ds);
+    }
+    let alone = !before.ends_with(|c: char| c.is_ascii_alphanumeric() || c == '-') && !after.starts_with(|c: char| c == '-' || c.is_ascii_alphanumeric());
+    if !alone {
+        return false;
+    }
+    let compact: String = m.chars().filter(|c| c.is_ascii_alphanumeric()).collect();
+    let letters = compact.chars().filter(|c| c.is_ascii_alphabetic()).count();
+    // Italian codice fiscale: 16 characters, the last a check letter
+    if compact.len() == 16 && letters >= 9 {
+        return codice_fiscale_valid(&compact);
+    }
+    // Spanish DNI / NIE: the letter is the number modulo 23
+    if (compact.len() == 9) && compact.ends_with(|c: char| c.is_ascii_alphabetic()) && letters <= 2 {
+        let num: String = compact[..8].replace('X', "0").replace('Y', "1").replace('Z', "2");
+        let Ok(n) = num.parse::<u32>() else { return false };
+        return "TRWAGMYFPDXBNJZSQVHLCKE".as_bytes()[(n % 23) as usize] as char == compact.chars().last().unwrap();
+    }
+    // UK National Insurance number: two letters, six digits, one letter; some prefixes are never used
+    if letters == 3 && compact.len() == 9 {
+        return !["BG", "GB", "NK", "KN", "TN", "NT", "ZZ"].contains(&&compact[..2]);
+    }
+    if m.contains('-') && ds.len() == 9 {
+        // US SSN: never 000, 666 or 9xx in the first part, 00 or 0000 in the others
+        let area = ds[0] * 100 + ds[1] * 10 + ds[2];
+        return area != 0 && area != 666 && !(ds[3] == 0 && ds[4] == 0) && ds[5..].iter().any(|d| *d != 0);
+    }
+    ds.len() == 13 && cnp_valid(&ds)
+}
+
+/// The Italian tax code's last letter is a check on the first 15 characters.
+fn codice_fiscale_valid(cf: &str) -> bool {
+    const ODD: [u32; 26] = [1, 0, 5, 7, 9, 13, 15, 17, 19, 21, 2, 4, 18, 20, 11, 3, 6, 8, 12, 14, 16, 10, 22, 25, 24, 23];
+    let val = |c: char| -> (u32, u32) {
+        let i = if c.is_ascii_digit() { c as u32 - '0' as u32 } else { c as u32 - 'A' as u32 };
+        (i, ODD[i as usize])
+    };
+    let b: Vec<char> = cf.chars().collect();
+    if b.len() != 16 {
+        return false;
+    }
+    let sum: u32 = b[..15].iter().enumerate().map(|(i, c)| { let (even, odd) = val(*c); if i % 2 == 0 { odd } else { even } }).sum();
+    (b'A' + (sum % 26) as u8) as char == b[15]
 }
 
 /// The Dutch eleven test for a BSN: 9·d1 + 8·d2 + … + 2·d8 − d9 is a multiple of 11.

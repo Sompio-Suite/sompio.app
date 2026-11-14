@@ -82,7 +82,7 @@ site_header('docs');
           <li><strong>Type it in one line.</strong> "Dentist Tue 15:00" or "Gym every Monday 7:00", then Enter. Routines, groups and shared schedules sit under More, out of the way.</li>
           <li><strong>Schedules and reminders</strong> that repeat daily, weekly, monthly or yearly, or on chosen days, with an optional heads-up a few minutes before.</li>
           <li><strong>Your phone's calendar too.</strong> Export it as a file (.ics) from Google, Apple or Outlook, and bring it in under More. Sompio only reads the file; it never connects to your account.</li>
-          <li><strong>Shared schedules for groups.</strong> Share a schedule as a file with your team, guild or club; everyone imports it, and reminders can target only certain groups. Time zones are handled, so a 20:00 event shows at the right local time for everyone.</li>
+          <li><strong>Shared schedules for groups.</strong> Share a schedule as a file with your team, club or family; everyone imports it, and reminders can target only certain groups. Time zones are handled, so a 20:00 event shows at the right local time for everyone.</li>
           <li><strong>Always on.</strong> Sompio sits in the tray and can start with Windows. Reminders keep coming even while Sompio is locked.</li>
           <li><strong>Brings in Desk Reminders</strong> schedules, if you used that app before.</li>
         </ul>

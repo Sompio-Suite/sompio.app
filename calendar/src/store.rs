@@ -547,15 +547,15 @@ mod tests {
     #[test]
     fn shared_schedules_are_read_only_unless_yours() {
         let s = CalendarStore::open_in_memory().unwrap();
-        let id = s.import("Days,Time,Colour,Title,Text,Notice,For\nWed,20:00,,Raid,,30,\n", "Guild Schedule", None, false).unwrap();
+        let id = s.import("Days,Time,Colour,Title,Text,Notice,For\nWed,20:00,,Meeting,,30,\n", "Team Schedule", None, false).unwrap();
         let v = s.load().unwrap();
-        assert_eq!(v[1].view.name, "Guild Schedule");
+        assert_eq!(v[1].view.name, "Team Schedule");
         assert!(!v[1].view.editable);
         assert!(s.add_row(id, &RowInput { days: "Mon".into(), time: "10:00".into(), title: "x".into(), ..Default::default() }).is_err());
-        let own = s.create_shared("Raid team", "Europe/Amsterdam", &["Tanks".into()]).unwrap();
-        s.add_row(own, &RowInput { days: "Thu".into(), time: "20:00".into(), title: "Raid".into(), for_groups: vec!["Tanks".into()], ..Default::default() }).unwrap();
+        let own = s.create_shared("Project team", "Europe/Amsterdam", &["Design".into()]).unwrap();
+        s.add_row(own, &RowInput { days: "Thu".into(), time: "20:00".into(), title: "Review".into(), for_groups: vec!["Design".into()], ..Default::default() }).unwrap();
         let text = s.export(own).unwrap();
-        assert!(text.contains("#! timezone = Europe/Amsterdam") && text.contains("#! updated = ") && text.contains("Raid,,,Tanks"));
+        assert!(text.contains("#! timezone = Europe/Amsterdam") && text.contains("#! updated = ") && text.contains("Review,,,Design"));
         assert!(s.remove_schedule(s.mine_id().unwrap()).is_err());
         s.remove_schedule(id).unwrap();
         assert_eq!(s.load().unwrap().len(), 2);
@@ -566,17 +566,17 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("schedule.csv"), "\u{feff}Days,Time,Colour,Title,Text,Notice,For\nEvery day,08:30,,Breakfast,Eat.,,\n").unwrap();
         std::fs::create_dir(dir.path().join("shared")).unwrap();
-        std::fs::write(dir.path().join("shared/Guild.csv"), "#! groups = A | B\nDays,Time,Colour,Title,Text,Notice,For\nWed,20:00,,Raid,,30,A\n").unwrap();
+        std::fs::write(dir.path().join("shared/Team.csv"), "#! groups = A | B\nDays,Time,Colour,Title,Text,Notice,For\nWed,20:00,,Meeting,,30,A\n").unwrap();
         std::fs::write(
             dir.path().join("settings.json"),
-            r#"{"Sound":"Warm bell.wav","Volume":70,"Quiet":{"On":true,"From":"22:30","To":"07:00"},"MyGroups":{"Guild.csv":["A"]}}"#,
+            r#"{"Sound":"Warm bell.wav","Volume":70,"Quiet":{"On":true,"From":"22:30","To":"07:00"},"MyGroups":{"Team.csv":["A"]}}"#,
         )
         .unwrap();
         let s = CalendarStore::open_in_memory().unwrap();
         assert_eq!(s.import_desk_reminders(dir.path()).unwrap(), 2);
         let v = s.load().unwrap();
         assert_eq!(v[0].view.reminders, 1);
-        assert_eq!(v[1].view.name, "Guild");
+        assert_eq!(v[1].view.name, "Team");
         assert_eq!(v[1].view.my_groups, ["A"]);
         let st = s.settings().unwrap();
         assert_eq!((st.sound.as_str(), st.volume, st.quiet.on, st.quiet.from), ("Warm bell", 70, true, 22 * 60 + 30));
@@ -588,9 +588,9 @@ mod tests {
         let path = dir.path().join("calendar.db");
         {
             let s = CalendarStore::open_encrypted(&path, &[3u8; 32]).unwrap();
-            s.set_alert("1|Wed|20:00|Raid", Some(d(2026, 6, 3)), Some(AlertMode::Mute)).unwrap();
-            s.set_alert("1|Wed|20:00|Raid", None, Some(AlertMode::Shout)).unwrap();
-            s.set_alert("1|Wed|20:00|Raid", None, None).unwrap();
+            s.set_alert("1|Wed|20:00|Meeting", Some(d(2026, 6, 3)), Some(AlertMode::Mute)).unwrap();
+            s.set_alert("1|Wed|20:00|Meeting", None, Some(AlertMode::Shout)).unwrap();
+            s.set_alert("1|Wed|20:00|Meeting", None, None).unwrap();
             s.add_row(s.mine_id().unwrap(), &RowInput { days: "Every day".into(), time: "08:00".into(), title: "Secret plan".into(), ..Default::default() }).unwrap();
         }
         let raw = std::fs::read(&path).unwrap();

@@ -355,7 +355,7 @@ export const api = {
 };
 
 export async function pickScheduleFile(): Promise<string | null> {
-  if (!inDesktopApp) return "C:\\Users\\you\\Downloads\\Guild Schedule.csv";
+  if (!inDesktopApp) return "C:\\Users\\you\\Downloads\\Team schedule.csv";
   const { open } = await import("@tauri-apps/plugin-dialog");
   const picked = await open({ title: "Choose a schedule file", filters: [{ name: "Schedule", extensions: ["csv"] }] });
   return typeof picked === "string" ? picked : null;

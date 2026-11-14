@@ -74,7 +74,7 @@ export const SUITE: SuiteApp[] = [
     key: "calendar",
     name: "Calendar",
     icon: "calendar",
-    line: "Your reminders, typed in one line, popping up on time. Shares schedules with your team or guild in each person's own time zone.",
+    line: "Your reminders, typed in one line, popping up on time. Shares schedules with your team, club or family in each person's own time zone.",
     ready: true,
     plans: [],
   },

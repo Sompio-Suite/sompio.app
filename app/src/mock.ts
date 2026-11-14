@@ -4,7 +4,7 @@ import { calendarHandlers } from "./mockCalendar";
 import { vaultHandlers } from "./mockVault";
 import type { ChannelView, FindingView, KindKey, MessageView, Page, Platform, ScanSummary, Segment, SourceView, Stats, Status } from "./api";
 
-const words = "anyone up for raid tonight the boss was rough need a healer brb dinner that patch broke my ui see you later nice drop gg honestly no idea what happened lol".split(" ");
+const sentences = ["morning everyone", "has anyone found a good dentist near the centre?", "thanks, that helped a lot", "the meeting moved to 3 pm", "can you share the slides after the call?", "I'll be about ten minutes late", "great photos from the weekend", "the train was delayed again", "see you tomorrow", "my laptop keeps restarting after the update", "the flat viewing is at 6, want to come along?", "booked the flights, finally", "running late, start without me", "good luck with the interview!"];
 let seed = 7;
 const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 const pick = <T,>(a: T[]) => a[Math.floor(rand() * a.length)];
@@ -45,7 +45,7 @@ const LEAKS: [string, KindKey, string][] = [
 ];
 
 const channelDefs: [string, ChannelView["kind"], string | null][] = [
-  ["general", "server", "Night Owls Gaming"], ["raid-planning", "server", "Night Owls Gaming"], ["trading", "server", "Night Owls Gaming"],
+  ["general", "server", "Amsterdam Expats"], ["housing", "server", "Amsterdam Expats"], ["marketplace", "server", "Amsterdam Expats"],
   ["help", "server", "Home Lab Builders"], ["Direct message with sam", "dm", null], ["Direct message with noor", "dm", null], ["Weekend crew", "group_dm", null],
 ];
 
@@ -61,7 +61,7 @@ channelDefs.forEach(([name, kind, guild], ci) => {
   let t = Date.UTC(2018, 4, 1) + rand() * 3e10;
   for (let i = 0; i < n; i++) {
     t += rand() * 9e7;
-    let content = Array.from({ length: 3 + Math.floor(rand() * 20) }, () => pick(words)).join(" ");
+    let content = pick(sentences);
     if (rand() < 0.015) {
       const [pre, , value] = pick(LEAKS);
       content = pre + value + (rand() < 0.5 ? " if you need it" : "");

@@ -294,21 +294,21 @@ mod tests {
     fn matches_windows_and_types() {
         assert!(window_matches("*GitHub*", "Sign in to GitHub · GitHub — Mozilla Firefox"));
         assert!(!window_matches("GitHub", "Sign in to GitHub"));
-        assert!(window_matches("Battle.net*", "Battle.net Login"));
+        assert!(window_matches("Zoom*", "Zoom Login"));
         let dir = tempfile::tempdir().unwrap();
         let mut v = crate::store::Vault::open(&dir.path().join("v.kdbx"), &[4u8; 32]).unwrap();
         let gh = v.add_entry(&EntryInput { title: "Work code".into(), username: "sk".into(), password: Some("p\nw".into()), url: "https://github.com/login".into(), ..Default::default() }).unwrap();
         v.add_entry(&EntryInput {
             title: "Game".into(),
             password: Some("x".into()),
-            autotype: Some(AutoTypeSettings { enabled: true, sequence: "{PASSWORD}{ENTER}".into(), windows: vec!["Battle.net*".into()] }),
+            autotype: Some(AutoTypeSettings { enabled: true, sequence: "{PASSWORD}{ENTER}".into(), windows: vec!["Zoom*".into()] }),
             ..Default::default()
         })
         .unwrap();
         let m = matches(&v, "Sign in to GitHub · GitHub - Google Chrome");
         assert_eq!(m.len(), 1);
         assert_eq!(m[0].because, "website");
-        let m = matches(&v, "Battle.net Login");
+        let m = matches(&v, "Zoom Login");
         assert_eq!((m[0].entry.title.as_str(), m[0].sequence.as_str()), ("Game", "{PASSWORD}{ENTER}"));
         let t = resolve(&mut v, &gh, DEFAULT_SEQUENCE).unwrap();
         assert_eq!(t.0[0], Step::Text("sk".into()));

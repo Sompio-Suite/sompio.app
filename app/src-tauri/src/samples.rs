@@ -48,7 +48,7 @@ pub async fn cal_add_samples(state: State<'_, AppState>) -> CmdResult<i64> {
     let id = tauri::async_runtime::spawn_blocking(move || -> anyhow::Result<i64> {
         let store = sompio_calendar::CalendarStore::open_encrypted(&path, &key)?;
         for old in store.load()?.into_iter().filter(|l| {
-            (l.view.name == sompio_calendar::samples::SAMPLE_NAME && l.view.owned) || l.view.name == sompio_calendar::samples::GUILD_SAMPLE_NAME
+            (l.view.name == sompio_calendar::samples::SAMPLE_NAME && l.view.owned) || l.view.name == sompio_calendar::samples::TEAM_SAMPLE_NAME
         }) {
             store.remove_schedule(old.view.id)?;
         }

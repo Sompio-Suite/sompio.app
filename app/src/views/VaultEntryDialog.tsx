@@ -154,7 +154,7 @@ export default function VaultEntryDialog({ groups, editing, group, onClose, onSa
                 <input type="text" className="mono" value={at.sequence} onChange={(e) => setAt({ ...at, sequence: e.target.value })} placeholder="{USERNAME}{TAB}{PASSWORD}{ENTER}" />
               </label>
               <label className="field"><span className="small">Windows it's for <span className="faint">(one per line, * matches anything)</span></span>
-                <textarea rows={2} className="mono" value={at.windows.join("\n")} onChange={(e) => setAt({ ...at, windows: e.target.value.split("\n") })} placeholder={"Battle.net*\n*Steam*"} />
+                <textarea rows={2} className="mono" value={at.windows.join("\n")} onChange={(e) => setAt({ ...at, windows: e.target.value.split("\n") })} placeholder={"Zoom*\n*Microsoft Teams*"} />
               </label>
               <p className="small faint">Also: {"{TOTP}"} for the 2FA code, {"{S:PIN}"} for an extra field, {"{DELAY 500}"} to wait, {"{TAB 2}"}, ^a for Ctrl+A.</p>
             </div>

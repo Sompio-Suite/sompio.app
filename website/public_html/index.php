@@ -60,7 +60,7 @@ site_header('home');
         <div class="feature-text">
           <p class="eyebrow">Calendar</p>
           <h3>Reminders that pop up on time, even when locked</h3>
-          <p>Type "Dentist Tue 15:00" and press Enter. Bring in your phone's calendar from a file. Share a schedule with your team or guild, and everyone gets pop-ups at the right local time.</p>
+          <p>Type "Dentist Tue 15:00" and press Enter. Bring in your phone's calendar from a file. Share a schedule with your team, club or family, and everyone gets pop-ups at the right local time.</p>
           <ul class="ticks">
             <li>Pop-ups that don't steal what you're typing</li>
             <li>Keeps running from the tray when the window is closed</li>

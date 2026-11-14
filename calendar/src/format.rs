@@ -1,9 +1,9 @@
 //! The schedule file format from Desk Reminders, read exactly the same way:
 //!
 //! ```csv
-//! #! name = Guild Schedule
+//! #! name = Team Schedule
 //! #! timezone = Europe/Amsterdam
-//! #! groups = Raid Team 1 | Raid Team 2
+//! #! groups = Team 1 | Team 2
 //! Days,Time,Colour,Title,Text,Notice,For
 //! Weekdays,every 60 min 10:00-17:00,,Stand up,Stretch.,,
 //! 2026-12-25,all day,skip,,,,
@@ -450,11 +450,11 @@ mod tests {
     #[test]
     fn reads_a_full_file() {
         let s = parse(
-            "\u{feff}#! name = Guild Schedule\n#! timezone = Europe/Amsterdam\n#! groups = Raid Team 1 | Raid Team 2\nDays,Time,Colour,Title,Text,Notice,For\n# a note\nWed,20:00,,Raid night,\"Be online, repaired.\",30,Raid Team 1\nThu,20:00,,Raid,x,30,Raid Team 2|Raid Team 3\nSun,25:00,,Bad,,,\nEvery day,09:00,,,,,\n2026-12-25,all day,skip,,,,\n",
+            "\u{feff}#! name = Team Schedule\n#! timezone = Europe/Amsterdam\n#! groups = Team 1 | Team 2\nDays,Time,Colour,Title,Text,Notice,For\n# a note\nWed,20:00,,Team meeting,\"Be online, repaired.\",30,Team 1\nThu,20:00,,Meeting,x,30,Team 2|Team 3\nSun,25:00,,Bad,,,\nEvery day,09:00,,,,,\n2026-12-25,all day,skip,,,,\n",
         );
-        assert_eq!(s.name, "Guild Schedule");
+        assert_eq!(s.name, "Team Schedule");
         assert_eq!(s.timezone, "Europe/Amsterdam");
-        assert_eq!(s.groups, vec!["Raid Team 1", "Raid Team 2", "Raid Team 3"]);
+        assert_eq!(s.groups, vec!["Team 1", "Team 2", "Team 3"]);
         assert_eq!(s.rows.len(), 3);
         assert_eq!(s.rows[0].text, "Be online, repaired.");
         assert_eq!(s.rows[0].notice, 30);

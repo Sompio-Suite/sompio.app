@@ -48,7 +48,7 @@ pub fn import(v: &mut Vault, text: &str, label: &str) -> Result<ImportSummary> {
         if t.is_empty() && u.is_empty() && password.is_empty() && get(url).is_empty() {
             continue;
         }
-        // KeePassXC writes "Root/Social/Games"; drop its root folder name
+        // KeePassXC writes "Root/Social/Work"; drop its root folder name
         let mut path: Vec<String> = get(group).split(['/', '\\']).map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
         if header.first().is_some_and(|h| h == "group") && path.first().is_some_and(|p| p == "Root" || p == "Vault") {
             path.remove(0);

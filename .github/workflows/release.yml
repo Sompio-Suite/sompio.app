@@ -2,7 +2,8 @@
 # where testers download it and installed copies offer it under "Update now".
 #
 # Runs when the "release" branch is pushed (or from the Actions tab: "Run workflow"). The version is the
-# one in app/src-tauri/tauri.conf.json; sompio.org refuses a version that isn't newer. What's new goes in
+# one in app/src-tauri/tauri.conf.json; sompio.org refuses a version that isn't newer, unless it's run
+# by hand with "replace" ticked, which swaps the build of the version that's already out. What's new goes in
 # app/release-notes.txt.
 #
 # Secrets (Settings > Secrets and variables > Actions), all made by "Set up updates.bat":
@@ -16,6 +17,11 @@ on:
   push:
     branches: [release]
   workflow_dispatch:
+    inputs:
+      replace:
+        description: "Replace the version that's already out (same version number, new build)"
+        type: boolean
+        default: false
 
 concurrency:
   group: publish
@@ -111,7 +117,8 @@ jobs:
           NOTES=$(cat app/release-notes.txt 2>/dev/null || echo "")
           code=$(curl -sS --retry 2 -o reply.txt -w '%{http_code}' -X POST https://sompio.org/publish.php \
             -H "X-Sompio-Publish: $TOKEN" -A "Sompio-Publish" \
-            -F "setup=@$EXE" -F "version=$VERSION" -F "signature=$(cat "$EXE.sig")" -F "notes=$NOTES")
+            -F "setup=@$EXE" -F "version=$VERSION" -F "signature=$(cat "$EXE.sig")" -F "notes=$NOTES" \
+            -F "replace=${{ github.event_name == 'workflow_dispatch' && inputs.replace && '1' || '0' }}")
           cat reply.txt
           # 409: this version is already on sompio.org (a rebuild without a version change), which is fine
           if [ "$code" != "200" ] && [ "$code" != "409" ]; then echo "::error::sompio.org answered $code"; exit 1; fi
@@ -127,19 +134,23 @@ jobs:
         run: |
           EXE="app/src-tauri/target/release/bundle/nsis/Sompio_${VERSION}_x64-setup.exe"
           SUM=$(sha256sum "$EXE" | cut -d' ' -f1 | tr 'a-f' 'A-F')
-          if gh release view "v$VERSION" > /dev/null 2>&1; then echo "Release v$VERSION already exists"; exit 0; fi
           {
             cat app/release-notes.txt 2>/dev/null || true
             echo
             echo "---"
             echo
-            echo "**Installer:** \`Sompio_${VERSION}_x64-setup.exe\`, available to testers on [sompio.org](https://sompio.org/tester.php)."
+            echo "**Installer:** \`Sompio_${VERSION}_x64-setup.exe\`, from [sompio.org/download.php](https://sompio.org/download.php)."
             echo
             echo "**SHA-256:** \`$SUM\`"
             echo
-            echo "The tester portal shows the same fingerprint next to the download. If they ever differ, don't install it, and write to hello@sompio.org."
+            echo "The download page shows the same fingerprint. If they ever differ, don't install it, and write to hello@sompio.org."
           } > release-body.md
-          gh release create "v$VERSION" --title "Sompio $VERSION" --notes-file release-body.md --target "$GITHUB_SHA"
+          if gh release view "v$VERSION" > /dev/null 2>&1; then
+            # A replaced build: keep the release, refresh its notes and checksum
+            gh release edit "v$VERSION" --notes-file release-body.md
+          else
+            gh release create "v$VERSION" --title "Sompio $VERSION" --notes-file release-body.md --target "$GITHUB_SHA"
+          fi
 
       - name: Announce it on Discord
         # Posts the release notes to the channel behind the DISCORD_WEBHOOK secret. Without that secret,

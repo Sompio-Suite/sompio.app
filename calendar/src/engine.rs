@@ -238,7 +238,7 @@ mod tests {
     }
 
     fn src<'a>(id: i64, s: &'a Schedule, mine: bool, groups: &'a [String]) -> Source<'a> {
-        Source { id, name: if mine { "My schedule" } else { "Guild" }, schedule: s, mine, enabled: true, my_groups: groups, colour: "#1F4E8C", quiet_allow: !mine }
+        Source { id, name: if mine { "My schedule" } else { "Team" }, schedule: s, mine, enabled: true, my_groups: groups, colour: "#1F4E8C", quiet_allow: !mine }
     }
 
     #[test]
@@ -261,13 +261,13 @@ mod tests {
     #[test]
     fn time_zones_groups_notices_and_mutes() {
         let s = parse(
-            "#! timezone = Europe/Amsterdam\n#! groups = Raid 1 | Raid 2\nDays,Time,Colour,Title,Text,Notice,For\nWed,20:00,,Raid night,,30,Raid 1\nThu,20:00,,Raid night,,30,Raid 2\nSun,19:00,,Meeting,,,\n",
+            "#! timezone = Europe/Amsterdam\n#! groups = Team 1 | Team 2\nDays,Time,Colour,Title,Text,Notice,For\nWed,20:00,,Team meeting,,30,Team 1\nThu,20:00,,Team meeting,,30,Team 2\nSun,19:00,,Meeting,,,\n",
         );
-        let mine = vec!["Raid 1".to_string()];
+        let mine = vec!["Team 1".to_string()];
         let sources = [src(7, &s, false, &mine)];
         // Week of 2 Dec 2026: Amsterdam is UTC+1 in winter
         let week = occurrences(&sources, d(2026, 11, 30), d(2026, 12, 6), &[], &chrono_tz::Europe::London);
-        let wed: Vec<_> = week.iter().filter(|o| o.title == "Raid night" && o.event_at.date() == d(2026, 12, 2)).collect();
+        let wed: Vec<_> = week.iter().filter(|o| o.title == "Team meeting" && o.event_at.date() == d(2026, 12, 2)).collect();
         assert_eq!(wed.len(), 2, "event and its notice");
         assert_eq!(wed[0].at.format("%H:%M").to_string(), "18:30", "notice, London time");
         assert_eq!(wed[1].at.format("%H:%M").to_string(), "19:00");
@@ -281,7 +281,7 @@ mod tests {
         ];
         let week = occurrences(&sources, d(2026, 11, 30), d(2026, 12, 6), &alerts, &chrono_tz::Europe::London);
         assert!(week.iter().find(|o| o.event_at.date() == d(2026, 12, 3) && o.kind == Kind::Event).unwrap().notify);
-        assert!(week.iter().filter(|o| o.title == "Raid night" && o.event_at.date() == d(2026, 12, 2)).all(|o| !o.notify));
+        assert!(week.iter().filter(|o| o.title == "Team meeting" && o.event_at.date() == d(2026, 12, 2)).all(|o| !o.notify));
     }
 
     #[test]

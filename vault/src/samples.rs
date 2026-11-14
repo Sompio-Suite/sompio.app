@@ -19,7 +19,7 @@ fn e(title: &str, user: &str, pw: &str, url: &str) -> EntryInput {
 /// Adds the "Samples" folder. Delete the folder to remove them all.
 pub fn add_sample_entries(v: &mut Vault) -> Result<String> {
     let top = v.add_group(None, FOLDER)?;
-    let games = v.add_group(Some(&top), "Games")?;
+    let work = v.add_group(Some(&top), "Work")?;
     let inside = |mut x: EntryInput, g: &str| {
         x.group_id = Some(g.to_string());
         x
@@ -56,13 +56,13 @@ pub fn add_sample_entries(v: &mut Vault) -> Result<String> {
     v.add_entry(&inside(expired, &top))?;
 
     // History: changed twice, so there are earlier versions to look at and bring back
-    let id = v.add_entry(&inside(e("Battle.net (history)", "alex#2231", "first-password-2022", "https://battle.net"), &games))?;
-    let mut later = e("Battle.net (history)", "alex#2231", "second-password-2024", "https://battle.net");
-    later.group_id = Some(games.clone());
+    let id = v.add_entry(&inside(e("Zoom (history)", "alex.rivers@example.org", "first-password-2022", "https://zoom.us"), &work))?;
+    let mut later = e("Zoom (history)", "alex.rivers@example.org", "second-password-2024", "https://zoom.us");
+    later.group_id = Some(work.clone());
     v.update_entry(&id, &later)?;
     let mut now = later.clone();
     now.password = Some("Tundra-Velvet-Crane-42".into());
-    now.autotype = Some(AutoTypeSettings { enabled: true, sequence: "{PASSWORD}{ENTER}".into(), windows: vec!["Battle.net*".into()] });
+    now.autotype = Some(AutoTypeSettings { enabled: true, sequence: "{PASSWORD}{ENTER}".into(), windows: vec!["Zoom*".into()] });
     v.update_entry(&id, &now)?;
 
     let mut doc = e("Passport (attached file)", "", "", "");
@@ -172,7 +172,7 @@ mod tests {
         assert!(all.iter().any(|e| e.has_totp) && all.iter().any(|e| e.expired));
         let h = crate::health::report(&v);
         assert!(h.weak >= 1 && h.reused >= 2 && h.expired >= 1);
-        let bnet = all.iter().find(|e| e.title.starts_with("Battle.net")).unwrap();
+        let bnet = all.iter().find(|e| e.title.starts_with("Zoom")).unwrap();
         assert_eq!(v.entry(&bnet.id).unwrap().history.len(), 2);
         assert_eq!(crate::autotype::matches(&v, "Untitled - Notepad")[0].entry.title, "Notepad (auto-type test)");
         assert_eq!(crate::autotype::matches(&v, "Sompio test login - Google Chrome")[0].entry.title, TEST_PAGE_TITLE);

@@ -366,7 +366,7 @@ function MonthGrid({ month, start, selected, today, events, onPick, onMonth }: M
   const shift = (n: number) => { const d = new Date(first); d.setMonth(d.getMonth() + n); onMonth(iso(d).slice(0, 7)); };
   const cells = Array.from({ length: 42 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return iso(d); });
   const weeks = cells[35].slice(0, 7) === month ? 6 : 5;
-  // Dots for what's special on a day: not the daily routine, but raids, check-ups, one-offs.
+  // Dots for what's special on a day: not the daily routine, but meetings, check-ups, one-offs.
   const special = new Map<string, string[]>();
   for (const o of events) {
     if (ROUTINE.test(o.days_text.trim())) continue;
@@ -450,10 +450,10 @@ function Schedules({ data, readOnly, run, mineId, onImportIcs }: { data: CalOver
           const g = groups.split(/[,|]/).map((x) => x.trim()).filter(Boolean);
           run(() => api.calCreateShared(name, zone, g), "Created. Add reminders to it, then save it as a file to share.").then(() => { setCreating(false); setName(""); setGroups(""); });
         }}>
-          <p className="small muted">A schedule for a group, like a guild's raid nights. You edit it here, then share the file. Times are in your time zone ({zone}) and show up in each person's own time.</p>
+          <p className="small muted">A schedule for a group, like a team's meetings or a club's evenings. You edit it here, then share the file. Times are in your time zone ({zone}) and show up in each person's own time.</p>
           <div className="field-row">
-            <label className="field grow"><span>Name</span><input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Night Owls raids" /></label>
-            <label className="field grow"><span>Groups <span className="faint">(optional, comma separated)</span></span><input type="text" value={groups} onChange={(e) => setGroups(e.target.value)} placeholder="Tanks, Healers, DPS" /></label>
+            <label className="field grow"><span>Name</span><input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Project team" /></label>
+            <label className="field grow"><span>Groups <span className="faint">(optional, comma separated)</span></span><input type="text" value={groups} onChange={(e) => setGroups(e.target.value)} placeholder="Design, Engineering, Support" /></label>
           </div>
           <div className="toolbar"><button className="primary" disabled={!name.trim()}>Create</button></div>
         </form>

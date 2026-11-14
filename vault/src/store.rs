@@ -1090,13 +1090,13 @@ mod tests {
         let id;
         {
             let mut v = Vault::open(&path, &key).unwrap();
-            let folder = v.add_group(None, "Games").unwrap();
-            let mut i = input("Battle.net", "sam", "first-password");
+            let folder = v.add_group(None, "Work").unwrap();
+            let mut i = input("Zoom", "sam", "first-password");
             i.group_id = Some(folder.clone());
             i.custom = vec![FieldInput { key: "PIN".into(), value: Some("4321".into()), protected: true }];
             i.otp = Some("JBSWY3DPEHPK3PXP".into());
             id = v.add_entry(&i).unwrap();
-            let mut j = input("Battle.net", "sam", "second-password");
+            let mut j = input("Zoom", "sam", "second-password");
             j.custom = vec![FieldInput { key: "PIN".into(), value: None, protected: true }];
             v.update_entry(&id, &j).unwrap();
             let d = v.entry(&id).unwrap();
@@ -1107,7 +1107,7 @@ mod tests {
             assert!(d.summary.has_totp);
             assert_eq!(v.totp(&id).unwrap().unwrap().code.len(), 6);
             assert_eq!(v.entries(Some(&folder), "").unwrap().len(), 1);
-            assert_eq!(v.entries(None, "battle sam").unwrap().len(), 1);
+            assert_eq!(v.entries(None, "zoom sam").unwrap().len(), 1);
             assert!(v.add_entry(&EntryInput { title: " ".into(), ..Default::default() }).is_err());
         }
         let raw = std::fs::read(&path).unwrap();
@@ -1120,7 +1120,7 @@ mod tests {
         assert!(!v.delete_entry(&id).unwrap(), "to the bin first");
         assert!(v.entries(None, "").unwrap().is_empty());
         v.restore_entry(&id).unwrap();
-        assert_eq!(v.entries(None, "").unwrap()[0].group_path, "Games");
+        assert_eq!(v.entries(None, "").unwrap()[0].group_path, "Work");
         v.delete_entry(&id).unwrap();
         assert_eq!(v.empty_recycle_bin().unwrap(), 1);
         assert!(v.entry(&id).is_err());
@@ -1161,8 +1161,8 @@ mod round2 {
     fn icons_are_stored_shared_and_cleaned_up() {
         let dir = tempfile::tempdir().unwrap();
         let mut v = vault(dir.path());
-        let a = v.add_entry(&EntryInput { title: "Battle.net".into(), url: "battle.net".into(), ..Default::default() }).unwrap();
-        let b = v.add_entry(&EntryInput { title: "Battle.net 2".into(), url: "battle.net".into(), ..Default::default() }).unwrap();
+        let a = v.add_entry(&EntryInput { title: "Zoom".into(), url: "zoom.us".into(), ..Default::default() }).unwrap();
+        let b = v.add_entry(&EntryInput { title: "Zoom 2".into(), url: "zoom.us".into(), ..Default::default() }).unwrap();
         assert_eq!(v.entries_without_icon().len(), 2);
         let png = vec![137, 80, 78, 71, 1, 2, 3];
         let ia = v.set_icon(&a, Some(png.clone())).unwrap().unwrap();

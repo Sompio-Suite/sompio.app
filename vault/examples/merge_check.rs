@@ -5,7 +5,7 @@ fn main() {
     let dir = std::path::Path::new(&a[1]);
     let mut v = Vault::open(&dir.join("inner.kdbx"), &[5u8; 32]).unwrap();
     if a[2] == "export" {
-        let g = v.add_group(None, "Games").unwrap();
+        let g = v.add_group(None, "Work").unwrap();
         let id = v.add_entry(&EntryInput { group_id: Some(g), title: "Steam".into(), username: "alex".into(), password: Some("before".into()), ..Default::default() }).unwrap();
         v.add_attachment(&id, "codes.txt", b"backup codes 1234".to_vec()).unwrap();
         v.export_kdbx(&dir.join("copy.kdbx"), "copy-pass-123", None).unwrap();

@@ -12,7 +12,7 @@ pub const SIZE: u32 = 64;
 pub const MAX_ICON_BYTES: u64 = 1024 * 1024;
 pub const MAX_PAGE_BYTES: u64 = 2 * 1024 * 1024;
 
-/// "battle.net", "https://eu.battle.net/login" or "account.proton.me" -> "https://eu.battle.net/"
+/// "zoom.us", "https://eu.zoom.us/signin" or "account.proton.me" -> "https://eu.zoom.us/"
 pub fn site_root(address: &str) -> Result<String> {
     let a = address.trim();
     if a.is_empty() {
@@ -210,8 +210,8 @@ mod tests {
 
     #[test]
     fn roots() {
-        assert_eq!(site_root("battle.net").unwrap(), "https://battle.net/");
-        assert_eq!(site_root("https://EU.Battle.net/login?x=1").unwrap(), "https://eu.battle.net/");
+        assert_eq!(site_root("zoom.us").unwrap(), "https://zoom.us/");
+        assert_eq!(site_root("https://EU.Zoom.us/signin?x=1").unwrap(), "https://eu.zoom.us/");
         assert_eq!(site_root("http://192.168.1.1:8080/admin").unwrap(), "http://192.168.1.1:8080/");
         assert!(site_root("ftp://x.org").is_err());
         assert!(site_root("Home Wi-Fi").is_err());

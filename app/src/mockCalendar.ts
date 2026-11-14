@@ -28,11 +28,11 @@ const schedules: Sched[] = [
     ],
   },
   {
-    view: { ...base(2, "Night Owls raids", false, PALETTE[2]), groups: ["Tanks", "Healers", "DPS"], my_groups: ["Healers"], updated: "2026-11-02 21:14", timezone: "Europe/Amsterdam", source: "C:\\Users\\you\\Downloads\\Night Owls raids.csv" },
+    view: { ...base(2, "Northwind team", false, PALETTE[2]), groups: ["Design", "Engineering", "Support"], my_groups: ["Design"], updated: "2026-11-02 21:14", timezone: "America/New_York", source: "C:\\Users\\you\\Downloads\\Northwind team.csv" },
     rows: [
-      row("Wed", "20:00", "Raid night", "Molten Core. Be on voice 10 minutes early.", 30),
-      row("Sun", "19:30", "Healer briefing", "", 15, ["Healers"]),
-      row("Sun", "19:30", "Tank briefing", "", 15, ["Tanks"]),
+      row("Mon", "10:00", "Weekly planning", "Agenda in the team folder. Camera on.", 15),
+      row("Wed", "15:00", "Design review", "Bring the latest mockups.", 15, ["Design"]),
+      row("Tue,Thu", "09:30", "Engineering stand-up", "Ten minutes: done / next / blocked.", 5, ["Engineering"]),
     ],
   },
 ];
@@ -159,7 +159,7 @@ export const calendarHandlers: Record<string, (a: any) => unknown> = {
   cal_import_ics: () => ({ added: 12, past: 30, unsupported: 1 }),
   cal_import_file: () => {
     const id = Math.max(...schedules.map((s) => s.view.id)) + 1;
-    schedules.push({ view: { ...base(id, "Guild Schedule", false, PALETTE[schedules.length % 9]), source: "C:\\Users\\you\\Downloads\\Guild Schedule.csv" }, rows: [row("Fri", "21:00", "Mythic+ night", "Bring flasks.", 15)] });
+    schedules.push({ view: { ...base(id, "Book club", false, PALETTE[schedules.length % 9]), source: "C:\\Users\\you\\Downloads\\Book club.csv" }, rows: [row("Monthly 15", "19:30", "Book club", "This month: chapter 1 to 8.", 60)] });
     return id;
   },
   cal_import_desk_reminders: () => { find(1).rows.push(row("Every day", "every 60 min 09:00-21:00", "Drink water", "Have a glass of water (250 ml).")); return 1; },

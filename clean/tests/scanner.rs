@@ -95,3 +95,32 @@ fn finds_exact_locations() {
     assert!(has("https://www.openstreetmap.org/#map=18/52.37312/4.89034", Kind::Location));
     assert!(!has("pi is 3.14159, e is 2.71828", Kind::Location));
 }
+
+#[test]
+fn finds_numbers_from_other_countries() {
+    // Bank accounts
+    for iban in ["DE89 3704 0044 0532 0130 00", "FR14 2004 1010 0505 0001 3M02 606", "ES91 2100 0418 4502 0005 1332", "IT60 X054 2811 1010 0000 0123 456", "GB29 NWBK 6016 1331 9268 19", "BE68 5390 0754 7034", "PL61 1090 1014 0000 0712 1981 2874", "RO49 AAAA 1B31 0075 9384 0000"] {
+        assert!(has(&format!("send it to {iban} please"), Kind::Iban), "{iban}");
+    }
+    assert!(has("sort code 20-00-00, account number 12345678", Kind::Iban));
+    assert!(has("routing number 021000021 account 1234567890", Kind::Iban));
+    assert!(!has("routing number 021000022 account 1234567890", Kind::Iban), "bad check digit");
+    // ID numbers
+    assert!(has("my NI number is AB 12 34 56 C", Kind::IdNumber));
+    assert!(!has("GB 12 34 56 A", Kind::IdNumber));
+    assert!(has("DNI 12345678Z para la reserva", Kind::IdNumber));
+    assert!(!has("DNI 12345678A", Kind::IdNumber), "wrong check letter");
+    assert!(has("NIE X1234567L", Kind::IdNumber));
+    assert!(has("codice fiscale RSSMRA85T10A562S", Kind::IdNumber));
+    assert!(has("PESEL 44051401359", Kind::IdNumber));
+    assert!(!has("PESEL 44051401358", Kind::IdNumber));
+    assert!(has("Steuer-ID: 12 345 678 901", Kind::IdNumber));
+    assert!(has("numéro de sécurité sociale 1 85 05 78 006 084 91", Kind::IdNumber));
+    assert!(!has("numéro de sécurité sociale 1 85 05 78 006 084 36", Kind::IdNumber));
+    // Addresses
+    assert!(has("j'habite au 12 rue de Rivoli, Paris", Kind::Address));
+    assert!(has("vivo en Calle Mayor 5, Madrid", Kind::Address));
+    assert!(has("abito in Via Roma, 10 a Milano", Kind::Address));
+    assert!(has("mieszkam na ul. Długa 7", Kind::Address));
+    assert!(!has("send it via email 3 times", Kind::Address));
+}

@@ -64,13 +64,13 @@ Desk Reminders, rebuilt into the suite. Schedules use the same file format (`Day
 so an existing `schedule.csv` and shared schedules open as they are, but inside Sompio they're kept in `calendar.db`,
 encrypted with the lock like everything else.
 
-- **Day, month, Next up:** today's reminders with how many are done, a month with dots for the special days (raids,
+- **Day, month, Next up:** today's reminders with how many are done, a month with dots for the special days (meetings,
   check-ups, one-offs), and what's coming. Edit, skip one time, mute for a day or always, or remove.
 - **Routines:** Privacy check-ups (monthly password check-up, quarterly "request fresh data exports", sign out of old
   sessions, check your recovery sheet), Backups, and Money and subscriptions. Desk Reminders' old wellness templates
   (water, eye breaks…) sit folded away under "Everyday reminders" and aren't promoted.
 - **Schedules:** bring in a whole Desk Reminders folder (your schedule, `shared/`, colours, groups, quiet hours, sound),
-  add a shared schedule file, or start one you organise and save it as a file to share. Groups (Tanks, Healers…)
+  add a shared schedule file, or start one you organise and save it as a file to share. Groups (Design, Support…)
   decide who gets a pop-up.
 - **Pop-ups:** a small window in the corner you choose that never takes the keyboard, with your sound, Done and snooze
   5/15 min. They're kept out of screen shares and streams (Windows 10 2020+), and a discreet mode hides the text.

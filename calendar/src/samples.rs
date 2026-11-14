@@ -8,18 +8,18 @@ use chrono::{Duration, Local, NaiveDateTime};
 use std::path::Path;
 
 pub const SAMPLE_NAME: &str = "Sample reminders";
-/// The sample guild schedule, run from New York, so time zones can be seen at work.
-pub const GUILD_SAMPLE_NAME: &str = "Night Owls raids (sample)";
+/// The sample team schedule, kept by a manager in New York, so time zones can be seen at work.
+pub const TEAM_SAMPLE_NAME: &str = "Northwind team (sample)";
 
-const SHARED: &str = "#! name = Night Owls raids (sample)
+const SHARED: &str = "#! name = Northwind team (sample)
 #! timezone = Europe/Amsterdam
-#! groups = Tanks | Healers | DPS
+#! groups = Design | Engineering | Support
 Days,Time,Colour,Title,Text,Notice,For
-Wed,20:00,,Raid night,Molten Core. Be on voice 10 minutes early.,30,
-Sun,19:30,,Healer briefing,Cooldown plan for the week.,15,Healers
-Sun,19:45,,Tank briefing,Pull order and markers.,15,Tanks
-Fri,21:00,,Mythic+ night,Bring flasks.,15,DPS
-Monthly 1,19:00,,Guild bank check,Officers: count the bank.,,
+Mon,10:00,,Weekly planning,Agenda in the team folder. Camera on.,15,
+Wed,15:00,,Design review,Bring the latest mockups.,15,Design
+\"Tue,Thu\",09:30,,Engineering stand-up,Ten minutes: done / next / blocked.,5,Engineering
+Fri,16:00,,Support hand-over,Open tickets for the weekend shift.,15,Support
+Monthly 1,11:00,,Expense reports due,Upload receipts before noon.,60,
 ";
 
 /// A schedule you organise, with reminders a minute or two from `now` so pop-ups, snooze,
@@ -43,30 +43,30 @@ pub fn add_live_samples(store: &CalendarStore, now: NaiveDateTime) -> Result<i64
     )?;
     store.set_options(id, None, None, None, Some(&["Team A".to_string()]), None)?;
 
-    // A guild's shared schedule, kept in New York time: Sompio shows each raid at your own local time.
-    let guild = SHARED.replace("Europe/Amsterdam", "America/New_York");
-    let gid = store.import(&guild, GUILD_SAMPLE_NAME, None, false)?;
-    store.set_options(gid, None, None, None, Some(&["Healers".to_string()]), None)?;
+    // A team's shared schedule, kept in New York time: Sompio shows each meeting at your own local time.
+    let team = SHARED.replace("Europe/Amsterdam", "America/New_York");
+    let tid = store.import(&team, TEAM_SAMPLE_NAME, None, false)?;
+    store.set_options(tid, None, None, None, Some(&["Design".to_string()]), None)?;
     Ok(id)
 }
 
 /// Files to try "Add a schedule file" and "Bring in Desk Reminders".
 pub fn write_sample_files(dir: &Path) -> Result<Vec<(String, &'static str)>> {
     std::fs::create_dir_all(dir)?;
-    std::fs::write(dir.join("Night Owls raids (sample).csv"), SHARED)?;
+    std::fs::write(dir.join("Northwind team (sample).csv"), SHARED)?;
     let dr = dir.join("Sample Desk Reminders folder");
     std::fs::create_dir_all(dr.join("shared"))?;
     std::fs::write(
         dr.join("schedule.csv"),
         "Days,Time,Colour,Title,Text,Notice,For\nWeekdays,09:00,,Plan the day,Three things that matter today.,,\nSun,20:00,,Back up your files,Copy your folders to the external drive.,,\nMonthly 1,19:00,,Password check-up,Change one old password.,,\n",
     )?;
-    std::fs::write(dr.join("shared").join("Night Owls raids.csv"), SHARED)?;
+    std::fs::write(dr.join("shared").join("Northwind team.csv"), SHARED)?;
     std::fs::write(
         dr.join("settings.json"),
-        r#"{"Sound":"Warm bell.wav","SoundOn":true,"Volume":60,"Quiet":{"On":true,"From":"23:00","To":"08:00"},"MyGroups":{"Night Owls raids.csv":["Healers"]}}"#,
+        r#"{"Sound":"Warm bell.wav","SoundOn":true,"Volume":60,"Quiet":{"On":true,"From":"23:00","To":"08:00"},"MyGroups":{"Northwind team.csv":["Design"]}}"#,
     )?;
     let files = vec![
-        ("Night Owls raids (sample).csv".to_string(), "A shared schedule with groups (Tanks, Healers, DPS), heads-ups and a time zone. Use \"Add a schedule file\"."),
+        ("Northwind team (sample).csv".to_string(), "A shared team schedule with groups (Design, Engineering, Support), heads-ups and a time zone. Use \"Add a schedule file\"."),
         ("Sample Desk Reminders folder".to_string(), "A Desk Reminders folder: your schedule, a shared one, quiet hours and sound. Use \"Bring in Desk Reminders\" and choose this folder."),
     ];
     let mut readme = String::from("Sompio Calendar samples\r\n=======================\r\n\r\nMade up, to try every part of Calendar.\r\n\r\n");
@@ -108,7 +108,7 @@ mod tests {
         write_sample_files(dir.path()).unwrap();
         let s2 = CalendarStore::open_in_memory().unwrap();
         assert_eq!(s2.import_desk_reminders(&dir.path().join("Sample Desk Reminders folder")).unwrap(), 2);
-        let text = std::fs::read_to_string(dir.path().join("Night Owls raids (sample).csv")).unwrap();
+        let text = std::fs::read_to_string(dir.path().join("Northwind team (sample).csv")).unwrap();
         s2.import(&text, "x", None, false).unwrap();
         assert!(s2.load().unwrap().iter().all(|l| l.view.problems.is_empty()));
     }

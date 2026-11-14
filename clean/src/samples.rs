@@ -36,16 +36,16 @@ pub fn write_samples(dir: &Path) -> Result<Vec<SampleFile>> {
         &dir.join("Discord package.zip"),
         &[
             ("Account/user.json", r#"{"id": "4000", "username": "alex.rivers"}"#.into()),
-            ("Messages/index.json", r#"{"111": "general in Night Owls", "112": "trading in Night Owls", "222": "Direct Message with sam.k", "333": "Direct Message with mara"}"#.into()),
-            ("Messages/c111/channel.json", r#"{"id": "111", "type": 0, "name": "general", "guild": {"id": "999", "name": "Night Owls"}}"#.into()),
+            ("Messages/index.json", r#"{"111": "general in Amsterdam Expats", "112": "marketplace in Amsterdam Expats", "222": "Direct Message with sam.k", "333": "Direct Message with mara"}"#.into()),
+            ("Messages/c111/channel.json", r#"{"id": "111", "type": 0, "name": "general", "guild": {"id": "999", "name": "Amsterdam Expats"}}"#.into()),
             (
                 "Messages/c111/messages.json",
-                r#"[{"ID": "800000000000000000", "Timestamp": "2021-03-01 10:00:00", "Contents": "anyone up for raids tonight?", "Attachments": ""},
+                r#"[{"ID": "800000000000000000", "Timestamp": "2021-03-01 10:00:00", "Contents": "anyone know a good dentist near the centre?", "Attachments": ""},
                     {"ID": "800000000000000001", "Timestamp": "2021-03-01 10:02:00", "Contents": "add me, my email is alex.rivers@example.org", "Attachments": ""},
                     {"ID": "900000000000000000", "Timestamp": "2021-09-14 21:10:00", "Contents": "my new setup", "Attachments": "https://cdn.discordapp.com/attachments/1/2/desk.png"},
                     {"ID": "1000000000000000000", "Timestamp": "2022-06-02 18:00:00", "Contents": "server is at 81.204.37.12 if you want to join", "Attachments": ""}]"#.into(),
             ),
-            ("Messages/c112/channel.json", r#"{"id": "112", "type": 0, "name": "trading", "guild": {"id": "999", "name": "Night Owls"}}"#.into()),
+            ("Messages/c112/channel.json", r#"{"id": "112", "type": 0, "name": "marketplace", "guild": {"id": "999", "name": "Amsterdam Expats"}}"#.into()),
             (
                 "Messages/c112/messages.json",
                 r#"[{"ID": "1050000000000000000", "Timestamp": "2022-10-10 12:00:00", "Contents": "selling my old GPU, pay to NL91 ABNA 0417 1643 00", "Attachments": ""},

@@ -33,7 +33,9 @@ if ((string) $file['name'] !== $name) {
     $fail(400, "Expected $name.");
 }
 $current = latest_release();
-if ($current !== null && version_compare($version, $current['version'], '<=')) {
+// "replace" swaps the files of the version that's already out (a rebuild without a version number change)
+$replace = ($_POST['replace'] ?? '') === '1' && $current !== null && version_compare($version, $current['version'], '==');
+if ($current !== null && !$replace && version_compare($version, $current['version'], '<=')) {
     $fail(409, "Version $version is not newer than the published {$current['version']}. Nothing changed.");
 }
 $dir = PRIVATE_DIR . '/releases';
@@ -41,6 +43,9 @@ if (!is_dir($dir)) {
     mkdir($dir, 0750, true);
 }
 $dest = "$dir/$name";
+if ($replace) {
+    @unlink("$dest.sha256");
+}
 if (!move_uploaded_file($file['tmp_name'], $dest)) {
     $fail(500, 'Could not save the installer.');
 }
@@ -54,4 +59,4 @@ foreach (array_slice($all, 2) as $old) {
         @unlink($old . $ext);
     }
 }
-echo "Published Sompio $version.\n";
+echo ($replace ? "Replaced" : "Published") . " Sompio $version.\n";
