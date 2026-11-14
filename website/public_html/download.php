@@ -52,7 +52,6 @@ site_header('download');
       </div>
       <div class="card download">
         <?php if ($r): $pl = $r['platforms']; $hasMac = isset($pl['mac']); $hasLinux = isset($pl['linux_appimage']) || isset($pl['linux_deb']); ?>
-          <p class="small muted">Latest beta</p>
           <h2>Sompio <?= e($r['version']) ?></h2>
           <?php if ($hasMac || $hasLinux): ?>
             <div class="os-tabs" role="tablist" aria-label="Your system">
@@ -65,45 +64,42 @@ site_header('download');
           <div class="os-panel" id="for-windows" data-os="windows">
             <p class="small muted">Windows 10 and 11, 64-bit · <?= e(human_size($r['size'])) ?> · <?= e(date('j M Y', $r['date'])) ?></p>
             <a class="button primary big" href="download.php?get=1" rel="nofollow">Download for Windows</a>
-            <details class="fingerprint">
-              <summary class="fp-label"><?= SHIELD_ICON ?>Check the file (SHA-256 fingerprint)</summary>
+            <div class="fingerprint">
+              <p class="fp-label"><?= SHIELD_ICON ?>File fingerprint (SHA-256)</p>
               <code class="hash"><?= e(strtoupper($r['sha256'])) ?></code>
-              <p class="small muted">Optional check that the download is really ours: open PowerShell in your Downloads folder and run <code><span class="nowrap">Get-FileHash</span> <span class="nowrap">.\<?= e($r['name']) ?></span></code>. The Hash must match the one above, and the one on <a href="<?= e(SOURCE_URL) ?>/releases/tag/v<?= e($r['version']) ?>" rel="noopener noreferrer">GitHub</a>, which is published separately.</p>
-            </details>
+              <p class="small muted">To check: run <code class="nowrap">Get-FileHash .\<?= e($r['name']) ?></code> in PowerShell. It must match this and <a href="<?= e(SOURCE_URL) ?>/releases/tag/v<?= e($r['version']) ?>" rel="noopener noreferrer">GitHub</a>.</p>
+            </div>
           </div>
 
           <?php if ($hasMac): $m = $pl['mac']; ?>
           <div class="os-panel" id="for-mac" data-os="mac">
             <p class="small muted">macOS 11 or newer, Apple silicon and Intel · <?= e(human_size($m['size'])) ?></p>
             <a class="button primary big" href="<?= e($m['url']) ?>" rel="nofollow noopener noreferrer">Download for Mac</a>
-            <details class="fingerprint">
-              <summary class="fp-label"><?= SHIELD_ICON ?>Check the file (SHA-256 fingerprint)</summary>
+            <div class="fingerprint">
+              <p class="fp-label"><?= SHIELD_ICON ?>File fingerprint (SHA-256)</p>
               <code class="hash"><?= e(strtoupper($m['sha256'])) ?></code>
-              <p class="small muted">Optional check: in Terminal, run <code><span class="nowrap">shasum -a 256</span> <span class="nowrap">~/Downloads/<?= e($m['name']) ?></span></code>. It must match the one above.</p>
-            </details>
+              <p class="small muted">To check: run <code class="nowrap">shasum -a 256</code> on the file in Terminal. It must match this and <a href="<?= e(SOURCE_URL) ?>/releases/tag/v<?= e($r['version']) ?>" rel="noopener noreferrer">GitHub</a>.</p>
+            </div>
           </div>
           <?php endif; ?>
 
           <?php if ($hasLinux): ?>
           <div class="os-panel" id="for-linux" data-os="linux">
-            <p class="small muted">64-bit Linux: Ubuntu 22.04+, Debian 12, Fedora and more<?= isset($pl['linux_appimage']) ? ' · ' . e(human_size($pl['linux_appimage']['size'])) : '' ?></p>
+            <p class="small muted">64-bit Linux, like Ubuntu, Debian or Fedora<?= isset($pl['linux_appimage']) ? ' · ' . e(human_size($pl['linux_appimage']['size'])) : '' ?></p>
             <?php if (isset($pl['linux_appimage'])): $f = $pl['linux_appimage']; ?>
               <a class="button primary big" href="<?= e($f['url']) ?>" rel="nofollow noopener noreferrer">Download for Linux (AppImage)</a>
-              <?php if (isset($pl['linux_deb'])): ?><p class="small muted">Prefer a package? <a href="<?= e($pl['linux_deb']['url']) ?>" rel="nofollow noopener noreferrer">.deb for Ubuntu and Debian</a> (<?= e(human_size($pl['linux_deb']['size'])) ?>)</p><?php endif; ?>
             <?php elseif (isset($pl['linux_deb'])): $f = $pl['linux_deb']; ?>
               <a class="button primary big" href="<?= e($f['url']) ?>" rel="nofollow noopener noreferrer">Download for Ubuntu and Debian (.deb)</a>
             <?php endif; ?>
-            <details class="fingerprint">
-              <summary class="fp-label"><?= SHIELD_ICON ?>Check the files (SHA-256 fingerprints)</summary>
-              <?php foreach (['linux_appimage' => 'AppImage', 'linux_deb' => '.deb'] as $k => $label): if (!isset($pl[$k])) continue; ?>
-                <code class="hash"><span class="hash-label"><?= e($label) ?></span> <?= e(strtoupper($pl[$k]['sha256'])) ?></code>
-              <?php endforeach; ?>
-              <p class="small muted">Optional check: run <code>sha256sum</code> on the file. It must match.</p>
-            </details>
+            <div class="fingerprint">
+              <p class="fp-label"><?= SHIELD_ICON ?>File fingerprint (SHA-256)</p>
+              <?php if (isset($pl['linux_appimage'])): ?><code class="hash"><?= e(strtoupper($pl['linux_appimage']['sha256'])) ?></code><?php endif; ?>
+              <p class="small muted">To check: run <code>sha256sum</code> on the file. It must match this and <a href="<?= e(SOURCE_URL) ?>/releases/tag/v<?= e($r['version']) ?>" rel="noopener noreferrer">GitHub</a>.<?php if (isset($pl['linux_deb'])): ?> Prefer a package? Get the <a href="<?= e($pl['linux_deb']['url']) ?>" rel="nofollow noopener noreferrer">.deb for Ubuntu and Debian</a> (<?= e(human_size($pl['linux_deb']['size'])) ?>); its fingerprint is on GitHub.<?php endif; ?></p>
+            </div>
           </div>
           <?php endif; ?>
           <p class="phone-note small">On a phone? Open this page on your computer to install Sompio.</p>
-          <p class="card-foot small"><a href="<?= e(SOURCE_URL) ?>/releases/tag/v<?= e($r['version']) ?>" rel="noopener noreferrer">What's new in <?= e($r['version']) ?></a> · <a href="tor.php">Download through Tor</a></p>
+          <p class="card-foot small"><a href="<?= e(SOURCE_URL) ?>/releases/tag/v<?= e($r['version']) ?>" rel="noopener noreferrer">What's new</a> · <a href="tor.php">Download through Tor</a></p>
         <?php else: ?>
           <h2>Coming soon</h2>
           <p class="muted">The beta isn't up yet. Check back shortly.</p>

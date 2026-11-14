@@ -52,14 +52,15 @@ main.wrap > .success, main.wrap > .error { margin-top: 1.2rem; }
 /* Intro and install steps on the left; the download card on the right stays in view while scrolling */
 /* Top row: intro + beta notice on the left, download card on the right, ending on the same line.
    The install steps follow underneath. */
-.hero { display: grid; grid-template-columns: 1.3fr 1fr; grid-template-areas: "intro card" "install install"; column-gap: 2rem; row-gap: 2.2rem; align-items: stretch; }
+.hero { display: grid; grid-template-columns: 1.3fr 1fr; grid-template-areas: "intro card"; column-gap: 2rem; row-gap: 2.2rem; align-items: stretch; }
 .hero-intro { grid-area: intro; display: flex; flex-direction: column; }
 /* The title starts level with the top of the download card (no space above its letters) */
 .hero-intro h1 { line-height: 1.1; margin: -0.12em 0 0.5rem; }
 /* The label keeps its own width. The beta notice sits at the bottom, level with the download
    card's bottom edge, so both columns start and end on the same line */
 .hero-intro .status-pill { align-self: flex-start; }
-.hero .beta-note { margin-top: auto; }
+/* The beta notice grows to end level with the download card, so both columns end on one line */
+.hero .beta-note { flex: 1 0 auto; }
 .hero .ticks { margin: 0 0 1.2rem; }
 .hero .download { grid-area: card; }
 .hero-install { grid-area: install; align-self: start; }
@@ -380,3 +381,4 @@ details.fingerprint[open] { display: grid; gap: 0.45rem; }
 .hero .download { display: flex; flex-direction: column; gap: 0.6rem; }
 .hero .download > * { margin-top: 0; margin-bottom: 0; }
 .download .card-foot { margin-top: auto !important; padding-top: 0.8rem; border-top: 1px solid var(--line); color: var(--ink-2); }
+.hero + .hero-install { margin-top: 2.6rem; }
