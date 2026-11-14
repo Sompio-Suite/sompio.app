@@ -147,7 +147,7 @@ pub fn alert_key(source_id: i64, days_text: &str, time_text: &str, title: &str) 
 }
 
 /// Every reminder and notice that falls on the local dates `from..=to`, from all enabled schedules,
-/// in local time, sorted. `local` is the PC's time zone.
+/// in local time, sorted. `local` is the computer's time zone.
 pub fn occurrences<L: TimeZone>(sources: &[Source], from: NaiveDate, to: NaiveDate, alerts: &[Alert], local: &L) -> Vec<Occurrence> {
     let mut out = Vec::new();
     for src in sources.iter().filter(|s| s.enabled) {
@@ -219,7 +219,7 @@ pub fn occurrences<L: TimeZone>(sources: &[Source], from: NaiveDate, to: NaiveDa
 }
 
 /// What pops up in the minutes after `after` up to and including `upto`. Catches up at most a few
-/// minutes, so waking a PC from sleep doesn't bring a pile of old reminders.
+/// minutes, so waking a computer from sleep doesn't bring a pile of old reminders.
 pub fn due(all: &[Occurrence], after: NaiveDateTime, upto: NaiveDateTime, quiet: &Quiet) -> Vec<Occurrence> {
     let floor = after.max(upto - Duration::minutes(3));
     all.iter()

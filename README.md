@@ -13,7 +13,7 @@
   <a href="https://sompio.org/guides.php">Guides</a>
 </p>
 
-Sompio is one Windows program with three tools:
+Sompio is one program for Windows, Mac and Linux, with three tools:
 
 - **Vault** keeps your passwords, fills them in your browser with the Sompio extension, and tells you which to change
   first: weak, reused, breached, or ones Trace found in your own chats. It saves in the open KeePass format, so you're
@@ -41,7 +41,8 @@ your own lock. This repository holds the complete source, so anyone can check th
 
 <sub>Screenshots use the made-up sample data that ships with Sompio.</sub>
 
-**Status:** open beta on Windows 10 and 11, free with everything unlocked until launch.
+**Status:** open beta on Windows 10 and 11, macOS 11 or newer, and 64-bit Linux, free with everything unlocked
+until launch. On Mac and Linux, auto-type and reading text in pictures are still to come.
 [Download the beta](https://sompio.org/download.php), and send bugs and ideas through the
 [feedback form](https://sompio.org/feedback.php).
 
@@ -175,7 +176,7 @@ back to check it), the password, then the recovery code (`Vault::new_picture` an
 
 ## Testing and problem reports
 
-`How to test Sompio.txt` is the guide for testers; Build Sompio.bat puts it in `Sompio for Windows\For testers`
+`How to test Sompio.txt` is the guide for testers (Windows, Mac and Linux); Build Sompio.bat puts it in `Sompio for Windows\For testers`
 with the setup file (and without the Key Maker). Problems are written to `problems.log` in the app's data folder
 (`%LOCALAPPDATA%\app.sompio.desktop`): crashes in the Rust side (panic hook), errors and crashed screens in the
 window (a crashed screen shows "Reload Sompio" instead of an empty window). Error messages only, never data;
@@ -184,11 +185,13 @@ last log lines for a bug report.
 
 ## Samples
 
-The Samples page (sidebar) has made-up data for every function: Trace's sample data, sample exports for all
-12 import types plus a folder for the PC scan, Calendar reminders that pop up within a minute plus a shared
-schedule and a Desk Reminders folder, Vault entries covering every feature plus KeePass files (one needs a key
+The Samples page (sidebar) has made-up data for every function, all about one made-up person, Alex Rivers.
+"Add Alex's sample data" fills all three tools at once. There's Trace's sample data (chats on six platforms with
+every kind of finding, including bank accounts and ID numbers from several countries), sample exports for all
+12 import types plus a folder for the computer scan (with a screenshot and a photo that has a location),
+Calendar reminders that pop up within a minute plus a team schedule kept in New York time and a Desk Reminders folder, Vault entries covering every feature plus KeePass files (one needs a key
 file; password `sample-password`), five CSV formats and a local login page for auto-type. Files are written to
-Documents\Sompio samples. Every sample is covered by a test that imports it.
+"Sompio samples" in Documents. Every sample is covered by a test that imports it.
 
 Code: `vault/` (store, generator, health, CSV, auto-type parsing and matching; all tested) and
 `app/src-tauri/src/vault.rs` (commands, clipboard, global shortcut, keystrokes).
@@ -210,30 +213,29 @@ Each app gets its own key from the vault key (HKDF). Trace's database is encrypt
 OpenSSL is needed to build. Data from before the lock is encrypted in place on setup. Sompio locks itself after
 a chosen idle time. Nobody, including us, can reset a lost password together with a lost recovery code.
 
-Not yet: YubiKey as the second key, Windows Hello for quick unlock, and the Telegram and email credentials still
-live in Windows Credential Manager rather than under the lock.
+Not yet: Windows Hello and Touch ID for quick unlock, and the Telegram and email credentials still live in the
+system's own credential store (Windows Credential Manager, the macOS Keychain) rather than under the lock.
 
-## Releasing to customers
+## Releasing
 
-Customers never build anything. They download `Sompio_<version>_x64-setup.exe` from a GitHub Release (linked from
-the website) and run it. GitHub builds that file on its own Windows machines:
+Customers never build anything. They download Sompio from [sompio.org/download.php](https://sompio.org/download.php),
+and installed copies offer new versions themselves. GitHub builds everything on its own machines:
 
-1. Once: run `Build Sompio.bat` on your PC, so `licence/public.key` holds the public half of your signing key.
-   Commit and push that file. It's public by design; the signing key itself stays in `%APPDATA%\Sompio Key Maker`.
-2. Each version: raise `"version"` in `app/src-tauri/tauri.conf.json`, push, then on GitHub open
-   **Actions › Release › Run workflow**. About 15 minutes later a draft release appears under **Releases** with the
-   installer attached. Download it, test it, then press **Publish**.
+1. Once: run `Build Sompio.bat` on your PC, so `licence/public.key` holds the public half of your signing key, and
+   `Set up updates.bat` for the update key. Add the secrets `TAURI_SIGNING_PRIVATE_KEY`, `SOMPIO_PUBLISH_TOKEN`,
+   `SOMPIO_UPDATE_TOKEN` and, optionally, `DISCORD_WEBHOOK`.
+2. Each version: raise the version (`app/package.json`, `app/src-tauri/tauri.conf.json`, `app/src-tauri/Cargo.toml`
+   and its `Cargo.lock` entry, `extension/manifest.json`), write `app/release-notes.txt` (one line per change), then
+   push to the `release` branch.
+3. The **Publish** workflow builds Windows (NSIS installer), Mac (one .dmg for Apple silicon and Intel) and Linux
+   (AppImage and .deb). The Windows installer goes to sompio.org; the Mac and Linux files go on the GitHub release,
+   with every file's SHA-256 fingerprint. sompio.org then offers the update to installed copies on all three
+   systems, and the notes are posted to Discord. If the Mac or Linux build fails, Windows still goes out.
+4. To swap the build of the version that's already out (same number), run **Publish** by hand with "replace" ticked.
 
-The release workflow refuses to build while `public.key` is still the development key, because that build would
-reject every key you make.
-
-**Updates.** Installed copies check `latest.json` on the newest GitHub release every few hours (it can be turned
-off under Security) and show **Update now** in the sidebar. Updates are signed; the app refuses anything not signed
-with your update key. Set it up once with `Set up updates.bat`: it makes the key, writes its public half and the
-download address into `tauri.release.conf.json` (used only by the release workflow), and shows you the private half to paste into the GitHub secret
-`TAURI_SIGNING_PRIVATE_KEY`. Releases must be public for the app to fetch them. To keep the code private, make a
-separate public repository for releases, set the Actions variables `RELEASES_OWNER` and `RELEASES_REPO` and a
-`RELEASES_TOKEN` secret (a token that can write to that repository); the workflow publishes there instead.
+The **Check** workflow compiles Windows, Mac and Linux and runs Trace's tests on every push to `master`. The
+publish workflow refuses to build while `public.key` is still the development key, because that build would
+reject every key you make. Updates are signed; the app refuses anything not signed with your update key.
 
 **Local builds.** `Build Sompio.bat` keeps compiled pieces in `%LOCALAPPDATA%\Sompio Build`, so a new copy of the
 project only rebuilds what changed. Local builds don't use GitHub or `tauri.release.conf.json` at all: updates
@@ -380,21 +382,14 @@ message for everyone with one click.
   `SOMPIO_TG_API_HASH` before building (on GitHub: add them as repository secrets; the workflows pass them on).
   Keep the hash out of the repository.
 
-## Getting the Windows program (no setup needed)
+## Getting Sompio without building it
 
-GitHub builds Sompio for you. You don't need Node or Rust on your computer for this.
+Everyone, including you, can download the newest version from
+[sompio.org/download.php](https://sompio.org/download.php). How new versions are built and published is under
+[Releasing](#releasing).
 
-1. Put this folder on GitHub as a repository (GitHub Desktop: File › Add local repository, then Publish).
-2. Every push starts the **Build** workflow. Open the repository's **Actions** tab, click the latest run,
-   and download **Sompio-windows** under Artifacts. It contains:
-   - `Sompio_<version>_x64-setup.exe`: the installer. No admin rights needed.
-   - `Sompio_<version>_x64_en-US.msi`: the same, for IT departments.
-   - `Sompio-portable.exe`: runs without installing.
-3. To publish a version for others: push a tag like `v0.1.0`, or run the **Release** workflow from the
-   Actions tab. It creates a draft on the Releases page with the installer attached. Check it, then publish.
-
-Until the app is code-signed, Windows shows "Windows protected your PC" on first run.
-Users click **More info**, then **Run anyway**.
+Until the app is code-signed, Windows shows "Windows protected your PC" on first run (**More info**, then **Run
+anyway**), and macOS asks you to allow it once under System Settings, Privacy & Security, **Open Anyway**.
 
 ## Developing on Windows
 
@@ -490,12 +485,17 @@ Tested with a 1 million message package: import takes about 6 seconds, a full sc
 | Type | How false alarms are kept down |
 | --- | --- |
 | Passwords, tokens, API keys | Known formats (Discord tokens, JWTs, GitHub, AWS, OpenAI, Slack) and "password: …" phrases |
+| 2FA backup codes, recovery phrases | Only after words like "backup codes" or "seed phrase"; everyday words rule a phrase out |
 | Payment cards | Luhn checksum, real card prefixes, Discord mentions and IDs ignored |
-| IBANs | Full IBAN checksum |
-| Street addresses | Dutch/German, English and Romanian patterns |
+| Bank accounts | IBAN checksum; UK sort code + account and US routing (checksum) + account only together |
+| National ID numbers | Check digits: Dutch BSN (only next to its name), UK NI, Spanish DNI/NIE, Italian codice fiscale, Polish PESEL, French NIR, Romanian CNP; US SSN format rules |
+| Passport and ID card numbers | Only after words like "passport" or "ID card", with digits in them |
+| Street addresses | Dutch/German, English, French, Spanish, Italian, Portuguese, Polish and Romanian patterns |
+| Dates of birth | Only after words like "born" or "date of birth", with a real date |
+| Exact locations | Map links with coordinates, and photo GPS data (only when that check is turned on) |
 | Phone numbers | International, Dutch and US formats, digit-count checks |
 | Email, public IP addresses | Private and local IPs and version numbers ignored |
-| Dutch postcodes, crypto wallets | Low severity |
+| Number plates, postcodes, crypto wallets | Dutch plate patterns or after "number plate"; low severity |
 | Watch terms | Whatever you add: real name, street, school, employer |
 
 To add a pattern: add a line in `Scanner::new` in `clean/src/scan.rs`, a check in `validate` if it needs one,
@@ -503,18 +503,17 @@ and a test in `clean/tests/scanner.rs` that it catches the real thing and ignore
 
 ## Roadmap
 
-1. **Now:** offline import, exposure scan, guided review with links into Discord, search, browsing.
-2. **Next:** exports (HTML, JSON, CSV) of conversations; encrypt the database with a passphrase (SQLCipher).
-3. **Later:** optional clean-up mode that deletes flagged messages through Discord. This needs your token and
-   automates your user account, which Discord's terms prohibit. Make it opt-in, slow and very clearly explained.
-4. **Then:** Outlook.com (Microsoft sign-in), Reddit live (needs Reddit's API approval), Routines.
+1. **Now (open beta):** Vault, Trace and Calendar on Windows, Mac and Linux.
+2. **Before launch:** auto-type and text in pictures on Mac and Linux, code signing for Windows and Mac, an
+   independent security review, licence keys on sale.
+3. **Later:** phones, Windows Hello and Touch ID quick unlock, Outlook.com sign-in, Sompio for Teams.
 
 # License and checking Sompio yourself
 
 Sompio is **source-available** under the [Functional Source License 1.1 with an Apache 2.0 future license](LICENSE.md)
 (FSL-1.1-ALv2):
 
-- You may read, build and use the code, including to check for yourself that Sompio keeps your data on your PC.
+- You may read, build and use the code, including to check for yourself that Sompio keeps your data on your computer.
   Internal use, education, research and contributions are all fine.
 - You may not offer it, or something built from it, as a competing product or service.
 - Two years after each version is released, that version also becomes available under the Apache License 2.0.

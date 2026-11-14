@@ -125,7 +125,7 @@ export default function Sources({ demo, onScan, onChanged }: Props) {
           <h1>Sources</h1>
           <p className="muted">
             Add the export from each platform you use, connect accounts where that's possible, and choose folders on this
-            PC to check. It all lands in one Review list.
+            computer to check. It all lands in one Review list.
           </p>
         </div>
       </div>
@@ -223,7 +223,7 @@ export default function Sources({ demo, onScan, onChanged }: Props) {
           </div>
           <div className="panel add-option">
             <span className="step-icon"><Icon name="folder" /></span>
-            <h3>Folders on this PC</h3>
+            <h3>Folders on this computer</h3>
             <p className="muted small">
               Finds passport scans, password lists, bank statements and files with personal details. Documents, Downloads
               and Desktop are good places to start.

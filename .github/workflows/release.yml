@@ -24,6 +24,10 @@ on:
         description: "Replace the version that's already out (same version number, new build)"
         type: boolean
         default: false
+      announce:
+        description: "Post the release notes to Discord"
+        type: boolean
+        default: true
 
 concurrency:
   group: publish
@@ -268,7 +272,7 @@ jobs:
       - name: Announce it on Discord
         # Posts the release notes to the channel behind the DISCORD_WEBHOOK secret. Without that secret,
         # or when this version was already on sompio.org, nothing is posted.
-        if: env.NEW_VERSION == '1'
+        if: env.NEW_VERSION == '1' && (github.event_name != 'workflow_dispatch' || inputs.announce)
         env:
           HOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |

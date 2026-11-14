@@ -1019,7 +1019,7 @@ impl Vault {
         let mut copy = self.db.clone();
         copy.config.kdf_config = export_kdf();
         copy.meta.generator = Some("Sompio".into());
-        // The keys of paired browsers stay on this PC
+        // The keys of paired browsers stay on this computer
         copy.meta.custom_data.remove(crate::browser::CLIENTS_KEY);
         let mut buf = Vec::new();
         copy.save(&mut buf, user_key(password, keyfile)?).map_err(|e| anyhow!("Couldn't write the file: {e}"))?;

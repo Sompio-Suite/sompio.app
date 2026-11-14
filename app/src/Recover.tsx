@@ -16,7 +16,7 @@ export default class Recover extends Component<{ children: ReactNode }, { failed
     return (
       <div className="recover">
         <h1>Something went wrong on this screen</h1>
-        <p className="muted">Your data is safe: nothing was lost or changed. A note about it was written to the problems log on this PC.</p>
+        <p className="muted">Your data is safe: nothing was lost or changed. A note about it was written to the problems log on this computer.</p>
         <p className="small faint mono">{this.state.failed}</p>
         <div className="toolbar">
           <button className="primary" onClick={() => window.location.reload()}>Reload Sompio</button>

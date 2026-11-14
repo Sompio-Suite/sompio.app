@@ -389,7 +389,7 @@ export default function Review({ scan, demo, initialKind, onScan, onOpen }: Prop
     }
     setGuide({ ...guide, i: guide.i + 1, busy: false, error: undefined, [outcome]: guide[outcome] + 1 });
   };
-  /** Removes it for you where Sompio can: connected Telegram or email, or a file on this PC. */
+  /** Removes it for you where Sompio can: connected Telegram or email, or a file on this computer. */
   const guideRemove = async () => {
     if (!guide) return;
     const f = guide.items[guide.i];
@@ -861,7 +861,7 @@ function WatchTerms(p: {
       <div className="watch-title">
         <h3>Watch terms</h3>
         <span className="muted small">
-          Your real name, street, school or employer. Patterns can't guess these. They never leave this PC.
+          Your real name, street, school or employer. Patterns can't guess these. They never leave this computer.
           {p.demo && " In the sample, try Sam Rivers."}
         </span>
       </div>

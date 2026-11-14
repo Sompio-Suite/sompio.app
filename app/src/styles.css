@@ -1032,7 +1032,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .xc-node .num { color: var(--ink-3); font-size: var(--t-xs); }
 .xc-node:hover:not(:disabled) { background: var(--hover); border-color: transparent; }
 .xc-node[aria-current="true"] { background: var(--select); border-color: var(--select-line); }
-.xc-branch { display: grid; gap: 1px; margin-top: 0.55rem; }
+.xc-branch { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; margin-top: 0.55rem; }
 .xc-branch-label { display: flex; align-items: center; gap: 0.45rem; font-size: var(--t-xs); font-weight: 600; color: var(--ink-2); padding: 0.15rem 0.5rem; }
 .xc-tree-foot { margin-top: auto; padding: 0.8rem 0.5rem 0.2rem; display: grid; gap: 0.35rem; }
 .xc-tree-foot .bar > span { background: var(--ok); }

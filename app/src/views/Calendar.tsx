@@ -483,7 +483,7 @@ function ScheduleCard({ s, run, onExport, isMine }: { s: ScheduleView; run: Run;
           )}
           <span className="small muted">
             {plural(s.reminders, "reminder", "reminders")}
-            {s.mine ? " · only on this PC" : s.owned ? " · you organise this one" : " · shared with you"}
+            {s.mine ? " · only on this computer" : s.owned ? " · you organise this one" : " · shared with you"}
             {s.updated && ` · updated ${s.updated}`}
             {s.timezone && ` · times in ${s.timezone}`}
           </span>

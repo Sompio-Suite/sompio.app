@@ -20,7 +20,7 @@ export const PACKS: Pack[] = [
   {
     id: "backups",
     name: "Backups",
-    line: "So a lost or locked PC doesn't take your files with it.",
+    line: "So a lost or locked computer doesn't take your files with it.",
     rows: [
       { days: "Sun", time: "20:00", title: "Back up your files", text: "Copy your important folders to an external drive or encrypted backup." },
       { days: "Monthly 5", time: "19:30", title: "Test a backup", text: "Open one file from your backup to make sure it actually works." },

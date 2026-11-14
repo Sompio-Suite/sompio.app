@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Send feedback or report a bug
+    url: https://sompio.org/feedback.php
+    about: The quickest way to reach us. You can attach a screenshot and bug report details.
+  - name: Report a security problem
+    url: https://sompio.org/security.php
+    about: Please don't post security problems publicly. Email hello@sompio.org instead.

@@ -19,7 +19,7 @@ use sompio_clean::{
 struct AppState {
     /// The Sompio Lock and the key to each app's encrypted data. Nothing opens while it's locked.
     vault: Arc<sompio_suite::Vault>,
-    /// The licence keys entered on this PC, and the trial
+    /// The licence keys entered on this computer, and the trial
     licences: Licences,
     /// The Telegram connection. Only does anything after the person connects an account.
     telegram: tokio::sync::Mutex<sompio_connect::telegram::Telegram>,
@@ -328,7 +328,7 @@ async fn remove_source(state: State<'_, AppState>, platform: String) -> CmdResul
     with_store(state.db()?, move |s| s.remove_source(&platform)).await
 }
 
-/// Moves a file found by the PC scan to the Recycle Bin.
+/// Moves a file found by the computer scan to the Recycle Bin.
 #[tauri::command]
 async fn recycle_file(state: State<'_, AppState>, id: i64) -> CmdResult<(String, ScanSummary)> {
     state.licences.require(App::Clean)?;
@@ -343,7 +343,7 @@ async fn recycle_file(state: State<'_, AppState>, id: i64) -> CmdResult<(String,
 #[tauri::command]
 async fn show_in_folder(state: State<'_, AppState>, id: i64) -> CmdResult<()> {
     let path = with_store(state.db()?, move |s| s.file_path_for(id)).await?;
-    let path = path.ok_or_else(|| "This item isn't a file on this PC.".to_string())?;
+    let path = path.ok_or_else(|| "This item isn't a file on this computer.".to_string())?;
     tauri_plugin_opener::reveal_item_in_dir(&path).map_err(|e| format!("Couldn't open the folder: {e}"))
 }
 

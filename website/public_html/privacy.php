@@ -1,6 +1,6 @@
 <?php
 // Privacy statement for sompio.org (the website, the update sign-up, beta downloads and feedback, and the
-// update check). The Sompio app itself is covered in the documentation: it keeps everything on your PC.
+// update check). The Sompio app itself is covered in the documentation: it keeps everything on your computer.
 declare(strict_types=1);
 require __DIR__ . '/private/lib.php';
 page_head('Privacy statement · Sompio', 'What sompio.org collects, why, how long it is kept, and how to have it deleted.');
@@ -36,7 +36,7 @@ site_header('privacy');
 
       <section id="who">
         <h2>Who we are</h2>
-        <p>Sompio is a small, independent project that makes privacy software for Windows. We're responsible for the personal data described here. For anything about your data, write to <a href="mailto:hello@sompio.org">hello@sompio.org</a>. We aim to answer within a week, and always within the one month the law allows.</p>
+        <p>Sompio is a small, independent project that makes privacy software for Windows, Mac and Linux. We're responsible for the personal data described here. For anything about your data, write to <a href="mailto:hello@sompio.org">hello@sompio.org</a>. We aim to answer within a week, and always within the one month the law allows.</p>
       </section>
 
       <section id="what">
@@ -124,7 +124,7 @@ site_header('privacy');
 
       <section id="app">
         <h2>The Sompio app</h2>
-        <p>The Sompio app doesn't send us your data. There's no account, and everything you put in it stays on your PC, encrypted. The only time it contacts sompio.org on its own is the update check described above. The <a href="docs.php#private">documentation</a> lists every time Sompio goes online, and the <a href="<?= e(SOURCE_URL) ?>" rel="noopener noreferrer">source code</a> lets anyone check.</p>
+        <p>The Sompio app doesn't send us your data. There's no account, and everything you put in it stays on your computer, encrypted. The only time it contacts sompio.org on its own is the update check described above. The <a href="docs.php#private">documentation</a> lists every time Sompio goes online, and the <a href="<?= e(SOURCE_URL) ?>" rel="noopener noreferrer">source code</a> lets anyone check.</p>
       </section>
 
       <section id="changes">

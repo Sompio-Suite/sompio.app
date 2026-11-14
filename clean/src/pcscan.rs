@@ -263,7 +263,7 @@ fn display_path(p: &Path) -> String {
 }
 
 /// Words in a file's name that suggest an identity document, money matters or secrets.
-/// Matched against the first line of a PC-scan "message" (the file's path).
+/// Matched against the first line of a computer-scan "message" (the file's path).
 pub(crate) const SENSITIVE_NAME_WORDS: &[&str] = &[
     "passport", "paspoort", "pasport", "pasaport", "identity card", "id card", "idcard", "id-card", "id kaart",
     "id-kaart", "identiteitskaart", "rijbewijs", "drivers license", "driver license", "driver's license",

@@ -24,7 +24,7 @@ export default function Overview({ licence, scan, cleanReady, onGo }: Props) {
       <div className="page-head">
         <div>
           <h1>Sompio Suite</h1>
-          <p className="muted">Private tools that keep your data on this PC, locked to you.</p>
+          <p className="muted">Private tools that keep your data on this computer, locked to you.</p>
         </div>
       </div>
 
@@ -107,7 +107,7 @@ export default function Overview({ licence, scan, cleanReady, onGo }: Props) {
       </div>
 
       <section className="promise">
-        <div><Icon name="lock" /><strong>Stays on this PC</strong><span>No account is needed to use the apps. Your data is never uploaded.</span></div>
+        <div><Icon name="lock" /><strong>Stays on this computer</strong><span>No account is needed to use the apps. Your data is never uploaded.</span></div>
         <div><Icon name="ticket" /><strong>Keys, not logins</strong><span>A key unlocks what you bought. It's checked here, offline.</span></div>
         <div><Icon name="check" /><strong>Never held hostage</strong><span>When a key runs out, everything stays readable and exportable.</span></div>
       </section>

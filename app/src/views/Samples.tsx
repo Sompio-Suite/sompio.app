@@ -128,7 +128,7 @@ export default function Samples({ cleanHasData, onCleanDemo, onGo }: Props) {
         <div className="sample-row">
           <div>
             <strong>Sample exports for every import</strong>
-            <span className="small muted">Discord, Reddit, Telegram, X, Facebook, Instagram, TikTok, Snapchat, LinkedIn, WhatsApp, Gmail, and a folder for "Scan a folder on this PC". Import them under Trace, Sources.</span>
+            <span className="small muted">Discord, Reddit, Telegram, X, Facebook, Instagram, TikTok, Snapchat, LinkedIn, WhatsApp, Gmail, and a folder for "Scan a folder on this computer". Import them under Trace, Sources.</span>
           </div>
           <button disabled={!!busy} onClick={() => files("clean")}>{busy === "clean-files" ? "Saving…" : "Save sample exports"}</button>
         </div>

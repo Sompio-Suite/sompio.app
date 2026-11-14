@@ -43,7 +43,7 @@ site_header('guide');
       <section id="step2">
         <h2>2. Find what matters</h2>
         <p>You can open <code>comments.csv</code> in Excel and search for your street, city or employer. That works for a few hundred comments, but not for ten years of them.</p>
-        <p><a href="docs.php#trace">Sompio Trace</a> reads the Reddit zip on your own PC and finds addresses, phone numbers, email addresses, bank details and more. Add <strong>watch terms</strong> for the personal details no pattern can guess, like your town, school or job. Everything found lands in one list, sorted by risk, and nothing is uploaded.</p>
+        <p><a href="docs.php#trace">Sompio Trace</a> reads the Reddit zip on your own computer and finds addresses, phone numbers, email addresses, bank details and more. Add <strong>watch terms</strong> for the personal details no pattern can guess, like your town, school or job. Everything found lands in one list, sorted by risk, and nothing is uploaded.</p>
       </section>
 
       <section id="step3">

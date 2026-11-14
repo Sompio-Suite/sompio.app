@@ -228,6 +228,6 @@ export const vaultHandlers: Record<string, (a: any) => unknown> = {
       ? [["Sample KeePass.kdbx", "A KeePass file. Its password is: sample-password"], ["Sample Bitwarden export.csv", "A Bitwarden export with a folder and a 2FA secret."], ["Test login page.html", "Open it in your browser to try auto-type."]]
       : which === "calendar"
         ? [["Northwind team (sample).csv", "A shared team schedule with groups."], ["Sample Desk Reminders folder", "A Desk Reminders folder to bring in."]]
-        : [["Discord package.zip", "Discord: a server with two channels and two DMs."], ["Telegram export.zip", "Telegram: a private chat and a group."], ["Sample PC folder", "This PC: a folder for Scan a folder."]],
+        : [["Discord package.zip", "Discord: a server with two channels and two DMs."], ["Telegram export.zip", "Telegram: a private chat and a group."], ["Sample computer folder", "This computer: a folder for Scan folders."]],
   }),
 };

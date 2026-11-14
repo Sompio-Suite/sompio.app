@@ -9,7 +9,7 @@ fn every_sample_imports_and_has_findings() {
     for f in &files {
         let mut store = Store::open_in_memory().unwrap();
         let path = dir.path().join(&f.file);
-        let s = if f.platform == "This PC" {
+        let s = if f.platform == "This computer" {
             scan_folders(&mut store, &[path], &mut |_| {}).unwrap()
         } else {
             import_package(&mut store, &path, &mut |_| {}).unwrap_or_else(|e| panic!("{}: {e}", f.file))

@@ -10,7 +10,7 @@ interface Props {
 }
 
 /**
- * Choosing what to scan on this PC. Nothing is read until the person presses Start, and the
+ * Choosing what to scan on this computer. Nothing is read until the person presses Start, and the
  * picture checks stay off unless they tick them for this scan.
  */
 export default function FolderScan({ disabled, onStart }: Props) {
@@ -49,7 +49,7 @@ export default function FolderScan({ disabled, onStart }: Props) {
           <input type="checkbox" checked={imageText} onChange={(e) => setImageText(e.target.checked)} />
           <span>
             Read text in pictures
-            <small className="muted">Screenshots and scanned letters or documents. Slower. Uses Windows' own text recognition, on this PC.</small>
+            <small className="muted">Screenshots and scanned letters or documents. Slower. Uses Windows' own text recognition, on this computer.</small>
           </span>
         </label>}
         <label className="check">

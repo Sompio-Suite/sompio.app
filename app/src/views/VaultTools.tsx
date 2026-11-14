@@ -119,7 +119,7 @@ export function Health({ onOpen }: { onOpen: (id: string) => void }) {
   const [inTrace, setInTrace] = useState<VaultInTrace[] | null>(null);
   useEffect(() => {
     api.vaultHealth().then(setR).catch(() => {});
-    // Runs on this PC only, so it can check straight away
+    // Runs on this computer only, so it can check straight away
     api.vaultInTrace().then(setInTrace).catch(() => setInTrace([]));
   }, []);
   const checkLeaks = async () => {
@@ -145,15 +145,15 @@ export function Health({ onOpen }: { onOpen: (id: string) => void }) {
           <div><strong className="num">{r.old}</strong><span>older than a year</span></div>
           <div><strong className="num">{r.expired}</strong><span>expired</span></div>
         </div>
-        <p className="small muted">Checked {plural(r.checked, "password", "passwords")} on this PC. Nothing was sent anywhere.</p>
+        <p className="small muted">Checked {plural(r.checked, "password", "passwords")} on this computer. Nothing was sent anywhere.</p>
       </section>
       {inTrace && inTrace.length > 0 && (
         <section className="panel leak-check in-trace">
           <div>
             <strong>Passwords you've shared in your own chats</strong>
             <span className="small muted">
-              Trace found these saved passwords in messages you sent or files on this PC. Anyone in those chats may have
-              seen them. Change them, then delete the messages in Trace. Checked on this PC; nothing was sent anywhere.
+              Trace found these saved passwords in messages you sent or files on this computer. Anyone in those chats may have
+              seen them. Change them, then delete the messages in Trace. Checked on this computer; nothing was sent anywhere.
             </span>
           </div>
           <ul className="health-list">
@@ -181,7 +181,7 @@ export function Health({ onOpen }: { onOpen: (id: string) => void }) {
           <span className="small muted">
             Sompio asks Have I Been Pwned, the breach list security teams use. Only the first 5 characters of a scrambled
             fingerprint (SHA-1 hash) of each password are sent; the answer covers hundreds of passwords, and the match happens
-            on this PC. Your passwords never leave it. This is the only part of Vault that goes online, and only when you press the button.
+            on this computer. Your passwords never leave it. This is the only part of Vault that goes online, and only when you press the button.
           </span>
         </div>
         <button className={leaks ? "" : "primary"} disabled={checking || r.checked === 0} onClick={checkLeaks}>{checking ? "Checking…" : leaks ? "Check again" : "Check for breaches"}</button>
@@ -388,7 +388,7 @@ export function VaultSettingsPanel({ readOnly, onDone }: { readOnly: boolean; on
             if (p) setImporting({ path: p, password: "", keyfile: null, merge: true });
           }}>Merge changes from a copy</button>
         </div>
-        <p className="small faint">Works with Bitwarden, 1Password, LastPass, Proton Pass, Dashlane, KeePass and KeePassXC. To use your passwords on another PC, save a KeePass file below, use it there, then "Merge changes from a copy" to bring the changes back.</p>
+        <p className="small faint">Works with Bitwarden, 1Password, LastPass, Proton Pass, Dashlane, KeePass and KeePassXC. To use your passwords on another computer, save a KeePass file below, use it there, then "Merge changes from a copy" to bring the changes back.</p>
         {importing && (
           <form className="panel inset-form" onSubmit={(e) => {
             e.preventDefault();
@@ -474,7 +474,7 @@ function BrowserSettings({ s, save, onDone }: { s: VaultSettings; save: (n: Vaul
       <h3>Browser extension</h3>
       <p className="muted">
         Fill and save website logins in Chrome, Edge, Brave and Firefox, like other password managers do. The extension talks only to Sompio on this
-        PC, never to the internet, and only after you allow each browser here once.
+        computer, never to the internet, and only after you allow each browser here once.
       </p>
       <div className="toolbar"><button className="primary" onClick={() => setGuide(true)}><Icon name="browser" size={16} />Set it up step by step</button></div>
       {guide && <BrowserSetup onClose={() => { setGuide(false); load(); }} />}
@@ -588,7 +588,7 @@ export function BrowserSetup({ onClose }: { onClose: (connected: boolean) => voi
           <button className="quiet" onClick={() => onClose(connected)}>Close</button>
         </div>
         <p className="muted">
-          Fill and save logins in Chrome, Edge, Brave or Firefox with one click. The extension talks only to Sompio on this PC, never to the
+          Fill and save logins in Chrome, Edge, Brave or Firefox with one click. The extension talks only to Sompio on this computer, never to the
           internet. <button className="link" onClick={() => openExternal(`${DOCS_URL}#extension`)}>How it works and why it's private</button>
         </p>
 

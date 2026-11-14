@@ -293,7 +293,7 @@ export default function App() {
           ) : (
             <div>
               <strong>Offline</strong>
-              Your data never leaves this PC.
+              Your data never leaves this computer.
             </div>
           )}
         </div>

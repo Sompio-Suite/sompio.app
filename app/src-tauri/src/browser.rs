@@ -1,4 +1,4 @@
-//! The bridge between the Sompio browser extension and the Vault. Everything stays on this PC:
+//! The bridge between the Sompio browser extension and the Vault. Everything stays on this computer:
 //!
 //!   extension ⇄ (native messaging: the browser starts Sompio.exe in "host" mode) ⇄ local pipe ⇄ Sompio
 //!
@@ -185,7 +185,7 @@ async fn call(app: &AppHandle, msg: &Value) -> Value {
     let ts = req.get("t").and_then(Value::as_i64).unwrap_or(0);
     let now = now_ms();
     if nonce.len() < 16 || (now - ts).abs() > MAX_SKEW_MS {
-        return error("stale", "That request is too old. Check your PC's clock.");
+        return error("stale", "That request is too old. Check your computer's clock.");
     }
     {
         let state = app.state::<AppState>();
@@ -422,7 +422,7 @@ async fn serve_stream<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin>(a
     }
 }
 
-/// Listens for the browser host on a pipe only this PC can reach. Started once, at launch.
+/// Listens for the browser host on a pipe only this computer can reach. Started once, at launch.
 pub fn start(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         if let Err(e) = listen(app).await {
@@ -462,7 +462,7 @@ async fn listen(app: AppHandle) -> std::io::Result<()> {
 fn manifest(path: &str, firefox: bool) -> Value {
     let mut m = json!({
         "name": HOST_NAME,
-        "description": "Sompio Vault for your browser. Talks only to Sompio on this PC.",
+        "description": "Sompio Vault for your browser. Talks only to Sompio on this computer.",
         "path": path,
         "type": "stdio",
     });

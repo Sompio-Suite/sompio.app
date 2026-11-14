@@ -165,7 +165,7 @@ export default function Vault({ readOnly, onAddKey }: Props) {
       <div className="app-head">
         <div className="app-title">
           <h1>Vault</h1>
-          <span className="muted">Your passwords, encrypted with your lock. Nothing leaves this PC, and you can take them anywhere: Vault saves in the open KeePass format.</span>
+          <span className="muted">Your passwords, encrypted with your lock. Nothing leaves this computer, and you can take them anywhere: Vault saves in the open KeePass format.</span>
         </div>
         <div className="segmented" role="tablist" aria-label="Vault">
           {tabs.map(([k, label]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{label}</button>)}
@@ -182,7 +182,7 @@ export default function Vault({ readOnly, onAddKey }: Props) {
       {extTip && tab === "passwords" && (
         <div className="notice ext-tip">
           <Icon name="browser" />
-          <div><strong>Fill passwords in your browser</strong><span>Add the Sompio extension to Chrome, Edge, Brave or Firefox. It talks only to Sompio on this PC.</span></div>
+          <div><strong>Fill passwords in your browser</strong><span>Add the Sompio extension to Chrome, Edge, Brave or Firefox. It talks only to Sompio on this computer.</span></div>
           <button className="primary" onClick={() => setExtSetup(true)}>Set it up</button>
           <button className="quiet" aria-label="Hide this" title="Hide this. You can set it up later in Auto-type, import and export." onClick={hideExtTip}>×</button>
         </div>

@@ -74,7 +74,7 @@ pub fn app_details(app: AppHandle) -> CmdResult<Details> {
 /// "C:\\Users\\Anna\\AppData" becomes "C:\\Users\\you\\AppData" (also /home/anna and /Users/anna).
 pub fn redact(text: &str) -> String {
     let mut out = text.to_string();
-    // This PC's own home folder first: exact, even when the name has spaces in it
+    // This computer's own home folder first: exact, even when the name has spaces in it
     for (var, generic) in [("USERPROFILE", r"C:\Users\you"), ("HOME", "/home/you")] {
         if let Ok(home) = std::env::var(var) {
             if home.len() > 3 {

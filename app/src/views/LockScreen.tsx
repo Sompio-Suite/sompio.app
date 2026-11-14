@@ -42,7 +42,7 @@ function RecoverySheet({ code, onDone }: { code: string; onDone: () => void }) {
       <h1>Your recovery code</h1>
       <p className="muted">
         If you ever forget your password or lose the key picture, this code is the only way back in. Nobody can reset it for you, not even
-        us. Print it or write it down, and keep it somewhere safe at home, away from this PC.
+        us. Print it or write it down, and keep it somewhere safe at home, away from this computer.
       </p>
       <div className="recovery-sheet" id="recovery-sheet">
         <div className="sheet-head"><Mark size={28} /><strong>Sompio recovery sheet</strong></div>
@@ -72,7 +72,7 @@ function PhoneStep({ path, onDone }: { path: string; onDone: () => void }) {
         <li><Icon name="check" size={16} />Move it to your phone <strong>as a file</strong>: by cable, AirDrop, Nearby Share, or "Save to Files".</li>
         <li><Icon name="check" size={16} />Don't send it through WhatsApp, Messenger or similar. They shrink pictures, which erases the key inside.</li>
         <li><Icon name="check" size={16} />It looks like an ordinary night-sky wallpaper. Keep it with your photos; nobody needs to know what it is.</li>
-        <li><Icon name="check" size={16} />Once it's on your phone, you can delete it from this PC.</li>
+        <li><Icon name="check" size={16} />Once it's on your phone, you can delete it from this computer.</li>
       </ul>
       <button className="primary big" onClick={onDone}>Open Sompio</button>
     </div>
@@ -177,8 +177,8 @@ export default function LockScreen({ status, onUnlocked }: Props) {
     <label className="check">
       <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
       <span>
-        Remember the key picture on this PC
-        <small className="muted"> Then you only type your password here. Leave it off on a shared or work PC.</small>
+        Remember the key picture on this computer
+        <small className="muted"> Then you only type your password here. Leave it off on a shared or work computer.</small>
       </span>
     </label>
   );
@@ -190,12 +190,12 @@ export default function LockScreen({ status, onUnlocked }: Props) {
           <Mark />
           <h1>Welcome to Sompio</h1>
           <p className="muted">
-            Sompio keeps everything on this PC, encrypted: your passwords, your calendar and what Trace finds. Nothing goes to us or
+            Sompio keeps everything on this computer, encrypted: your passwords, your calendar and what Trace finds. Nothing goes to us or
             to the cloud. Before you start, you set up the lock that keeps it safe. It takes about two minutes.
           </p>
           <ol className="setup-steps">
             <li><span>1</span><div><strong>Read how the lock works</strong><small className="muted">A few rules, so you never lock yourself out.</small></div></li>
-            <li><span>2</span><div><strong>Make your key picture</strong><small className="muted">A .png file with a secret hidden in it. You save it on your PC.</small></div></li>
+            <li><span>2</span><div><strong>Make your key picture</strong><small className="muted">A .png file with a secret hidden in it. You save it on your computer.</small></div></li>
             <li><span>3</span><div><strong>Choose your password</strong><small className="muted">The password and the picture together open Sompio.</small></div></li>
             <li><span>4</span><div><strong>Keep your recovery code</strong><small className="muted">Your way back in if you lose the other two.</small></div></li>
           </ol>
@@ -215,10 +215,10 @@ export default function LockScreen({ status, onUnlocked }: Props) {
             <div className="rules-col do">
               <h3><Icon name="check" size={16} />Do</h3>
               <ul>
-                <li>Keep a copy of the key picture somewhere other than this PC: a USB stick, or your phone <em>as a file</em> (cable, AirDrop, "Save to Files").</li>
-                <li>Print or write down the recovery code you get at the end, and keep it at home, away from the PC.</li>
+                <li>Keep a copy of the key picture somewhere other than this computer: a USB stick, or your phone <em>as a file</em> (cable, AirDrop, "Save to Files").</li>
+                <li>Print or write down the recovery code you get at the end, and keep it at home, away from the computer.</li>
                 <li>Use a password you don't use anywhere else. A few unrelated words is easy to remember and hard to guess.</li>
-                <li>On a shared or work PC, don't let Sompio remember the picture. Then the file is needed every time.</li>
+                <li>On a shared or work computer, don't let Sompio remember the picture. Then the file is needed every time.</li>
               </ul>
             </div>
             <div className="rules-col dont">

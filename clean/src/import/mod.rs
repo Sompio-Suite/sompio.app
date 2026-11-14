@@ -53,7 +53,7 @@ pub fn platform_label(platform: &str) -> &'static str {
         "snapchat" => "Snapchat",
         "linkedin" => "LinkedIn",
         "email" => "Email",
-        "pc" => "This PC",
+        "pc" => "This computer",
         _ => "Other",
     }
 }

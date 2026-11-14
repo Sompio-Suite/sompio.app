@@ -41,7 +41,7 @@ impl PictureSecret {
     pub fn as_bytes(&self) -> &[u8; 32] {
         &self.0
     }
-    /// For keeping it in the OS credential store on a trusted PC.
+    /// For keeping it in the OS credential store on a trusted computer.
     pub fn to_hex(&self) -> String {
         self.0.iter().map(|b| format!("{b:02x}")).collect()
     }

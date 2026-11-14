@@ -121,7 +121,7 @@ site_header('download');
           <li>
             <h3>2. "Windows protected your PC"</h3>
             <p>A blue box appears when you open the setup file. Click <strong>More info</strong>, then <strong>Run anyway</strong>.</p>
-            <div class="mock blue"><div><b>Windows protected your PC</b><span>Microsoft Defender SmartScreen prevented an unrecognized app from starting. Running this app might put your PC at risk.</span><u>More info</u></div><span class="mock-btn">Run anyway</span><span class="mock-btn">Don't run</span></div>
+            <div class="mock blue"><div><b>Windows protected your PC</b><span>Microsoft Defender SmartScreen prevented an unrecognized app from starting. Running this app might put your computer at risk.</span><u>More info</u></div><span class="mock-btn">Run anyway</span><span class="mock-btn">Don't run</span></div>
           </li>
           <li>
             <h3>3. If Microsoft Defender removes the file</h3>
@@ -194,7 +194,7 @@ site_header('download');
         <div class="card">
           <h3>Trace</h3>
           <ul>
-            <li>Start with what's quick: folders on your PC, your mailbox, a WhatsApp chat.</li>
+            <li>Start with what's quick: folders on your computer, your mailbox, a WhatsApp chat.</li>
             <li>Ask Discord, Instagram and the rest for your data at the same time; Sompio reminds you when it should be ready.</li>
             <li>Want to look first? The Samples page has a made-up person to try everything on.</li>
           </ul>

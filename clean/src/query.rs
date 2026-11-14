@@ -179,7 +179,7 @@ impl Store {
     pub fn stats(&self) -> Result<Stats> {
         let c = &self.conn;
         let one = |sql: &str| -> Result<i64> { Ok(c.query_row(sql, [], |r| r.get(0))?) };
-        // Messages only: files from the PC scan would skew dates and counts.
+        // Messages only: files from the computer scan would skew dates and counts.
         let (first_ts, last_ts): (Option<i64>, Option<i64>) = c.query_row(
             &format!("SELECT MIN(m.ts), MAX(m.ts) {MESSAGE_FROM} WHERE c.platform <> 'pc' AND m.ts > 0"),
             [],

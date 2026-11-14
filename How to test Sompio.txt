@@ -1,39 +1,45 @@
 HOW TO TEST SOMPIO
 ==================
 
-Thank you for testing! This is a test version of Sompio 0.9.0 for Windows 10 and 11.
-Everything you put in it stays on your PC. Nothing is sent to us, and there's no account.
+Thank you for testing! Sompio is in open beta for Windows, Mac and Linux. Everything is
+unlocked, free, until launch. Everything you put in it stays on your computer: nothing is sent
+to us, and there's no account.
+
+Download it from https://sompio.org/download.php. The page shows the steps for your system.
 
 
 1. INSTALLING
 -------------
-Run Sompio_0.9.0_x64-setup.exe.
-
-Windows will probably show a blue "Windows protected your PC" box. That's because this test
-version isn't signed with a Microsoft certificate yet (the real release will be). To go on:
-click "More info", then "Run anyway".
+Windows: run the setup file. Windows shows a blue "Windows protected your PC" box, because the
+  beta isn't signed with a Microsoft certificate yet. Click "More info", then "Run anyway".
+Mac: open the .dmg and drag Sompio to Applications. The first time you open it, macOS blocks
+  it: click Done, then System Settings, Privacy & Security, "Open Anyway".
+Linux: make the AppImage runnable (right-click, Properties, "Allow executing file as program")
+  and open it, or install the .deb with: sudo apt install ./Sompio_*_linux_amd64.deb
 
 When Sompio starts, it walks you through the Sompio Lock in four steps:
   1. How the lock works: a short list of do's and don'ts. Please read it.
   2. Make your key picture: the button saves a .png file with a secret hidden in it.
-     Put it somewhere you'll find it again (a copy off this PC is best).
+     Put it somewhere you'll find it again (a copy off this computer is best).
   3. Choose your password.
   4. Write down or print the recovery code.
-You get a 30-day trial of everything. No licence key is needed for testing.
 
 Please use made-up data while testing, not your real passwords or messages. The Samples page
-in the menu has made-up data for everything (see step 2).
+has a made-up person, Alex Rivers, for everything (see step 2).
 
 
 2. THE SAMPLES PAGE
 -------------------
-Open "Samples" in the menu on the left. It has:
-  - Calendar: sample reminders (the first pop-up comes within a minute), plus sample files.
-  - Trace: open Trace with ready-made sample data, or save sample exports from Discord,
-    Reddit, Telegram, X, Facebook, Instagram, TikTok, Snapchat, LinkedIn, WhatsApp and Gmail.
+Open "Samples" in the menu on the left. "Add Alex's sample data" fills all three tools at once.
+It also has, per tool:
   - Vault: sample entries (2FA codes, weak and reused passwords, auto-type tests), plus KeePass
     files and CSV exports to import. The KeePass sample password is: sample-password
-Sample files are saved to Documents\Sompio samples, and that folder opens for you.
+  - Trace: open Trace with sample data, or save sample exports from Discord, Reddit, Telegram,
+    X, Facebook, Instagram, TikTok, Snapchat, LinkedIn, WhatsApp and Gmail, and a sample
+    computer folder with a screenshot and a photo in it.
+  - Calendar: sample reminders (the first pop-up comes within a minute), a team schedule kept
+    in New York time, and sample files.
+Sample files are saved to a "Sompio samples" folder in your Documents, which opens for you.
 
 
 3. WHAT TO TRY
@@ -43,88 +49,63 @@ Lock
   - Try a wrong password, and unlocking with the recovery code.
   - If you have a YubiKey: Security, "Add a YubiKey", then unlock with it.
 
+Vault
+  - Bring in passwords from your browser: Vault walks you through exporting them from Chrome,
+    Edge, Brave or Firefox. (With sample data, import the sample CSV files instead.)
+  - Folders on the left, entries in a table you can sort, the selected entry underneath.
+  - Shortcuts: Ctrl+B copies the username, Ctrl+C the password, Ctrl+T the 2FA code, Ctrl+U
+    opens the website, Ctrl+F searches. (On a Mac, Cmd instead of Ctrl.)
+  - Health check: weak, reused, old and breached passwords, and passwords Trace found in your
+    own chats (add Alex's sample data to see one).
+  - The browser extension: in Vault, click "Set it up" and follow the steps. Then open a login
+    page, click the Sompio button in the login field, and pick an entry. Lock Sompio and try
+    again: the extension should say it's locked.
+  - Windows only for now: auto-type. Open Notepad and press Ctrl+Alt+A.
+
+Trace
+  - Start screen: scan a folder (try the sample computer folder). Tick "Check where photos
+    were taken", and on Windows "Read text in pictures": the sample screenshot and photo should
+    show up as findings. Nothing is scanned unless you start it.
+  - "I've asked" on a platform under "Ask for the rest": Sompio reminds you when the export
+    should be ready.
+  - Findings: pick a type on the left, click a row, try "Show values" and "Group repeats".
+    Check that bank accounts, ID numbers and addresses from other countries are found.
+  - "Clean up" goes through everything one at a time.
+  - Requests: how to get your data from each platform, and letters that make companies
+    delete it (please don't actually send one while testing).
+
 Calendar
+  - Type a reminder in the line at the top, like "Dentist Tue 15:00" or "Gym every Monday
+    7:00", and press Enter.
   - Add sample reminders and wait for the pop-ups. Do they show up on time, without taking
     over what you're typing?
-  - Close the window: Sompio keeps running in the tray, and reminders keep coming, even when
-    it's locked.
-  - Make your own reminders, edit them, import the sample schedule files.
-
-Trace (this used to be called Clean)
-  - Open it with sample data. Findings shows everything found in one list: bank accounts,
-    card numbers, passwords, addresses, phone numbers and more. Pick a type on the left,
-    click a row to see the message underneath, and try "Show values" and "Group repeats".
-  - "Clean up" in Findings goes through everything one at a time: it opens each message
-    where it was posted, you delete it there and click "I deleted it, next".
-  - The new Requests tab:
-      Get your data: where and how to ask each platform for your data, with "I asked
-        for it" (Calendar reminds you when it should be ready).
-      Find it now: ready-made searches for your watch terms on Discord, Reddit and X.
-      Ask a company: search a company (try Discord), pick "Delete my data", and look at
-        the letter Trace writes. "Open in my email app" opens it ready to send; please
-        don't actually send it while testing. Then "I've sent it: track the deadline".
-      Your requests: the deadline, a reminder letter, and a complaint to the data
-        protection authority.
-  - Also go through Summary, Messages, Sources and Settings.
-  - Import the sample exports under Sources, and try "Scan a folder on this PC" on the
-    "Sample PC folder".
-  - Add a watch term (in the sample, try "Sam Rivers"), mark things, delete things.
-
-Vault
-  - Add sample entries. It works like KeePassXC: folders on the left, entries in a table you
-    can sort by clicking the column names, the selected entry underneath.
-  - Try the KeePassXC shortcuts: Ctrl+B copies the username, Ctrl+C the password, Ctrl+T the
-    2FA code, Ctrl+U opens the website, Ctrl+Shift+V types it, Ctrl+K clones, Ctrl+E edits,
-    Ctrl+F searches, Delete deletes. Drag an entry onto a folder to move it.
-  - The clipboard clears itself after a copy.
-  - Website icons: when you save an entry with a website, Sompio gets the site's icon. If it
-    can't, the entry shows a key. Click "Icon" on an entry to get it from another address
-    (like blizzard.com for Battle.net), or choose a picture file. "Get icons for all entries"
-    is under "Auto-type, import and export".
-  - Health check, password generator, earlier versions of an entry, attachments.
-  - NEW: the browser extension (Chrome, Edge, Brave or Firefox). Easiest: in Vault, click
-    "Set it up" in the green bar and follow the three steps. By hand:
-      1. In Sompio: Vault, the "Auto-type, import and export" tab, turn on "Let the Sompio
-         extension use my vault". Copy the folder it shows.
-      2. Chrome/Edge/Brave: open chrome://extensions (or edge://extensions), turn on
-         Developer mode, click "Load unpacked" and choose that folder.
-         Firefox: about:debugging, This Firefox, Load Temporary Add-on, pick manifest.json
-         in that folder.
-      3. Restart the browser. Click the Sompio button in the toolbar (pin it from the
-         puzzle-piece menu), "Connect to Sompio", and click Allow in Sompio if the codes
-         match.
-      4. Add a sample entry with a real website's address (or use a sample), open that
-         site's login page, click the Sompio button in the login field, and pick it.
-      5. Sign in somewhere new (a made-up account on a test site is fine): Sompio should
-         offer to save it. On a sign-up page, try "Use a strong password".
-      6. Lock Sompio and try again: the extension should say it's locked.
-  - Auto-type: open Notepad and press Ctrl+Alt+A. Sompio picks the "Notepad" sample entry
-    and types it in. The test login page in the sample files works the same way. (The shortcut
-    can be changed in Vault, "Auto-type, import and export".)
-  - Import the sample KeePass files and CSV exports. Export, and open the export in KeePassXC
-    if you have it.
+  - Close the window: Sompio keeps running (in the tray, or the menu bar on a Mac), and
+    reminders keep coming, even when it's locked.
+  - More: routines, schedules and groups, and "Import your phone's calendar" with a .ics file.
 
 
 4. REPORTING A PROBLEM
 ----------------------
-When something goes wrong, Sompio writes a short line about it to a problems log on your PC.
-It only holds error messages, never your passwords, messages or files.
+Use the feedback form: https://sompio.org/feedback.php
 
-To report a problem:
+When something goes wrong, Sompio writes a short line about it to a problems log on your
+computer. It only holds error messages, never your passwords, messages or files.
   1. Open Security (in the menu) and scroll to "Something wrong?".
-  2. Click "Copy details for a bug report". That copies the Sompio version, your Windows
-     version and the last lines of the problems log.
-  3. Paste it in your message, and add what you did and what happened.
-     A screenshot helps a lot (Windows key + Shift + S).
+  2. Click "Copy details for a bug report" and paste it into the feedback form.
+  3. Add what you did and what happened. A screenshot helps a lot.
 
-If Sompio won't start at all, the log is here (paste this into the File Explorer address bar):
-  %LOCALAPPDATA%\app.sompio.desktop\problems.log
+If Sompio won't start at all, the log is here:
+  Windows: %LOCALAPPDATA%\app.sompio.desktop\problems.log
+  Mac:     ~/Library/Application Support/app.sompio.desktop/problems.log
+  Linux:   ~/.local/share/app.sompio.desktop/problems.log
 
 
-5. NEWER TEST VERSIONS AND REMOVING SOMPIO
-------------------------------------------
-To update, run the new setup file over the old one. Your data stays.
+5. NEW VERSIONS AND REMOVING SOMPIO
+-----------------------------------
+New versions come to you inside Sompio: a pop-up offers them, and your data stays as it is.
 
-To remove Sompio: Windows Settings, Apps, Sompio, Uninstall. Your encrypted data stays in
-%LOCALAPPDATA%\app.sompio.desktop unless you tick the box to delete it. Delete that folder to
-remove everything.
+To remove Sompio:
+  Windows: Settings, Apps, Sompio, Uninstall.
+  Mac: drag Sompio from Applications to the Bin.
+  Linux: delete the AppImage, or run: sudo apt remove sompio
+Your encrypted data stays in the folder above (without problems.log) until you delete it.

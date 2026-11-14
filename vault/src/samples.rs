@@ -85,7 +85,7 @@ button{font:inherit;padding:.6rem;border-radius:8px;border:0;background:#f2b35b;
 #out{min-height:1.5em;color:#7fd1a0}</style></head>
 <body><form onsubmit="event.preventDefault();out.textContent='Signed in as '+user.value+' with a '+pass.value.length+'-character password. Auto-type works.'">
 <h2 style="margin:0">Sompio test login</h2>
-<p style="margin:0;opacity:.7">Click into Username, then press your auto-type shortcut (Ctrl+Alt+A). Nothing is sent anywhere: this page is on your PC.</p>
+<p style="margin:0;opacity:.7">Click into Username, then press your auto-type shortcut (Ctrl+Alt+A). Nothing is sent anywhere: this page is on your computer.</p>
 <input id="user" placeholder="Username" autocomplete="off"><input id="pass" type="password" placeholder="Password">
 <button>Sign in</button><div id="out"></div></form></body></html>
 "#;

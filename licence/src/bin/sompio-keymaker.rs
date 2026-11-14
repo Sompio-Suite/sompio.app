@@ -1,4 +1,4 @@
-//! Sompio Key Maker: makes licence keys on your own PC.
+//! Sompio Key Maker: makes licence keys on your own computer.
 //!
 //! Double-click it for a simple menu. The first run creates the signing key, the master key for
 //! every licence, in your user folder. Back that file up and never share it: anyone who has it

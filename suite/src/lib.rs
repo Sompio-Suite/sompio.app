@@ -10,14 +10,14 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use zeroize::Zeroizing;
 
-/// Where the picture's secret is kept on a PC the person chose to trust.
+/// Where the picture's secret is kept on a computer the person chose to trust.
 const REMEMBERED_PICTURE: &str = "lock.picture";
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct LockStatus {
     pub set_up: bool,
     pub unlocked: bool,
-    /// This PC remembers the key picture, so only the password is needed
+    /// This computer remembers the key picture, so only the password is needed
     pub remembers_picture: bool,
     /// YubiKeys added as a stand-in for the key picture
     #[serde(default)]
@@ -67,7 +67,7 @@ impl Vault {
     fn picture_from(&self, path: Option<&Path>) -> Result<PictureSecret> {
         match path {
             Some(p) => read_picture(&std::fs::read(p).with_context(|| format!("Couldn't open {}", p.display()))?),
-            None => self.remembered().ok_or_else(|| anyhow!("Choose your key picture. This PC doesn't remember it.")),
+            None => self.remembered().ok_or_else(|| anyhow!("Choose your key picture. This computer doesn't remember it.")),
         }
     }
 
@@ -215,7 +215,7 @@ impl Vault {
         Ok(())
     }
 
-    /// Adds a YubiKey. Needs Sompio unlocked, and the key picture (or this PC remembering it).
+    /// Adds a YubiKey. Needs Sompio unlocked, and the key picture (or this computer remembering it).
     /// `respond` asks the device; it returns the answer and the key's serial number.
     pub fn add_hardware_key(
         &self,
@@ -412,7 +412,7 @@ mod tests {
         v.unlock(PW, None, true).unwrap();
         assert!(v.status().unwrap().unlocked);
 
-        // A new PC: nothing remembered, so the picture is needed
+        // A new computer: nothing remembered, so the picture is needed
         let fresh = vault(&dir);
         assert!(fresh.unlock(PW, None, false).unwrap_err().to_string().contains("Choose your key picture"));
         fresh.unlock(PW, Some(&pic), false).unwrap();

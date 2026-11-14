@@ -328,7 +328,7 @@ impl Telegram {
         }
     }
 
-    /// Logs out on Telegram's side and forgets the session on this PC.
+    /// Logs out on Telegram's side and forgets the session on this computer.
     pub async fn disconnect(&mut self) -> Result<()> {
         if let Some(c) = &self.conn {
             let _ = c.client.sign_out().await;

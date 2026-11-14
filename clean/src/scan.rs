@@ -93,7 +93,7 @@ impl Kind {
             Kind::IpAddress => "IP addresses",
             Kind::Postcode => "Postcodes",
             Kind::CryptoWallet => "Crypto wallets",
-            Kind::SensitiveFile => "Sensitive files on this PC",
+            Kind::SensitiveFile => "Sensitive files on this computer",
             Kind::IdNumber => "National ID numbers",
             Kind::Passport => "Passport & ID card numbers",
             Kind::BackupCode => "Backup codes & recovery phrases",
@@ -207,7 +207,7 @@ impl Scanner {
             d(Kind::BackupCode, r"(?i:\b(?:backup|recovery|herstel|reserve|2fa|two[- ]factor)[ -]?(?:codes?|keys?)\b[^\n]{0,20}?)[A-Za-z0-9]{4,6}[- ]?[A-Za-z0-9]{4,6}\b")?,
             d(Kind::BackupCode, r"(?i)\b(?:seed|recovery|secret|mnemonic|herstel)\s*(?:phrase|words|zin)\b\W{0,10}(?:is\s*)?:?\s*(?:[a-z]{3,8}\s+){11,23}[a-z]{3,8}\b")?,
             d(Kind::BirthDate, r"(?i:\b(?:born(?:\s+on)?|date of birth|dob|d\.o\.b\.?|birthday(?:\s+is)?|geboren(?:\s+op|\s+am)?|geboortedatum|geb\.|n[ăa]scut[ăa]?(?:\s+(?:la|pe|[îi]n))?|data na[șs]terii|geburtsdatum)\s*:?\s*)(?:[0-3]?[0-9][-/. ][01]?[0-9][-/. ](?:19|20)[0-9]{2}|(?:19|20)[0-9]{2}-[01][0-9]-[0-3][0-9]|[0-3]?[0-9](?:st|nd|rd|th)?\s+(?i:jan|feb|maart|mar|mrt|apr|may|mei|mai|jun|iun|jul|iul|aug|sep|oct|okt|nov|dec|ian)[a-zăâîșț]*\.?,?\s+(?:19|20)[0-9]{2}|(?i:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+[0-3]?[0-9](?:st|nd|rd|th)?,?\s+(?:19|20)[0-9]{2})\b")?,
-            // The place a photo was taken (written by the PC scan), or a map link to an exact spot
+            // The place a photo was taken (written by the computer scan), or a map link to an exact spot
             d(Kind::Location, r"\[Photo location: -?[0-9]{1,2}\.[0-9]{3,6}, -?[0-9]{1,3}\.[0-9]{3,6}\]")?,
             d(Kind::Location, r"(?i)\b(?:maps\.google\.[a-z.]+|google\.[a-z.]+/maps|maps\.apple\.com|openstreetmap\.org)/?\S*?[@=/#](?:map=[0-9]{1,2}/)?-?[0-9]{1,2}\.[0-9]{4,}[,/]-?[0-9]{1,3}\.[0-9]{4,}")?,
             // Dutch number plates in their official dash patterns (no vowels since 1978), or after the word
@@ -540,7 +540,7 @@ fn fingerprint(kind: Kind, value: &str) -> String {
 }
 
 // ---------------------------------------------------------------------------------
-// Files from the PC scan: the first line is the file's path, the rest its text.
+// Files from the computer scan: the first line is the file's path, the rest its text.
 
 fn word_at(hay: &str, i: usize, len: usize) -> bool {
     let before = hay[..i].chars().next_back();
@@ -639,7 +639,7 @@ pub struct FindingView {
     pub status: Option<String>,
     /// Where to open it on its platform, when it has a web address
     pub link: Option<String>,
-    /// For files found on this PC: the full path
+    /// For files found on this computer: the full path
     pub file_path: Option<String>,
     /// How many findings in the same list have this exact value (1 = only here)
     pub repeats: i64,
@@ -1091,7 +1091,7 @@ impl Store {
         Ok(())
     }
 
-    /// Moves a file found by the PC scan to the Recycle Bin, and marks everything
+    /// Moves a file found by the computer scan to the Recycle Bin, and marks everything
     /// found in it as deleted. Returns the path that was moved.
     pub fn recycle_file(&self, finding_id: i64) -> Result<String> {
         let (message_id, platform, path): (i64, String, String) = self.conn.query_row(
@@ -1100,7 +1100,7 @@ impl Store {
             [finding_id],
             |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
         )?;
-        anyhow::ensure!(platform == "pc", "only files on this PC can be moved to the Recycle Bin");
+        anyhow::ensure!(platform == "pc", "only files on this computer can be moved to the Recycle Bin");
         crate::pcscan::move_to_recycle_bin(&path)?;
         self.conn.execute(
             "INSERT INTO reviews(uid, kind, start_byte, status)
@@ -1134,7 +1134,7 @@ impl Store {
         Ok(())
     }
 
-    /// The full path of a PC-scan file a finding is in, for "Show in folder".
+    /// The full path of a computer-scan file a finding is in, for "Show in folder".
     pub fn file_path_for(&self, finding_id: i64) -> Result<Option<String>> {
         Ok(self.conn.query_row(
             "SELECT CASE WHEN c.platform = 'pc' THEN m.attachments END FROM findings f
@@ -1190,7 +1190,7 @@ impl Store {
     }
 
     /// Writes a CSV of flagged messages with no message text in it: IDs, dates, status
-    /// and where to find each one (a web link, or a file path for files on this PC).
+    /// and where to find each one (a web link, or a file path for files on this computer).
     pub fn export_flagged_csv(&self, path: &std::path::Path) -> Result<usize> {
         let mut stmt = self.conn.prepare(&format!(
             "SELECT ch.platform, ch.name, m.uid, m.ts, MAX(f.severity), GROUP_CONCAT(DISTINCT f.kind),

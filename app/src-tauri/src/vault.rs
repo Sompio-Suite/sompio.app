@@ -357,7 +357,7 @@ pub async fn vault_merge_kdbx(app: AppHandle, state: State<'_, AppState>, path: 
 }
 
 /// Checks every password against known data breaches (Have I Been Pwned). Only the first 5
-/// characters of each password's hash are sent; the comparison happens on this PC. Runs only
+/// characters of each password's hash are sent; the comparison happens on this computer. Runs only
 /// when the person presses the button.
 #[tauri::command]
 pub async fn vault_check_leaks(app: AppHandle) -> CmdResult<Vec<sompio_vault::leaks::Leak>> {
@@ -400,7 +400,7 @@ pub struct InTrace {
     last_ts: i64,
 }
 
-/// Looks for each saved password in what Trace imported. Everything happens on this PC.
+/// Looks for each saved password in what Trace imported. Everything happens on this computer.
 #[tauri::command]
 pub async fn vault_in_trace(app: AppHandle, state: State<'_, AppState>) -> CmdResult<Vec<InTrace>> {
     let wanted = with_vault(&app, |v| Ok(sompio_vault::leaks::passwords_to_find(v))).await?;

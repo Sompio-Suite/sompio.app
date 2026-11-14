@@ -223,8 +223,8 @@ pub fn write_samples(dir: &Path) -> Result<Vec<SampleFile>> {
     )?;
     add("Gmail takeout.zip", "Email", "Google Takeout mail; only mail you sent is imported.");
 
-    // A folder to try "Scan a folder on this PC"
-    let pc = dir.join("Sample PC folder");
+    // A folder to try "Scan a folder on this computer"
+    let pc = dir.join("Sample computer folder");
     std::fs::create_dir_all(pc.join("taxes/2023"))?;
     std::fs::write(pc.join("notes.txt"), "wifi password: SuperSecret99\nbank NL91 ABNA 0417 1643 00\n")?;
     std::fs::write(pc.join("taxes/2023/Passport_scan.jpg"), [0xFFu8, 0xD8, 0xFF, 0xE0, 0, 0, 0, 0, 0, 0, 0, 0])?;
@@ -238,8 +238,8 @@ pub fn write_samples(dir: &Path) -> Result<Vec<SampleFile>> {
     std::fs::write(pc.join("Pictures/Screenshot 2024-06-01.png"), include_bytes!("../assets/screenshot-notes.png"))?;
     std::fs::write(pc.join("Pictures/IMG_2041.jpg"), include_bytes!("../assets/photo-with-location.jpg"))?;
     add(
-        "Sample PC folder",
-        "This PC",
+        "Sample computer folder",
+        "This computer",
         "A folder for \"Scan folders\": notes with a password and IBAN, a passport scan's file name, contacts, a CV, a screenshot with backup codes and ID numbers (tick \"Read text in pictures\") and a photo that shows where it was taken (tick \"Check where photos were taken\").",
     );
 

@@ -500,7 +500,7 @@ export const platformName: Record<Platform, string> = {
   snapchat: "Snapchat",
   linkedin: "LinkedIn",
   email: "Email",
-  pc: "This PC",
+  pc: "This computer",
 };
 
 /** "Open in Discord", "Open on Reddit", "Open in Gmail", … */

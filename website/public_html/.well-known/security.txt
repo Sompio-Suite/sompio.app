@@ -1,0 +1,6 @@
+# How to report a security problem in Sompio or sompio.org (RFC 9116)
+Contact: mailto:hello@sompio.org
+Expires: 2027-11-14T00:00:00.000Z
+Preferred-Languages: en, nl
+Canonical: https://sompio.org/.well-known/security.txt
+Policy: https://sompio.org/security.php

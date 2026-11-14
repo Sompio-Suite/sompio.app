@@ -2,7 +2,7 @@
 //! package without the UI:
 //!
 //!   sompio-clean-cli import  <export.zip|folder>   (Discord, Reddit, Telegram or X)
-//!   sompio-clean-cli folders <folder> [folder…]    (scan files on this PC)
+//!   sompio-clean-cli folders <folder> [folder…]    (scan files on this computer)
 //!   sompio-clean-cli sources
 //!   sompio-clean-cli scan    [watch term, another term]
 //!   sompio-clean-cli report  [kind] [--reveal]

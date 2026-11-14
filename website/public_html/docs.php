@@ -3,7 +3,7 @@
 // app's Documentation button opens this page.
 declare(strict_types=1);
 require __DIR__ . '/private/lib.php';
-page_head('How Sompio works · Documentation', 'What Sompio\'s Calendar, Trace and Vault do, how the Sompio Lock keeps your data encrypted, and why nothing leaves your PC.');
+page_head('How Sompio works · Documentation', 'What Sompio\'s Calendar, Trace and Vault do, how the Sompio Lock keeps your data encrypted, and why nothing leaves your computer.');
 site_header('docs');
 ?>
 
@@ -26,8 +26,8 @@ site_header('docs');
 
       <section id="what">
         <h2>What Sompio is</h2>
-        <p>Sompio is a private toolkit for your Windows PC: a password vault, a tool that finds and removes what you've shared online, and a calendar, in one program. Everything works on your own computer. There is no account to make, no cloud, and no server of ours that holds your data.</p>
-        <p>All three tools sit behind one lock, the <strong>Sompio Lock</strong>, so one password (plus your key picture) opens everything and keeps it encrypted when you're away. You unlock it with a licence key, like a game key, checked on your PC without going online.</p>
+        <p>Sompio is a private toolkit for your computer: a password vault, a tool that finds and removes what you've shared online, and a calendar, in one program. Everything works on your own computer. There is no account to make, no cloud, and no server of ours that holds your data.</p>
+        <p>All three tools sit behind one lock, the <strong>Sompio Lock</strong>, so one password (plus your key picture) opens everything and keeps it encrypted when you're away. You unlock it with a licence key, like a game key, checked on your computer without going online.</p>
         <div class="tools">
           <a class="tool" href="#vault"><strong>Vault</strong><span>Keeps your passwords safe, fills them in for you (also in your browser, with the Sompio extension), and tells you which ones to change first.</span></a>
           <a class="tool" href="#trace"><strong>Trace</strong><span>Finds personal information you've shared online (bank numbers, passwords, addresses…), helps you remove it, and gets companies to delete what they hold.</span></a>
@@ -37,14 +37,14 @@ site_header('docs');
 
       <section id="private">
         <h2>Why it's private</h2>
-        <p>Sompio is built so your information never has to leave your PC. There is no Sompio server holding your passwords, messages or calendar, so there is nothing of yours on our side that could be hacked, sold or leaked.</p>
+        <p>Sompio is built so your information never has to leave your computer. There is no Sompio server holding your passwords, messages or calendar, so there is nothing of yours on our side that could be hacked, sold or leaked.</p>
         <ul class="points">
-          <li><strong>Offline by design.</strong> Every tool works without internet. You can unplug your PC and use all of it.</li>
+          <li><strong>Offline by design.</strong> Every tool works without internet. You can switch off the internet and use all of it.</li>
           <li><strong>Encrypted on your disk.</strong> Your calendar, Trace's findings and requests, and your passwords are stored encrypted. Without your password and key picture, the files are unreadable, even to someone who copies them.</li>
           <li><strong>No account, no tracking.</strong> No sign-up, no email address, no analytics, no ads, no "phone home". Sompio doesn't know who you are.</li>
           <li><strong>Pop-ups out of screenshots.</strong> Reminder pop-ups and the auto-type picker are left out of screenshots and screen sharing, so a stream or meeting doesn't show what pops up. The main window can be captured, for help and bug reports. Copied passwords stay out of Windows' clipboard history and cloud clipboard, and clear themselves after 20 seconds.</li>
-          <li><strong>The browser extension stays local too.</strong> It talks only to Sompio on your PC, never to a server, and only after you allow your browser in Sompio. See <a href="#extension">Browser extension</a>.</li>
-          <li><strong>Problem reports stay with you.</strong> If something goes wrong, Sompio writes a short note to a file on your PC. It's never sent anywhere; you decide whether to share it.</li>
+          <li><strong>The browser extension stays local too.</strong> It talks only to Sompio on your computer, never to a server, and only after you allow your browser in Sompio. See <a href="#extension">Browser extension</a>.</li>
+          <li><strong>Problem reports stay with you.</strong> If something goes wrong, Sompio writes a short note to a file on your computer. It's never sent anywhere; you decide whether to share it.</li>
         </ul>
         <h3>The only times Sompio goes online</h3>
         <p>Each one goes only to the place named, and only what's listed is sent.</p>
@@ -83,22 +83,22 @@ site_header('docs');
           <li><strong>Schedules and reminders</strong> that repeat daily, weekly, monthly or yearly, or on chosen days, with an optional heads-up a few minutes before.</li>
           <li><strong>Your phone's calendar too.</strong> Export it as a file (.ics) from Google, Apple or Outlook, and bring it in under More. Sompio only reads the file; it never connects to your account.</li>
           <li><strong>Shared schedules for groups.</strong> Share a schedule as a file with your team, club or family; everyone imports it, and reminders can target only certain groups. Time zones are handled, so a 20:00 event shows at the right local time for everyone.</li>
-          <li><strong>Always on.</strong> Sompio sits in the tray and can start with Windows. Reminders keep coming even while Sompio is locked.</li>
+          <li><strong>Always on.</strong> Sompio sits in the tray (the menu bar on a Mac) and can start when you sign in. Reminders keep coming even while Sompio is locked.</li>
           <li><strong>Brings in Desk Reminders</strong> schedules, if you used that app before.</li>
         </ul>
-        <p class="privacy-line"><strong>Privacy:</strong> your schedule is stored encrypted on your PC. No calendar account or cloud sync means no company sees your plans, who you meet or where you'll be.</p>
+        <p class="privacy-line"><strong>Privacy:</strong> your schedule is stored encrypted on your computer. No calendar account or cloud sync means no company sees your plans, who you meet or where you'll be.</p>
       </section>
 
       <section id="trace">
         <h2>Trace</h2>
         <p>Trace shows you what personal information you've left behind online over the years, and helps you get rid of it. Most people are surprised: an old bank number sent to a friend, a password pasted in a chat, a home address in a server. Trace used to be called Clean.</p>
-        <p><strong>How it works.</strong> Start with what's ready in minutes: folders on your PC, your sent mail (connect your mailbox), Telegram, or a WhatsApp chat exported from your phone. At the same time, ask Discord, Instagram, Reddit and the rest for your data: every big platform must let you download it. Tick "I've asked", and Trace reminds you when each export should be ready. Trace reads everything on your PC, and never logs into your accounts to read them. Starting with Discord? The <a href="delete-discord-messages.php">Discord guide</a> walks you through it step by step.</p>
+        <p><strong>How it works.</strong> Start with what's ready in minutes: folders on your computer, your sent mail (connect your mailbox), Telegram, or a WhatsApp chat exported from your phone. At the same time, ask Discord, Instagram, Reddit and the rest for your data: every big platform must let you download it. Tick "I've asked", and Trace reminds you when each export should be ready. Trace reads everything on your computer, and never logs into your accounts to read them. Starting with Discord? The <a href="delete-discord-messages.php">Discord guide</a> walks you through it step by step.</p>
         <ul class="points">
-          <li><strong>Sources:</strong> Discord, Reddit, Telegram, X, Facebook, Instagram, TikTok, Snapchat, LinkedIn, WhatsApp, Gmail and other mailboxes, plus any folder on your own PC.</li>
-          <li><strong>What it finds:</strong> passwords and access tokens, 2FA backup codes and wallet recovery phrases, payment cards, bank accounts (IBAN), national ID numbers (like a BSN), passport and ID card numbers, street addresses, postcodes, dates of birth, phone numbers, email addresses, IP addresses, number plates, exact locations, crypto wallets, and sensitive files on your PC. Add your own <strong>watch terms</strong> too, like your real name, school or street, which no pattern could guess.</li>
-          <li><strong>Pictures, only if you ask.</strong> When you scan folders, two extra checks are off until you tick them for that scan: reading the text in screenshots and scanned documents (with Windows' own text recognition, on your PC), and finding photos that hold the exact spot where they were taken. Nothing is ever scanned on its own, and Trace keeps only what it finds, never copies of your files.</li>
+          <li><strong>Sources:</strong> Discord, Reddit, Telegram, X, Facebook, Instagram, TikTok, Snapchat, LinkedIn, WhatsApp, Gmail and other mailboxes, plus any folder on your own computer.</li>
+          <li><strong>What it finds:</strong> passwords and access tokens, 2FA backup codes and wallet recovery phrases, payment cards, bank accounts (IBAN), national ID numbers (like a BSN), passport and ID card numbers, street addresses, postcodes, dates of birth, phone numbers, email addresses, IP addresses, number plates, exact locations, crypto wallets, and sensitive files on your computer. Add your own <strong>watch terms</strong> too, like your real name, school or street, which no pattern could guess.</li>
+          <li><strong>Pictures, only if you ask.</strong> When you scan folders, two extra checks are off until you tick them for that scan: reading the text in screenshots and scanned documents (with Windows' own text recognition, on your computer), and finding photos that hold the exact spot where they were taken. Nothing is ever scanned on its own, and Trace keeps only what it finds, never copies of your files.</li>
           <li><strong>One clear list.</strong> Everything found sits in a table, sorted by risk, with the message it was in and advice on what to do (for a leaked password: change it now; for a card: call your bank).</li>
-          <li><strong>Clean it up, one by one.</strong> "Clean up" takes you through everything in turn: it opens each message where it was posted, you delete it there, and move on to the next. Connected Telegram and email messages are deleted straight from Sompio, and files on your PC go to the Recycle Bin.</li>
+          <li><strong>Clean it up, one by one.</strong> "Clean up" takes you through everything in turn: it opens each message where it was posted, you delete it there, and move on to the next. Connected Telegram and email messages are deleted straight from Sompio, and files on your computer go to the Recycle Bin.</li>
         </ul>
         <h3>Requests: get your data, and get it deleted</h3>
         <p>Under the GDPR, companies must give you your data, delete it, or stop using it when you ask, and answer within one month. Trace's <strong>Requests</strong> tab does the paperwork for you:</p>
@@ -108,26 +108,26 @@ site_header('docs');
           <li><strong>Ask a company.</strong> Search about 3,000 companies, data brokers included, and pick what you want: delete my data, send me a copy, or stop using it. Trace writes the letter with the right legal articles, and opens it in your own email app or the company's form.</li>
           <li><strong>Track the deadline.</strong> Every request gets its one-month deadline and a Calendar reminder. No answer? Trace writes the reminder, and then a complaint to your country's data protection authority, which handles it for free.</li>
         </ul>
-        <p class="privacy-line"><strong>Privacy:</strong> your exports, everything Trace finds and your requests stay encrypted on your PC. Unlike online "privacy scanners" and paid removal services, nobody else ever sees your messages or the list of companies you deal with. The company directory is built in, so searching it never goes online.</p>
+        <p class="privacy-line"><strong>Privacy:</strong> your exports, everything Trace finds and your requests stay encrypted on your computer. Unlike online "privacy scanners" and paid removal services, nobody else ever sees your messages or the list of companies you deal with. The company directory is built in, so searching it never goes online.</p>
       </section>
 
       <section id="vault">
         <h2>Vault</h2>
-        <p>Vault is a password manager that keeps every login in one encrypted place on your PC, so you can use a different, strong password everywhere without remembering them. It saves in the open KeePass format, so your passwords also open in other apps and you're never locked in.</p>
+        <p>Vault is a password manager that keeps every login in one encrypted place on your computer, so you can use a different, strong password everywhere without remembering them. It saves in the open KeePass format, so your passwords also open in other apps and you're never locked in.</p>
         <ul class="points">
           <li><strong>Folders, search and a clear table</strong> of all your logins, with the selected entry shown underneath.</li>
           <li><strong>Fill in passwords for you.</strong> Auto-type types your username and password into the login window with one shortcut (Ctrl+Alt+A). Copying works too, with KeePassXC's shortcuts (Ctrl+B username, Ctrl+C password).</li>
           <li><strong>2FA codes</strong> for sites that use authenticator apps, right next to the password.</li>
           <li><strong>Password generator</strong> for strong passwords or easy-to-type passphrases.</li>
-          <li><strong>Health check</strong> that spots weak, reused, old and expired passwords, saved passwords Trace found in your own chats and files (checked on your PC), and an optional breach check (see <a href="#private">Why it's private</a>).</li>
+          <li><strong>Health check</strong> that spots weak, reused, old and expired passwords, saved passwords Trace found in your own chats and files (checked on your computer), and an optional breach check (see <a href="#private">Why it's private</a>).</li>
           <li><strong>Extras:</strong> earlier versions of each entry, attachments, a recycle bin, website icons, and import from your browser (Vault shows the steps), KeePass, KeePassXC, Bitwarden and 1Password. Export to KeePass any time.</li>
         </ul>
-        <p class="privacy-line"><strong>Privacy:</strong> unlike cloud password managers, your vault is never uploaded or synced to a company's servers. It's one encrypted file on your PC, opened only by your lock.</p>
+        <p class="privacy-line"><strong>Privacy:</strong> unlike cloud password managers, your vault is never uploaded or synced to a company's servers. It's one encrypted file on your computer, opened only by your lock.</p>
       </section>
 
       <section id="extension">
         <h2>Browser extension</h2>
-        <p>The Sompio extension brings your Vault into Chrome, Edge, Brave and Firefox, the way password managers like Proton Pass or Bitwarden do: a small Sompio button in login fields, your logins one click away, and an offer to save new ones. The difference: there is no Sompio account or server. The extension talks only to Sompio on your own PC.</p>
+        <p>The Sompio extension brings your Vault into Chrome, Edge, Brave and Firefox, the way password managers like Proton Pass or Bitwarden do: a small Sompio button in login fields, your logins one click away, and an offer to save new ones. The difference: there is no Sompio account or server. The extension talks only to Sompio on your own computer.</p>
         <ul class="points">
           <li><strong>Fill with one click.</strong> Click the Sompio button in a login field and pick a login. Only logins saved for that website are shown.</li>
           <li><strong>Save and update.</strong> After you sign in somewhere new, or change a password, Sompio offers to save it. Choose "Never for this site" to stop asking there.</li>
@@ -137,7 +137,7 @@ site_header('docs');
         </ul>
         <h3>How it stays private</h3>
         <ul class="points">
-          <li><strong>No internet, no account.</strong> The browser starts a small part of Sompio on your PC, which passes messages to the Sompio app. Nothing goes over the network.</li>
+          <li><strong>No internet, no account.</strong> The browser starts a small part of Sompio on your computer, which passes messages to the Sompio app. Nothing goes over the network.</li>
           <li><strong>You allow each browser once.</strong> When you click "Connect to Sompio", Sompio asks you to allow it and shows a code that must match the one in your browser. You can remove a browser any time in Vault, Settings.</li>
           <li><strong>Encrypted between the browser and Sompio.</strong> Each allowed browser gets its own secret key, kept inside your encrypted vault. Every request is encrypted with it, and an old request can't be sent again.</li>
           <li><strong>Only for the right website.</strong> Sompio checks the website the browser itself reports, not what the page claims, and refuses to fill a login on a different or look-alike website (like <em>example.com.evil.net</em>).</li>
@@ -151,23 +151,23 @@ site_header('docs');
           <li><strong>Chrome, Edge or Brave:</strong> open <code>chrome://extensions</code> (Edge: <code>edge://extensions</code>), turn on <em>Developer mode</em>, click <em>Load unpacked</em>, and choose that folder.<br><strong>Firefox:</strong> open <code>about:debugging</code>, choose <em>This Firefox</em>, then <em>Load Temporary Add-on</em>, and pick <code>manifest.json</code> in that folder. Firefox removes it when it closes, until the extension is published.</li>
           <li>Restart the browser. Click the Sompio button in the toolbar (pin it from the puzzle-piece menu), then <strong>Connect to Sompio</strong>, and click <strong>Allow</strong> in Sompio when the codes match.</li>
         </ol>
-        <p class="privacy-line"><strong>Privacy:</strong> the extension can see the pages you visit, as every password extension must, to find login fields. It keeps nothing about them and sends nothing anywhere: it only asks Sompio, on your PC, for logins for the page you're on.</p>
+        <p class="privacy-line"><strong>Privacy:</strong> the extension can see the pages you visit, as every password extension must, to find login fields. It keeps nothing about them and sends nothing anywhere: it only asks Sompio, on your computer, for logins for the page you're on.</p>
       </section>
 
       <section id="limits">
         <h2>Good to know</h2>
         <p>Privacy tools should be honest about their limits, so here are Sompio's:</p>
         <ul class="points">
-          <li><strong>Your PC is the vault.</strong> While Sompio is unlocked, it's only as safe as the PC it runs on. No app can fully protect you from malware or someone using your unlocked computer, so keep Windows updated and lock Sompio when you step away.</li>
+          <li><strong>Your computer is the vault.</strong> While Sompio is unlocked, it's only as safe as the computer it runs on. No app can fully protect you from malware or someone using your unlocked computer, so keep Windows updated and lock Sompio when you step away.</li>
           <li><strong>Trace finds, you decide.</strong> It spots patterns and your watch terms, but it can miss things and occasionally flag something harmless. Deleting a message doesn't undo that others may have seen it, which is why it tells you to change leaked passwords too. Companies sometimes answer late or partly; Trace helps you follow up, but it can't force them.</li>
           <li><strong>Backups are your job.</strong> With no cloud copy, keep your key picture and recovery code safe, and export your vault now and then.</li>
         </ul>
         <h3>Questions</h3>
         <dl class="faq">
           <dt>Does Sompio work without internet?</dt><dd>Yes, everything. Only the optional actions listed under <a href="#private">Why it's private</a> go online.</dd>
-          <dt>Can you see my passwords or messages?</dt><dd>No. They never leave your PC, and we don't have your keys.</dd>
+          <dt>Can you see my passwords or messages?</dt><dd>No. They never leave your computer, and we don't have your keys.</dd>
           <dt>What if I forget my password?</dt><dd>Use your recovery code. Without it, nobody can open your data, including us.</dd>
-          <dt>Does the browser extension upload my passwords?</dt><dd>No. It has no server to send them to. It asks Sompio on your PC for one login when you click it, encrypted, and only for the website you're on.</dd>
+          <dt>Does the browser extension upload my passwords?</dt><dd>No. It has no server to send them to. It asks Sompio on your computer for one login when you click it, encrypted, and only for the website you're on.</dd>
           <dt>Which systems?</dt><dd><?= e(systems_text()) ?> today<?= strpos(systems_text(), 'Windows,') === 0 ? ' (on Mac and Linux, auto-type and reading text in pictures come later)' : '. Mac and Linux are on the way' ?>. Phones are planned.</dd>
           <dt>Does Trace send emails for me?</dt><dd>No. It writes the letter and opens it in your own email app, so you send it from your own address and the answer comes back to you.</dd>
         </dl>

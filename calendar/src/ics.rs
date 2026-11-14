@@ -1,7 +1,7 @@
 //! Reads a calendar file (.ics) exported from a phone or another calendar app (Google, Apple,
 //! Outlook) and turns its events into reminders. Only the file is read; nothing is fetched.
 //!
-//! Times are turned into this PC's local time. Repeats Sompio understands come along (daily,
+//! Times are turned into this computer's local time. Repeats Sompio understands come along (daily,
 //! weekly on set days, monthly on a date, yearly); events in the past and repeats it can't follow
 //! (like "every second week") are left out and counted.
 

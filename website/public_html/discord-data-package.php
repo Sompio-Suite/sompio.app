@@ -58,7 +58,7 @@ site_header('guide');
           <li>Your home address, phone number or personal email</li>
           <li>Your real name, school or workplace, if you'd rather they weren't linked to your username</li>
         </ul>
-        <p>Searching thousands of messages by hand isn't realistic. <a href="docs.php#trace">Sompio Trace</a> reads the zip on your own PC, lists what's risky sorted by danger, and takes you to each message so you can delete it. Nothing is uploaded. The step-by-step is in <a href="delete-discord-messages.php">How to delete your old Discord messages</a>.</p>
+        <p>Searching thousands of messages by hand isn't realistic. <a href="docs.php#trace">Sompio Trace</a> reads the zip on your own computer, lists what's risky sorted by danger, and takes you to each message so you can delete it. Nothing is uploaded. The step-by-step is in <a href="delete-discord-messages.php">How to delete your old Discord messages</a>.</p>
       </section>
 
       <section id="safe">

@@ -50,7 +50,7 @@ site_header('guide');
         <p>You don't need to delete everything. The messages worth deleting are the ones with something personal or dangerous in them. Inside the zip, the <code>messages</code> folder has one folder per channel and DM, with your messages in it. That's fine for a quick look, but not for going through thousands of them.</p>
 
         <h3>With Sompio Trace</h3>
-        <p><a href="docs.php#trace">Trace</a> reads the zip on your own PC and lists what's risky. It never logs into your Discord account and never sends your messages anywhere.</p>
+        <p><a href="docs.php#trace">Trace</a> reads the zip on your own computer and lists what's risky. It never logs into your Discord account and never sends your messages anywhere.</p>
         <ol class="guide-steps">
           <li>In Sompio, open <strong>Trace</strong>, then <strong>Sources</strong>, and add your Discord zip.</li>
           <li>Trace looks for passwords and access tokens, bank and card numbers, addresses, phone numbers, email addresses and more. Everything it finds lands in one list, sorted by risk.</li>
@@ -92,9 +92,9 @@ site_header('guide');
         <h2>Questions</h2>
         <dl class="faq">
           <dt>Does Sompio need my Discord password or token?</dt>
-          <dd>No. It only reads the data package you downloaded, on your own PC.</dd>
+          <dd>No. It only reads the data package you downloaded, on your own computer.</dd>
           <dt>Does anything get uploaded?</dt>
-          <dd>No. Sompio has no account and no server that holds your data. Everything it finds stays on your PC, encrypted with your lock.</dd>
+          <dd>No. Sompio has no account and no server that holds your data. Everything it finds stays on your computer, encrypted with your lock.</dd>
           <dt>Can I delete messages in DMs?</dt>
           <dd>Yes, your own messages, as long as you can still open the DM. "Open in Discord" works for DMs and group chats too.</dd>
           <dt>Does it work for other apps?</dt>

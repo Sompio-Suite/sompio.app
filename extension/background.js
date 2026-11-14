@@ -1,6 +1,6 @@
 // Sompio Vault for the browser: the background part. It is the only part that talks to Sompio,
 // through the browser's native messaging (the browser starts Sompio's small helper, which passes
-// messages to the Sompio app on this PC). Nothing here goes to the internet.
+// messages to the Sompio app on this computer). Nothing here goes to the internet.
 //
 // After pairing, every request is encrypted with a key only this browser and your vault know
 // (AES-256-GCM). Pages never see that key, and only ever get the one login you click, for their

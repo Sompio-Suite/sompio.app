@@ -2,7 +2,7 @@
 // sompio.org: the public front page. The beta download is on download.php.
 declare(strict_types=1);
 require __DIR__ . '/private/lib.php';
-page_head('Sompio · Private tools for your PC', 'Sompio is one program with a password vault, Trace (finds what you\'ve shared online and helps you remove it) and a calendar. No account, no cloud: everything stays on your PC, encrypted.');
+page_head('Sompio · Private tools for your computer', 'Sompio is one program with a password vault, Trace (finds what you\'ve shared online and helps you remove it) and a calendar. No account, no cloud: everything stays on your computer, encrypted.');
 site_header('home');
 ?>
   <main>
@@ -10,7 +10,7 @@ site_header('home');
       <div class="wrap home-hero-row">
         <div class="home-hero-text">
           <p class="status-pill"><span class="dot" aria-hidden="true"></span> Open beta · free until launch</p>
-          <h1>Private tools for your PC. <span class="hl">Nothing leaves it.</span></h1>
+          <h1>Private tools for your computer. <span class="hl">Nothing leaves it.</span></h1>
           <p class="lead">Sompio is one program with three tools: a password vault, Trace, which finds what you've shared online over the years and helps you remove it, and a calendar. There's no account to make, no cloud, and no server of ours that holds your data.</p>
           <div class="cta-row">
             <a class="button primary" href="download.php">Download the beta</a>
@@ -34,7 +34,7 @@ site_header('home');
           <h3>Your passwords, filled in for you, and warned about</h3>
           <p>Bring in the passwords your browser saved in a minute, and let Sompio fill them in on every site. Vault tells you which ones to change first: weak, reused, found in a data breach, or ones you've pasted into a chat yourself, because Trace found them there.</p>
           <ul class="ticks">
-            <li>Fills logins in Chrome, Edge, Brave and Firefox with the Sompio extension, which talks only to Sompio on your PC</li>
+            <li>Fills logins in Chrome, Edge, Brave and Firefox with the Sompio extension, which talks only to Sompio on your computer</li>
             <li>Two-factor codes, auto-type into any app, and keyboard shortcuts for everything</li>
             <li>Never locked in: Vault saves in the open KeePass format, so your passwords open in other apps too</li>
           </ul>
@@ -46,7 +46,7 @@ site_header('home');
         <div class="feature-text">
           <p class="eyebrow">Trace</p>
           <h3>See what you've shared online, then clean it up</h3>
-          <p>An old bank number sent to a friend, a password pasted in a chat, a scan of your passport in Downloads. Trace starts with what's quick: folders on your PC, your sent mail, a WhatsApp chat. Meanwhile it helps you ask Discord, Instagram, Reddit and the rest for your data, and reminds you when it's ready.</p>
+          <p>An old bank number sent to a friend, a password pasted in a chat, a scan of your passport in Downloads. Trace starts with what's quick: folders on your computer, your sent mail, a WhatsApp chat. Meanwhile it helps you ask Discord, Instagram, Reddit and the rest for your data, and reminds you when it's ready.</p>
           <ul class="ticks">
             <li>Finds passwords, bank and card numbers, ID and passport numbers, backup codes, addresses, dates of birth and more, sorted by risk</li>
             <li>Only when you ask: reads text in screenshots and scans, and spots photos that show where you live</li>
@@ -76,10 +76,10 @@ site_header('home');
         <h2>Private by design, not by promise</h2>
         <div class="promises">
           <div><h3>No account</h3><p>Nothing to sign up for. Nothing about you sits on a server of ours, so there's nothing to leak.</p></div>
-          <div><h3>Works offline</h3><p>Sompio does all its work on your PC. The only thing it fetches on its own is the newest version number, and you can switch that off. <a href="docs.php#private">See every time it goes online</a>.</p></div>
+          <div><h3>Works offline</h3><p>Sompio does all its work on your computer. The only thing it fetches on its own is the newest version number, and you can switch that off. <a href="docs.php#private">See every time it goes online</a>.</p></div>
           <div><h3>Encrypted with your lock</h3><p>Your password plus a key picture only you have. Nobody can open it without both, not even us.</p></div>
           <div><h3>Code you can check</h3><p>The full source is <a href="<?= e(SOURCE_URL) ?>" rel="noopener noreferrer">on GitHub</a>, so anyone can see what Sompio does with your data.</p></div>
-          <div><h3>A key, not an account</h3><p>Sompio is unlocked with a licence key, like a game key, checked on your PC without going online. No sign-up, nothing to log in to.</p></div>
+          <div><h3>A key, not an account</h3><p>Sompio is unlocked with a licence key, like a game key, checked on your computer without going online. No sign-up, nothing to log in to.</p></div>
           <?php $sys = systems_text(); ?><div><h3>Runs on <?= e(strpos($sys, 'Windows,') === 0 ? 'your computer' : 'Windows') ?></h3><p><?= e($sys) ?>. One small program, no extra installs.</p></div>
         </div>
       </div>
@@ -115,7 +115,7 @@ site_header('home');
           </div>
         <?php else: ?>
           <h3>Get updates by email</h3>
-          <p class="small muted">Not on Windows right now, or want to wait for launch? Leave your email.</p>
+          <p class="small muted">Want to hear about big new versions and the launch? Leave your email.</p>
           <?php $errs = ['email' => 'That email address doesn\'t look right.', 'stale' => 'The form was open too long, or sent too fast. Please try again.', 'limit' => 'Too many sign-ups from your network. Try again in an hour.', 'server' => 'Something went wrong on our side. Please try again later.']; ?>
           <?php if (isset($_GET['join_error'], $errs[$_GET['join_error']])): ?><p class="error" role="alert"><?= e($errs[$_GET['join_error']]) ?></p><?php endif; ?>
           <form method="post" action="signup.php" class="join-form">

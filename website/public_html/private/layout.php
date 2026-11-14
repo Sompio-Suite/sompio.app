@@ -54,7 +54,7 @@ function page_head(string $title, string $description, bool $public = true): voi
   <meta property="og:image" content="https://sompio.org/img/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Sompio: private tools for your PC. Nothing leaves it.">
+  <meta property="og:image:alt" content="Sompio: private tools for your computer. Nothing leaves it.">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="<?= e($url) ?>">
   <?php endif; ?>
@@ -120,12 +120,13 @@ function site_footer(): void
     ?>
   <footer class="site-foot">
     <div class="wrap foot-row">
-      <div class="foot-brand"><img src="logo.svg" alt="" width="22" height="22"> <strong>sompio</strong> <span class="muted">Private tools for your PC.</span></div>
+      <div class="foot-brand"><img src="logo.svg" alt="" width="22" height="22"> <strong>sompio</strong> <span class="muted">Private tools for your computer.</span></div>
       <nav aria-label="More">
         <a href="docs.php">Documentation</a>
         <a href="guides.php">Guides</a>
         <a href="<?= e(SOURCE_URL) ?>" class="gh-link" rel="noopener noreferrer"><?= GITHUB_ICON ?>Source code</a>
         <a href="feedback.php">Feedback</a>
+        <a href="security.php">Security</a>
         <a href="privacy.php">Privacy</a>
         <a href="mailto:hello@sompio.org">hello@sompio.org</a>
         <a href="<?= e(SUPPORT_URL) ?>" class="support-link" rel="noopener noreferrer"><?= HEART_ICON ?>Support Sompio</a>

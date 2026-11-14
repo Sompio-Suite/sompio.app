@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS meta (
     value TEXT NOT NULL
 );
 
--- One row per imported source (a platform's export, or the PC scan).
+-- One row per imported source (a platform's export, or the computer scan).
 CREATE TABLE IF NOT EXISTS sources (
     platform    TEXT PRIMARY KEY,         -- discord | reddit | telegram | x | pc
     origin      TEXT NOT NULL,            -- the file or folders it came from

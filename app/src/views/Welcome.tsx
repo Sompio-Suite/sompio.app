@@ -63,7 +63,7 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
           </h1>
           <p className="muted">
             Trace finds where you've shared things like your phone number, address, ID number or a password, and helps you
-            clean up. Start with what's on this PC and your mailbox, which takes minutes. Ask for your exports from Discord,
+            clean up. Start with what's on this computer and your mailbox, which takes minutes. Ask for your exports from Discord,
             Instagram and the rest at the same time: they arrive in a few days.
           </p>
         </div>
@@ -87,7 +87,7 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
               <div className="choice-static">
                 <span className="step-icon"><Icon name="folder" /></span>
                 <span className="step-text">
-                  <strong>Folders on this PC</strong>
+                  <strong>Folders on this computer</strong>
                   <span className="muted small">Passport scans, password lists, bank statements and files with personal details. Documents, Downloads and Desktop are good places to start.</span>
                 </span>
               </div>
@@ -133,7 +133,7 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
         <div className="promises">
           <div>
             <h3><Icon name="lock" size={16} />Works offline</h3>
-            <p>Trace reads exports on this PC. It only goes online if you connect an account, and then only to that service. No analytics, no tracking.</p>
+            <p>Trace reads exports on this computer. It only goes online if you connect an account, and then only to that service. No analytics, no tracking.</p>
           </div>
           <div>
             <h3><Icon name="lock" size={16} />No logins needed</h3>
@@ -141,7 +141,7 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
           </div>
           <div>
             <h3><Icon name="lock" size={16} />Gone when you say so</h3>
-            <p>Everything sits in one file on this PC. Settings has a button that deletes it for good.</p>
+            <p>Everything sits in one file on this computer. Settings has a button that deletes it for good.</p>
           </div>
         </div>
       </div>

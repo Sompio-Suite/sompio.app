@@ -40,7 +40,7 @@ export default function Licences({ licence, onChanged }: Props) {
       <div className="page-head">
         <div>
           <h1>Licences</h1>
-          <p className="muted">Keys are checked on this PC against Sompio's signature. Nothing is sent anywhere.</p>
+          <p className="muted">Keys are checked on this computer against Sompio's signature. Nothing is sent anywhere.</p>
         </div>
         <button onClick={() => openExternal(BUY_URL).catch(() => {})}><Icon name="ticket" size={16} />Get a key</button>
       </div>
@@ -49,7 +49,7 @@ export default function Licences({ licence, onChanged }: Props) {
         <div className="notice warn">
           <Icon name="clock" />
           <div>
-            <strong>This PC's clock is behind.</strong>
+            <strong>This computer's clock is behind.</strong>
             <span>Sompio has already seen a later date, so it keeps using that one. Set the clock right and this message goes away.</span>
           </div>
         </div>
@@ -93,12 +93,12 @@ export default function Licences({ licence, onChanged }: Props) {
           </table>
         </div>
         {licence?.trial_ends_at && (
-          <p className="small muted">The free trial on this PC {licence.trial_ends_at > now ? "runs until" : "ended"} {date(licence.trial_ends_at)}.</p>
+          <p className="small muted">The free trial on this computer {licence.trial_ends_at > now ? "runs until" : "ended"} {date(licence.trial_ends_at)}.</p>
         )}
       </section>
 
       <section className="section">
-        <h2 className="section-title">Keys on this PC</h2>
+        <h2 className="section-title">Keys on this computer</h2>
         {licence && licence.keys.length > 0 ? (
           <div className="panel">
             <table className="plain-table">

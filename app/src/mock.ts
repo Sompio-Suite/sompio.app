@@ -12,13 +12,13 @@ const pick = <T,>(a: T[]) => a[Math.floor(rand() * a.length)];
 const KINDS: Record<KindKey, [string, number, string]> = {
   credential: ["Passwords, tokens & keys", 3, "Change this password or revoke this token now. Deleting the message doesn't undo the leak, because others may already have seen it."],
   card: ["Payment cards", 3, "Contact your bank to block or replace this card, then delete the message."],
-  iban: ["Bank accounts (IBAN)", 3, "An IBAN alone can't empty your account, but scammers use it to sound convincing. Delete the message unless you share this account number publicly anyway."],
+  iban: ["Bank accounts", 3, "A bank account number (an IBAN, or a sort code or routing number with an account number) can't empty your account on its own, but scammers use it to sound convincing, and in some countries it's enough to set up a direct debit. Delete the message unless you share this account publicly anyway."],
   watch_term: ["Your watch terms", 3, "You told Sompio this is sensitive. Decide whether this message needs to go."],
   address: ["Street addresses", 3, "Delete the message unless you're fine with everyone in this chat knowing this address."],
   phone: ["Phone numbers", 2, "Delete the message if you don't want this number linked to your Discord account."],
   email: ["Email addresses", 2, "Check whether you want this address linked to your Discord account. If it's a public work address, mark it as not a problem everywhere."],
   ip_address: ["IP addresses", 2, "An IP address can show roughly where you are. Delete the message if this was your home connection."],
-  sensitive_file: ["Sensitive files on this PC", 2, "This file's name suggests an identity document, money matters or secrets. Keep it only if you need it, ideally in an encrypted folder or password manager, and move it to the Recycle Bin if you don't."],
+  sensitive_file: ["Sensitive files on this computer", 2, "This file's name suggests an identity document, money matters or secrets. Keep it only if you need it, ideally in an encrypted folder or password manager, and move it to the Recycle Bin if you don't."],
   postcode: ["Postcodes", 1, "A postcode narrows down where you live. Low risk on its own, more so next to a street name."],
   id_number: ["National ID numbers", 3, "A national ID number (like a BSN, CNP or social security number) is what fraudsters need to open accounts in your name. Delete the message, and only give this number to official bodies, your employer, bank or doctor."],
   passport: ["Passport & ID card numbers", 3, "With a passport or ID card number, someone can pose as you. Delete the message. If a photo of the document went out too, report it to your town hall or the police and consider replacing the document."],
@@ -357,7 +357,7 @@ const handlers: Record<string, (a: any) => unknown> = {
     }));
     for (let i = 0; i <= 5; i++) { emit("import-progress", { phase: "Reading files", done: i, total: 5 }); await wait(60); }
     loaded = true;
-    sources = [...sources.filter((x) => x.platform !== "pc"), { platform: "pc", label: "This PC", origin: folders.join("\n"), imported_at: Date.now(), channels: 1, messages: PC_FILES.length }];
+    sources = [...sources.filter((x) => x.platform !== "pc"), { platform: "pc", label: "This computer", origin: folders.join("\n"), imported_at: Date.now(), channels: 1, messages: PC_FILES.length }];
     return { platform: "pc", channels: 1, messages: PC_FILES.length, servers: 0, warnings: [] };
   },
   sources: () => sources,

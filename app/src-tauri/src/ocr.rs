@@ -1,5 +1,5 @@
 //! Reads the text in a picture with Windows' built-in text recognition (Windows.Media.Ocr).
-//! It runs entirely on this PC, with the language packs Windows already has; nothing is sent
+//! It runs entirely on this computer, with the language packs Windows already has; nothing is sent
 //! anywhere. Used only when the person turns on "Read text in pictures" for a folder scan.
 
 use std::path::Path;

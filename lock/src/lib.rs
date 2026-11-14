@@ -5,7 +5,7 @@
 //!
 //! * **Master password + key picture.** The password goes through Argon2id (64 MiB, 3 passes); the
 //!   result is mixed with a 256-bit secret hidden inside a picture the person keeps on their phone.
-//!   Both are needed. On a trusted PC the picture's secret can be remembered in the OS credential
+//!   Both are needed. On a trusted computer the picture's secret can be remembered in the OS credential
 //!   store, so day to day only the password is typed.
 //! * **Recovery code.** 120 random bits, printed once on the recovery sheet, also through Argon2id.
 //!   It is the way back in if the password or the picture is lost, and is replaced after use.

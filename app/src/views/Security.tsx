@@ -80,18 +80,18 @@ export default function Security({ status, idleMinutes, onIdleMinutes, onLockNow
       </section>
 
       <section className="setting">
-        <h3>Key picture on this PC</h3>
+        <h3>Key picture on this computer</h3>
         {status.remembers_picture ? (
           <>
-            <p className="muted">This PC remembers your key picture, so you only type your password here. Forget it on a PC you share or will sell.</p>
+            <p className="muted">This computer remembers your key picture, so you only type your password here. Forget it on a computer you share or will sell.</p>
             <div className="toolbar">
-              <button onClick={async () => { await api.lockForgetPicture(); onChanged(); setNote({ ok: true, text: "This PC no longer remembers the key picture. You'll need it next time you unlock." }); }}>
-                Forget the picture on this PC
+              <button onClick={async () => { await api.lockForgetPicture(); onChanged(); setNote({ ok: true, text: "This computer no longer remembers the key picture. You'll need it next time you unlock." }); }}>
+                Forget the picture on this computer
               </button>
             </div>
           </>
         ) : (
-          <p className="muted">This PC doesn't remember your key picture. You'll choose it each time you unlock, and can tick "Remember" then.</p>
+          <p className="muted">This computer doesn't remember your key picture. You'll choose it each time you unlock, and can tick "Remember" then.</p>
         )}
       </section>
 
@@ -280,7 +280,7 @@ function ReportProblem() {
     <section className="setting">
       <h3>Something wrong?</h3>
       <p className="muted">
-        When something goes wrong, Sompio writes a short line about it to a problems log on this PC. It holds error
+        When something goes wrong, Sompio writes a short line about it to a problems log on this computer. It holds error
         messages only, never your passwords, messages or files. Your Windows user name is left out, and nothing is sent anywhere. To report a problem, copy
         the details below and send them along with what you were doing.
       </p>

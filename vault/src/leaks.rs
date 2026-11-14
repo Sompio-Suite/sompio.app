@@ -1,7 +1,7 @@
 //! "Has this password been in a data breach?" using Have I Been Pwned's range search
 //! (k-anonymity): only the first 5 characters of each password's SHA-1 hash are sent, and the
 //! service answers with every leaked hash starting with them. The match happens here, so the
-//! password, and even its full hash, never leave the PC. The network part is in the shell.
+//! password, and even its full hash, never leave the computer. The network part is in the shell.
 
 use crate::store::{field, EntrySummary, Vault};
 use keepass::db::fields;
@@ -35,7 +35,7 @@ pub fn plan(v: &Vault) -> Plan {
 }
 
 /// Every saved password long enough to look for, with its entry, for the Trace check: Vault
-/// asks Trace whether any of them appear in your own chats and files. Runs on this PC only.
+/// asks Trace whether any of them appear in your own chats and files. Runs on this computer only.
 pub fn passwords_to_find(v: &Vault) -> Vec<(String, EntrySummary)> {
     v.live_entries()
         .into_iter()
