@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  api, listen, pickFolder, pickSavePath, pickScheduleFile, SOUNDS,
+  api, listen, pickFolder, pickIcsFile, pickSavePath, pickScheduleFile, SOUNDS,
   type AlertModeKey, type CalOverview, type CalSettings, type Occurrence, type ScheduleView,
 } from "../api";
 import Icon from "../Icon";
 import { plural } from "../format";
 import { PACKS } from "../calendarTemplates";
 import ReminderDialog from "./ReminderDialog";
+import { parseQuick } from "../quickAdd";
 
 const PALETTE = ["#5B8DEF", "#4FB477", "#9B7BE0", "#E08A4F", "#3FB8B8", "#E06C9F", "#D4B24C", "#8A9BB0", "#E05C5C"];
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -31,6 +32,12 @@ function repeatText(o: Occurrence) {
 
 type Tab = "day" | "schedules" | "settings";
 
+const whenFmt = new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+function quickWhen(q: Extract<ReturnType<typeof parseQuick>, { ok: true }>) {
+  if (q.repeat) return `${q.repeat === "Every day" ? "every day" : q.repeat === "Weekdays" ? "weekdays" : q.repeat === "Weekends" ? "weekends" : `every ${q.repeat}`} at ${q.row.time}`;
+  return whenFmt.format(q.when);
+}
+
 interface Props { readOnly: boolean; onAddKey: () => void }
 
 export default function Calendar({ readOnly, onAddKey }: Props) {
@@ -46,6 +53,8 @@ export default function Calendar({ readOnly, onAddKey }: Props) {
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [showEarlier, setShowEarlier] = useState(false);
+  const [quick, setQuick] = useState("");
+  const [more, setMore] = useState(false);
 
   // The month grid shows whole weeks, so load from its first Monday to its last Sunday.
   const range = useMemo(() => {
@@ -107,6 +116,19 @@ export default function Calendar({ readOnly, onAddKey }: Props) {
     run(() => api.calSetAlert(o.key, once ? o.zone_date : null, mode),
       mode === null ? "Back to normal." : mode === "mute" ? (once ? "Muted for this day." : "Muted. It still shows here, without a pop-up.") : mode === "hide" ? "Hidden." : "You'll get a pop-up for this too.");
 
+  const importIcs = async () => {
+    const p = await pickIcsFile();
+    if (!p) return;
+    try {
+      const r = await api.calImportIcs(p);
+      const extra = [r.past && `${r.past} past events left out`, r.unsupported && `${r.unsupported} repeats Sompio can't follow left out`].filter(Boolean).join(", ");
+      setToast({ ok: true, text: `Added ${plural(r.added, "event", "events")} from your calendar file${extra ? ` (${extra})` : ""}.` });
+      await load();
+    } catch (e) {
+      setToast({ ok: false, text: String(e) });
+    }
+  };
+
   return (
     <div className="page cal-page">
       <div className="page-head">
@@ -115,8 +137,18 @@ export default function Calendar({ readOnly, onAddKey }: Props) {
           <p className="muted">Your reminders, encrypted with your lock. They pop up on time, even while Sompio is locked.</p>
         </div>
         <div className="toolbar">
-          <button onClick={() => setPacks(true)} disabled={readOnly}><Icon name="sparkle" size={16} />Routines</button>
           <button className="primary" onClick={() => setEditing("new")} disabled={readOnly}><Icon name="plus" size={16} />New reminder</button>
+          <div className="menu-wrap">
+            <button aria-expanded={more} aria-haspopup="menu" onClick={() => setMore(!more)}>More ▾</button>
+            {more && (
+              <div className="menu right" role="menu" onMouseLeave={() => setMore(false)}>
+                <button role="menuitem" disabled={readOnly} onClick={() => { setMore(false); setPacks(true); }}>Routines</button>
+                <button role="menuitem" onClick={() => { setMore(false); setTab("schedules"); }}>Schedules and groups</button>
+                <button role="menuitem" disabled={readOnly} onClick={() => { setMore(false); importIcs(); }}>Import your phone's calendar</button>
+                <button role="menuitem" onClick={() => { setMore(false); setTab("settings"); }}>Pop-ups and sound</button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -135,11 +167,40 @@ export default function Calendar({ readOnly, onAddKey }: Props) {
         </div>
       )}
 
-      <div className="segmented" role="tablist" aria-label="Calendar">
-        {([["day", "Day"], ["schedules", "Schedules"], ["settings", "Pop-ups and sound"]] as [Tab, string][]).map(([k, label]) => (
-          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{label}</button>
-        ))}
-      </div>
+      {tab !== "day" && (
+        <div className="cal-sub">
+          <button className="link" onClick={() => setTab("day")}>← Back to your calendar</button>
+          <h2>{tab === "schedules" ? "Schedules and groups" : "Pop-ups and sound"}</h2>
+        </div>
+      )}
+
+      {tab === "day" && !readOnly && (
+        <form
+          className="quick-add"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const q = parseQuick(quick);
+            if (!q.ok) return setToast({ ok: false, text: q.reason || "Type a reminder first." });
+            run(() => api.calAddRows(mine.id, [q.row]), `Added: ${q.row.title}, ${quickWhen(q)}.`).then(() => {
+              setQuick("");
+              if (!q.repeat) { const d = q.row.days; setDay(d); setMonthOf(d.slice(0, 7)); }
+            });
+          }}
+        >
+          <Icon name="plus" size={16} />
+          <input
+            type="text"
+            value={quick}
+            onChange={(e) => setQuick(e.target.value)}
+            placeholder='Type a reminder and press Enter, like "Dentist Tue 15:00" or "Gym every Monday 7:00"'
+            aria-label="Quick add a reminder"
+          />
+          {quick.trim() && (() => {
+            const q = parseQuick(quick);
+            return <span className={`small ${q.ok ? "muted" : "faint"}`}>{q.ok ? `${q.row.title} · ${quickWhen(q)}` : q.reason}</span>;
+          })()}
+        </form>
+      )}
 
       {tab === "day" && (
         <div className="cal-layout">
@@ -250,7 +311,7 @@ export default function Calendar({ readOnly, onAddKey }: Props) {
         </div>
       )}
 
-      {tab === "schedules" && <Schedules data={data} readOnly={readOnly} run={run} mineId={mine.id} />}
+      {tab === "schedules" && <Schedules data={data} readOnly={readOnly} run={run} mineId={mine.id} onImportIcs={importIcs} />}
       {tab === "settings" && <PopupSettings settings={data.settings} run={run} />}
 
       {editing && (
@@ -344,7 +405,7 @@ function MonthGrid({ month, start, selected, today, events, onPick, onMonth }: M
 
 type Run = (f: () => Promise<unknown>, ok?: string) => Promise<void>;
 
-function Schedules({ data, readOnly, run, mineId }: { data: CalOverview; readOnly: boolean; run: Run; mineId: number }) {
+function Schedules({ data, readOnly, run, mineId, onImportIcs }: { data: CalOverview; readOnly: boolean; run: Run; mineId: number; onImportIcs: () => void }) {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [groups, setGroups] = useState("");
@@ -372,7 +433,17 @@ function Schedules({ data, readOnly, run, mineId }: { data: CalOverview; readOnl
         <button onClick={importFile} disabled={readOnly}><Icon name="folder" size={16} />Add a schedule file</button>
         <button onClick={importDr} disabled={readOnly}><Icon name="arrow" size={16} />Bring in Desk Reminders</button>
         <button onClick={() => setCreating(!creating)} disabled={readOnly}><Icon name="plus" size={16} />New shared schedule</button>
+        <button onClick={onImportIcs} disabled={readOnly}><Icon name="calendar" size={16} />Import your phone's calendar</button>
       </div>
+      <details className="ics-help small">
+        <summary className="muted">How to get a calendar file from your phone or Google</summary>
+        <ul className="muted">
+          <li><strong>Google Calendar:</strong> on a computer, open calendar.google.com, then Settings, Import &amp; export, Export. Unzip the download and pick the .ics file for your calendar.</li>
+          <li><strong>iPhone or Mac (iCloud):</strong> on a Mac, open Calendar, choose the calendar, then File, Export.</li>
+          <li><strong>Outlook:</strong> open your calendar, choose Share or Save calendar, and save it as an .ics file.</li>
+          <li>Importing the same file again replaces what it brought in last time. Sompio only reads the file; it doesn't connect to your account.</li>
+        </ul>
+      </details>
       {creating && (
         <form className="panel create-shared" onSubmit={(e) => {
           e.preventDefault();

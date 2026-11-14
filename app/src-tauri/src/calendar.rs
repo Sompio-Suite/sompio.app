@@ -133,6 +133,34 @@ pub async fn cal_import_file(state: State<'_, AppState>, path: String) -> CmdRes
     .await
 }
 
+#[derive(Serialize)]
+pub struct IcsResult {
+    added: usize,
+    past: usize,
+    unsupported: usize,
+}
+
+/// Brings in a calendar file (.ics) from a phone or another calendar app, as its own schedule.
+/// Importing the same file again replaces what it brought in last time.
+#[tauri::command]
+pub async fn cal_import_ics(state: State<'_, AppState>, path: String) -> CmdResult<IcsResult> {
+    change(&state, move |s| {
+        let p = PathBuf::from(&path);
+        let stem = p.file_stem().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        let name = if stem.is_empty() { "Phone calendar".to_string() } else { format!("Calendar: {stem}") };
+        let today = chrono::Local::now().date_naive();
+        let r = sompio_calendar::ics::read(&sompio_calendar::store::read_text(&p)?, today);
+        anyhow::ensure!(!r.rows.is_empty() || r.past + r.unsupported > 0, "There are no events in this file. Is it a calendar file (.ics)?");
+        for old in s.load()?.into_iter().filter(|l| l.view.name == name && l.view.owned) {
+            s.remove_schedule(old.view.id)?;
+        }
+        let id = s.create_shared(&name, "", &[])?;
+        s.add_rows(id, &r.rows)?;
+        Ok(IcsResult { added: r.rows.len(), past: r.past, unsupported: r.unsupported })
+    })
+    .await
+}
+
 #[tauri::command]
 pub async fn cal_import_desk_reminders(state: State<'_, AppState>, folder: String) -> CmdResult<usize> {
     change(&state, move |s| s.import_desk_reminders(Path::new(&folder))).await

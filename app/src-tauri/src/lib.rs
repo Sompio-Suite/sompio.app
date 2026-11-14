@@ -909,6 +909,7 @@ pub fn run() {
             calendar::cal_remove_row,
             calendar::cal_skip_once,
             calendar::cal_import_file,
+            calendar::cal_import_ics,
             calendar::cal_import_desk_reminders,
             calendar::cal_export,
             calendar::cal_create_shared,

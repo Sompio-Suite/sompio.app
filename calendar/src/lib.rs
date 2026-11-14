@@ -3,6 +3,7 @@
 
 pub mod engine;
 pub mod format;
+pub mod ics;
 pub mod runtime;
 pub mod samples;
 pub mod store;

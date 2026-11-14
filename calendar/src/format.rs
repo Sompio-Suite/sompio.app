@@ -24,6 +24,8 @@ pub enum Days {
     Range(NaiveDate, NaiveDate),
     Monthly(u32),
     Quarterly(u32),
+    /// Every year on this month and day (birthdays, anniversaries)
+    Yearly(u32, u32),
 }
 
 impl Days {
@@ -35,6 +37,8 @@ impl Days {
             Days::Range(a, b) => a <= d && d <= b,
             Days::Monthly(n) => d.day() == n.min(last_day(d)),
             Days::Quarterly(n) => matches!(d.month(), 1 | 4 | 7 | 10) && d.day() == n.min(last_day(d)),
+            // 29 February falls on the 28th in other years
+            Days::Yearly(m, n) => d.month() == m && d.day() == n.min(last_day(d)),
         }
     }
     pub fn is_date(&self) -> bool {
@@ -137,6 +141,11 @@ pub fn parse_days(spec: &str) -> Option<Days> {
             let (a, b) = (parse_date(a)?, parse_date(b)?);
             return (a <= b).then_some(Days::Range(a, b));
         }
+    }
+    if let Some(rest) = s.strip_prefix("yearly") {
+        let (m, d) = rest.trim().trim_start_matches("on").trim().split_once('-')?;
+        let (m, d): (u32, u32) = (m.trim().parse().ok()?, d.trim().parse().ok()?);
+        return ((1..=12).contains(&m) && (1..=31).contains(&d)).then_some(Days::Yearly(m, d));
     }
     for (word, quarterly) in [("monthly", false), ("quarterly", true)] {
         if let Some(rest) = s.strip_prefix(word) {
@@ -418,6 +427,8 @@ mod tests {
         assert!(parse_days("someday").is_none());
         assert_eq!(d("monthly 1"), Days::Monthly(1));
         assert_eq!(d("Quarterly on 15"), Days::Quarterly(15));
+        assert_eq!(d("Yearly 03-14"), Days::Yearly(3, 14));
+        assert!(Days::Yearly(2, 29).matches(NaiveDate::from_ymd_opt(2027, 2, 28).unwrap()));
         // The 31st falls back to the month's last day
         assert!(Days::Monthly(31).matches(NaiveDate::from_ymd_opt(2026, 2, 28).unwrap()));
         assert!(Days::Quarterly(1).matches(NaiveDate::from_ymd_opt(2026, 4, 1).unwrap()));

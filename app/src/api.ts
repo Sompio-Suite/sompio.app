@@ -280,6 +280,7 @@ export const api = {
   calRemoveRow: (scheduleId: number, line: number) => call<void>("cal_remove_row", { scheduleId, line }),
   calSkipOnce: (scheduleId: number, day: string, time: string) => call<void>("cal_skip_once", { scheduleId, day, time }),
   calImportFile: (path: string) => call<number>("cal_import_file", { path }),
+  calImportIcs: (path: string) => call<{ added: number; past: number; unsupported: number }>("cal_import_ics", { path }),
   calImportDeskReminders: (folder: string) => call<number>("cal_import_desk_reminders", { folder }),
   calExport: (scheduleId: number, path: string) => call<void>("cal_export", { scheduleId, path }),
   calCreateShared: (name: string, timezone: string, groups: string[]) => call<number>("cal_create_shared", { name, timezone, groups }),
@@ -357,6 +358,14 @@ export async function pickScheduleFile(): Promise<string | null> {
   if (!inDesktopApp) return "C:\\Users\\you\\Downloads\\Guild Schedule.csv";
   const { open } = await import("@tauri-apps/plugin-dialog");
   const picked = await open({ title: "Choose a schedule file", filters: [{ name: "Schedule", extensions: ["csv"] }] });
+  return typeof picked === "string" ? picked : null;
+}
+
+/** A calendar file exported from a phone or another calendar app. */
+export async function pickIcsFile(): Promise<string | null> {
+  if (!inDesktopApp) return "C:\\Users\\you\\Downloads\\calendar.ics";
+  const { open } = await import("@tauri-apps/plugin-dialog");
+  const picked = await open({ title: "Choose a calendar file", filters: [{ name: "Calendar", extensions: ["ics", "ical", "ifb", "icalendar"] }] });
   return typeof picked === "string" ? picked : null;
 }
 

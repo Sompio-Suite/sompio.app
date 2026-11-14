@@ -664,6 +664,17 @@ input[type="range"] { accent-color: var(--accent); width: 9rem; }
 .menu button:hover { background: var(--nav-active); }
 
 .cal-side { display: grid; gap: 1rem; }
+.quick-add {
+  display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.7rem; align-items: center;
+  padding: 0.6rem 0.9rem; border: 1px solid var(--line-strong); border-radius: var(--r-l); background: var(--raised);
+}
+.quick-add:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.quick-add > .icon { color: var(--accent-text); }
+.quick-add input { border: 0; background: none; padding: 0.35rem 0; font-size: var(--t-m); outline: none; box-shadow: none; width: 100%; }
+.quick-add > span { grid-column: 2; }
+.cal-sub { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+.cal-sub h2 { margin: 0; font-size: 1.15rem; }
+.ics-help ul { margin: 0.5rem 0 0; padding-left: 1.1rem; display: grid; gap: 0.35rem; max-width: 80ch; }
 .month { padding: 1rem; display: grid; gap: 0.6rem; }
 .month header { display: flex; align-items: center; justify-content: space-between; font-family: var(--font-display); }
 .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }

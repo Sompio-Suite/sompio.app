@@ -156,6 +156,7 @@ export const calendarHandlers: Record<string, (a: any) => unknown> = {
   },
   cal_remove_row: ({ scheduleId, line }) => { const s = editable(scheduleId); s.rows = s.rows.filter((x) => x.line !== line); },
   cal_skip_once: ({ scheduleId, day, time }) => { editable(scheduleId).rows.push({ ...row(day, time, ""), skip: true }); },
+  cal_import_ics: () => ({ added: 12, past: 30, unsupported: 1 }),
   cal_import_file: () => {
     const id = Math.max(...schedules.map((s) => s.view.id)) + 1;
     schedules.push({ view: { ...base(id, "Guild Schedule", false, PALETTE[schedules.length % 9]), source: "C:\\Users\\you\\Downloads\\Guild Schedule.csv" }, rows: [row("Fri", "21:00", "Mythic+ night", "Bring flasks.", 15)] });
