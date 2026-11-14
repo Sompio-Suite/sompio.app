@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.104"
 csv = "1.4.0"
+# Reads the GPS position cameras and phones write into photos (only when asked)
+kamadak-exif = "0.6"
 mail-parser = "0.11.9"
 regex = "1.13.1"
 rusqlite = { version = "0.41.1", features = ["bundled"] }

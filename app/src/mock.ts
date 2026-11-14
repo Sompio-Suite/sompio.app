@@ -216,6 +216,7 @@ let mockPassword = "";
 
 let mail = { connected: false, address: null as string | null, provider: null as string | null };
 let myNames: string[] = [];
+let exportAsked: Record<string, string> = {};
 let tg = { has_app_key: false, connected: false, name: null as string | null, waiting_for: null as null | "code" | "password" };
 const handlers: Record<string, (a: any) => unknown> = {
   tg_status: () => ({ ...tg }),
@@ -258,6 +259,8 @@ const handlers: Record<string, (a: any) => unknown> = {
   },
   email_delete: ({ id }) => { statuses.set(id, "deleted"); return summary(); },
   my_names: () => [...myNames],
+  export_requests: () => JSON.stringify(exportAsked),
+  set_export_requests: ({ json }) => { exportAsked = JSON.parse(json as string); },
   set_my_names: ({ names }) => { myNames = names; },
   lock_status: () => ({ ...lockState }),
   lock_new_picture: async () => {

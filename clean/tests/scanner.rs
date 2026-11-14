@@ -87,3 +87,11 @@ fn finds_identity_numbers_codes_dates_and_plates() {
     assert!(has("license plate is AB 123 CD", Kind::NumberPlate));
     assert!(!has("GG-WP-ME lol", Kind::NumberPlate));
 }
+
+#[test]
+fn finds_exact_locations() {
+    assert!(has("[Photo location: 52.37312, 4.89034]", Kind::Location));
+    assert!(has("come over https://www.google.com/maps/@52.3731234,4.8903456,17z", Kind::Location));
+    assert!(has("https://www.openstreetmap.org/#map=18/52.37312/4.89034", Kind::Location));
+    assert!(!has("pi is 3.14159, e is 2.71828", Kind::Location));
+}

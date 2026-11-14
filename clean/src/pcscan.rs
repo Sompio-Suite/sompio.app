@@ -1,8 +1,10 @@
 //! Scans folders on this computer for files that hold personal information.
 //!
-//! Only folders the user picks are read. Text-like files and Word documents are read
-//! for their text; every file's name is also checked (a photo called "passport.jpg"
-//! is worth knowing about even though Sompio can't read the picture).
+//! Only folders the user picks are read, and only when they start the scan. Text-like files and
+//! Word documents are read for their text; every file's name is also checked (a photo called
+//! "passport.jpg" is worth knowing about). Two more checks are off unless the person turns them on
+//! for that scan: reading the text in pictures (screenshots, scans) and reading the place a photo
+//! was taken from its GPS data. Neither keeps a copy of the picture.
 //! Each file becomes one "message" whose first line is its path inside the folder.
 
 use crate::import::{after_import, ImportProgress, ImportSummary, Writer};
@@ -16,6 +18,55 @@ const TEXT_EXTS: &[&str] = &[
     "eml", "vcf", "sql", "toml", "properties",
 ];
 const MAX_TEXT_BYTES: u64 = 5 * 1024 * 1024;
+const IMAGE_EXTS: &[&str] = &["jpg", "jpeg", "png", "heic", "heif", "webp", "tif", "tiff", "bmp"];
+const MAX_IMAGE_BYTES: u64 = 40 * 1024 * 1024;
+
+/// The extra checks for one folder scan. Both are off unless the person turns them on.
+#[derive(Debug, Clone, Copy, Default, serde::Serialize, serde::Deserialize)]
+pub struct PcScanOptions {
+    /// Read the text in screenshots and scanned documents
+    #[serde(default)]
+    pub image_text: bool,
+    /// Read where photos were taken from their GPS data
+    #[serde(default)]
+    pub photo_places: bool,
+}
+
+/// Reads the text in a picture. The desktop app passes Windows' own offline text recognition.
+pub type ImageReader<'a> = &'a dyn Fn(&Path) -> Option<String>;
+
+pub fn is_image(ext: &str) -> bool {
+    IMAGE_EXTS.contains(&ext)
+}
+
+/// Where a photo was taken, from the GPS data cameras and phones write into it.
+pub fn photo_location(path: &Path) -> Option<(f64, f64)> {
+    use exif::{In, Tag, Value};
+    let file = std::fs::File::open(path).ok()?;
+    let data = exif::Reader::new().read_from_container(&mut std::io::BufReader::new(file)).ok()?;
+    let degrees = |tag: Tag| -> Option<f64> {
+        match &data.get_field(tag, In::PRIMARY)?.value {
+            Value::Rational(v) if v.len() == 3 => Some(v[0].to_f64() + v[1].to_f64() / 60.0 + v[2].to_f64() / 3600.0),
+            _ => None,
+        }
+    };
+    let side = |tag: Tag| data.get_field(tag, In::PRIMARY).map(|f| f.display_value().to_string()).unwrap_or_default();
+    let mut lat = degrees(Tag::GPSLatitude)?;
+    let mut lon = degrees(Tag::GPSLongitude)?;
+    if side(Tag::GPSLatitudeRef).starts_with('S') {
+        lat = -lat;
+    }
+    if side(Tag::GPSLongitudeRef).starts_with('W') {
+        lon = -lon;
+    }
+    let ok = lat.is_finite() && lon.is_finite() && lat.abs() <= 90.0 && lon.abs() <= 180.0 && (lat != 0.0 || lon != 0.0);
+    ok.then_some((lat, lon))
+}
+
+/// The line a photo's place is written as, so the scanner can flag it. Five decimals is about a metre.
+pub(crate) fn location_line(lat: f64, lon: f64) -> String {
+    format!("[Photo location: {lat:.5}, {lon:.5}]")
+}
 const MAX_CHARS: usize = 1_000_000;
 const MAX_FILES: usize = 200_000;
 const MAX_DEPTH: usize = 16;
@@ -109,10 +160,18 @@ impl Walker<'_> {
     }
 }
 
-/// Scans the given folders, replacing the previous PC scan.
-pub fn scan_folders(
+/// Scans the given folders with only the basic checks (file names, text files, Word documents).
+pub fn scan_folders(store: &mut Store, folders: &[PathBuf], progress: &mut dyn FnMut(ImportProgress)) -> Result<ImportSummary> {
+    scan_folders_with(store, folders, PcScanOptions::default(), None, progress)
+}
+
+/// Scans the given folders, replacing the previous PC scan. The picture checks run only when
+/// `opts` turns them on; text in pictures also needs a `reader`.
+pub fn scan_folders_with(
     store: &mut Store,
     folders: &[PathBuf],
+    opts: PcScanOptions,
+    reader: Option<ImageReader>,
     progress: &mut dyn FnMut(ImportProgress),
 ) -> Result<ImportSummary> {
     if folders.is_empty() {
@@ -148,11 +207,14 @@ pub fn scan_folders(
         let root_str = display_path(&root);
         let channel = w.channel(&root_str, &root_name, "folder", None, Some(&root_str))?;
         for (i, (path, rel)) in files[from..to].iter().enumerate() {
-            if (from + i) % 500 == 0 {
-                progress(ImportProgress { phase: "Reading files", done: from + i, total });
+            let ext = path.extension().map(|e| e.to_string_lossy().to_ascii_lowercase()).unwrap_or_default();
+            let picture = is_image(&ext);
+            let slow = picture && opts.image_text && reader.is_some();
+            if (from + i) % 500 == 0 || (slow && (from + i) % 10 == 0) {
+                let phase = if opts.image_text && reader.is_some() { "Reading files and pictures" } else { "Reading files" };
+                progress(ImportProgress { phase, done: from + i, total });
             }
             let Ok(meta) = std::fs::metadata(path) else { continue };
-            let ext = path.extension().map(|e| e.to_string_lossy().to_ascii_lowercase()).unwrap_or_default();
             let ts = meta
                 .modified()
                 .ok()
@@ -160,9 +222,25 @@ pub fn scan_folders(
                 .map(|d| d.as_millis() as i64)
                 .unwrap_or(0);
             let mut content = rel.clone();
+            let mut body = Vec::new();
             if let Some(text) = read_text(path, &ext, meta.len()) {
+                body.push(text);
+            }
+            if picture && meta.len() <= MAX_IMAGE_BYTES {
+                if opts.photo_places {
+                    if let Some((lat, lon)) = photo_location(path) {
+                        body.push(location_line(lat, lon));
+                    }
+                }
+                if let (true, Some(read)) = (opts.image_text, reader) {
+                    if let Some(text) = read(path) {
+                        body.push(text);
+                    }
+                }
+            }
+            if !body.is_empty() {
                 content.push_str("\n\n");
-                content.push_str(&text);
+                content.push_str(&body.join("\n\n"));
             }
             let full = display_path(path);
             w.message(&full, channel, ts, &truncate(content), &full, None)?;

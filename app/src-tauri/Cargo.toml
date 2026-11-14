@@ -47,6 +47,8 @@ sha2 = "0.10"
 [target.'cfg(windows)'.dependencies]
 winreg = "0.56"
 windows-sys = { version = "0.59", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation"] }
+# Windows' own offline text recognition, for reading text in screenshots and scans (only when asked)
+windows = { version = "0.61", features = ["Foundation", "Foundation_Collections", "Graphics_Imaging", "Media_Ocr", "Storage", "Storage_Streams", "Win32_System_WinRT"] }
 
 [profile.release]
 # Quick rebuilds: "thin" link-time optimisation and parallel code generation take seconds instead of

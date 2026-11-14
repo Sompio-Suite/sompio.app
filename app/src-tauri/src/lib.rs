@@ -6,6 +6,7 @@ mod calendar;
 mod vault;
 mod samples;
 mod problems;
+mod ocr;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -278,13 +279,35 @@ async fn import_package(app: AppHandle, state: State<'_, AppState>, path: String
 }
 
 #[tauri::command]
-async fn scan_folders(app: AppHandle, state: State<'_, AppState>, folders: Vec<String>) -> CmdResult<ImportSummary> {
+async fn scan_folders(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    folders: Vec<String>,
+    opts: Option<sompio_clean::PcScanOptions>,
+) -> CmdResult<ImportSummary> {
     state.licences.require(App::Clean)?;
+    let opts = opts.unwrap_or_default();
     with_store(state.db()?, move |s| {
         let folders: Vec<PathBuf> = folders.into_iter().map(PathBuf::from).collect();
-        sompio_clean::scan_folders(s, &folders, &mut |p| {
+        let reader: &dyn Fn(&std::path::Path) -> Option<String> = &ocr::read_image_text;
+        sompio_clean::scan_folders_with(s, &folders, opts, opts.image_text.then_some(reader), &mut |p| {
             let _ = app.emit("import-progress", &p);
         })
+    })
+    .await
+}
+
+/// The data exports the person said they asked for, and when (kept encrypted with everything else).
+#[tauri::command]
+async fn export_requests(state: State<'_, AppState>) -> CmdResult<String> {
+    with_store(state.db()?, |s| Ok(s.get_meta("export_requests")?.unwrap_or_else(|| "{}".into()))).await
+}
+
+#[tauri::command]
+async fn set_export_requests(state: State<'_, AppState>, json: String) -> CmdResult<()> {
+    with_store(state.db()?, move |s| {
+        serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(&json)?;
+        s.set_meta("export_requests", &json)
     })
     .await
 }
@@ -831,6 +854,8 @@ pub fn run() {
             licence_add,
             import_package,
             scan_folders,
+            export_requests,
+            set_export_requests,
             sources,
             remove_source,
             recycle_file,

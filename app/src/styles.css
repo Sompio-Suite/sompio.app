@@ -384,6 +384,32 @@ button.redact:hover { outline: 2px solid color-mix(in srgb, var(--accent) 45%, t
 .welcome .lede > p { max-width: 64ch; }
 .welcome h1 .hl { color: var(--accent-text); }
 .choices { overflow: hidden; }
+.welcome-step { display: flex; align-items: baseline; gap: 0.6rem; font-size: 1.15rem; margin: 0.5rem 0 -1.25rem; }
+.welcome-step .num {
+  width: 1.6rem; height: 1.6rem; border-radius: 50%; display: inline-grid; place-items: center; flex: none;
+  background: var(--accent); color: var(--accent-ink); font-size: var(--t-s); font-weight: 700; align-self: center;
+}
+.welcome-now { padding: 1.15rem 1.35rem; display: grid; gap: 0.9rem; }
+.choice-static { display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: center; }
+.welcome-inner > .connect, .welcome-inner > .panel + .panel { margin-top: -1.25rem; }
+.folder-scan { display: grid; gap: 0.75rem; justify-items: start; }
+.folder-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; width: 100%; }
+.folder-list li {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 0.6rem; align-items: center;
+  padding: 0.45rem 0.7rem; border-radius: var(--r-m); background: var(--sunken); font-size: var(--t-s);
+}
+.folder-list .path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scan-checks { border: 0; padding: 0; margin: 0; display: grid; gap: 0.6rem; }
+.scan-checks legend { padding: 0; margin-bottom: 0.5rem; }
+.export-requests { display: grid; gap: 0.75rem; padding: 0.75rem 0; }
+.export-list { list-style: none; margin: 0; padding: 0; }
+.export-list li { border-bottom: 1px solid var(--line); padding: 0.6rem 0; }
+.export-list li:last-child { border-bottom: 0; }
+.export-list li.due strong { color: var(--accent-text); }
+.export-row { display: grid; grid-template-columns: 6.5rem 1fr auto; gap: 0.75rem; align-items: center; }
+.export-actions { display: flex; gap: 0.6rem; align-items: center; }
+.export-how { margin: 0.5rem 0 0 7.25rem; max-width: 64ch; }
+@media (max-width: 640px) { .export-row { grid-template-columns: 1fr; } .export-how { margin-left: 0; } }
 .choice {
   display: grid; grid-template-columns: auto 1fr auto; gap: 1rem; align-items: center; width: 100%; text-align: left;
   border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none; padding: 1.15rem 1.35rem; font-weight: 400; font-size: var(--t-m);

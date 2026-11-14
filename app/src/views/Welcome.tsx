@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { api, listen, onFileDrop, pickFolders, pickPackage, type ImportProgress, type ScanSummary } from "../api";
+import { api, listen, onFileDrop, pickPackage, type ImportProgress, type ScanSummary } from "../api";
 import { n } from "../format";
 import Icon from "../Icon";
+import EmailConnect from "./EmailConnect";
+import ExportRequests from "./ExportRequests";
+import FolderScan from "./FolderScan";
+import TelegramConnect from "./TelegramConnect";
 
 interface Busy { label: string; done: number; total: number }
 
@@ -58,9 +62,9 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
             See what your chats and files say about <span className="hl">you</span>.
           </h1>
           <p className="muted">
-            Sompio reads your data exports from Discord, WhatsApp, Instagram, Facebook, TikTok, Snapchat, Reddit, Telegram, X,
-            LinkedIn and Gmail, and the folders on this PC you choose. It
-            shows you where you've shared things like your phone number, address or a password, and helps you clean up.
+            Trace finds where you've shared things like your phone number, address, ID number or a password, and helps you
+            clean up. Start with what's on this PC and your mailbox, which takes minutes. Ask for your exports from Discord,
+            Instagram and the rest at the same time: they arrive in a few days.
           </p>
         </div>
 
@@ -77,46 +81,54 @@ export default function Welcome({ onReady }: { onReady: (s: ScanSummary) => void
             </div>
           </div>
         ) : (
-          <div className={`panel choices${over ? " over" : ""}`}>
-            <button className="choice main" onClick={async () => importPath(await pickPackage(false))}>
-              <span className="step-icon"><Icon name="sources" /></span>
-              <span className="step-text">
-                <strong>Open a data export</strong>
-                <span className="muted small">The file a platform sent you, from Discord to Gmail. You can also drop it here.</span>
-              </span>
-              <span className="step-go"><Icon name="arrow" /></span>
-            </button>
-            <button
-              className="choice"
-              onClick={async () => {
-                const folders = await pickFolders();
-                if (folders.length) start(() => api.scanFolders(folders));
-              }}
-            >
-              <span className="step-icon"><Icon name="folder" /></span>
-              <span className="step-text">
-                <strong>Scan folders on this PC</strong>
-                <span className="muted small">Finds passport scans, password lists and files with personal details.</span>
-              </span>
-              <span className="step-go"><Icon name="arrow" /></span>
-            </button>
-            <button className="choice" onClick={() => start(api.loadDemo)}>
-              <span className="step-icon"><Icon name="eye" /></span>
-              <span className="step-text">
-                <strong>Try it with sample data</strong>
-                <span className="muted small">A made-up chat history, while you wait for your own exports.</span>
-              </span>
-              <span className="step-go"><Icon name="arrow" /></span>
-            </button>
-          </div>
+          <>
+            <h2 className="welcome-step"><span className="num">1</span> Start now <span className="small muted">· ready in minutes</span></h2>
+            <div className="panel welcome-now">
+              <div className="choice-static">
+                <span className="step-icon"><Icon name="folder" /></span>
+                <span className="step-text">
+                  <strong>Folders on this PC</strong>
+                  <span className="muted small">Passport scans, password lists, bank statements and files with personal details. Documents, Downloads and Desktop are good places to start.</span>
+                </span>
+              </div>
+              <FolderScan onStart={(folders, opts) => start(() => api.scanFolders(folders, opts))} />
+            </div>
+            <EmailConnect onSynced={async () => start(async () => {})} />
+            <TelegramConnect onSynced={async () => start(async () => {})} />
+            <div className={`panel choices${over ? " over" : ""}`}>
+              <button className="choice" onClick={async () => importPath(await pickPackage(false))}>
+                <span className="step-icon"><Icon name="sources" /></span>
+                <span className="step-text">
+                  <strong>A WhatsApp chat, or an export you already have</strong>
+                  <span className="muted small">WhatsApp exports a chat in seconds from your phone. Any platform's export works here. You can also drop the file here.</span>
+                </span>
+                <span className="step-go"><Icon name="arrow" /></span>
+              </button>
+              <button className="choice" onClick={() => start(api.loadDemo)}>
+                <span className="step-icon"><Icon name="eye" /></span>
+                <span className="step-text">
+                  <strong>Try it with sample data</strong>
+                  <span className="muted small">A made-up person's chats and files, to see what Trace finds before you use your own.</span>
+                </span>
+                <span className="step-go"><Icon name="arrow" /></span>
+              </button>
+            </div>
+            {error && <div className="error">{error}</div>}
+            <p className="small muted">
+              Already extracted an export? <button className="link small" onClick={async () => importPath(await pickPackage(true))}>Choose its folder instead</button>.
+            </p>
+
+            <h2 className="welcome-step"><span className="num">2</span> Ask for the rest <span className="small muted">· arrives in a few days</span></h2>
+            <p className="small muted">
+              Every platform must give you a copy of your data. Ask for it now, tick "I've asked", and Sompio reminds you when
+              each one should be ready.
+            </p>
+            <div className="panel" style={{ padding: "0 1.25rem" }}>
+              <ExportRequests compact />
+            </div>
+          </>
         )}
-        {error && <div className="error">{error}</div>}
-        {!busy && (
-          <p className="small muted">
-            Already extracted an export? <button className="link small" onClick={async () => importPath(await pickPackage(true))}>Choose its folder instead</button>.
-            {" "}Don't have one yet? Each platform has a "request your data" option in its settings.
-          </p>
-        )}
+        {busy && error && <div className="error">{error}</div>}
 
         <div className="promises">
           <div>

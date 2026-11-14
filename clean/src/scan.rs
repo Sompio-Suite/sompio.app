@@ -31,10 +31,11 @@ pub enum Kind {
     BackupCode,
     BirthDate,
     NumberPlate,
+    Location,
 }
 
 impl Kind {
-    pub const ALL: [Kind; 16] = [
+    pub const ALL: [Kind; 17] = [
         Kind::Credential,
         Kind::BackupCode,
         Kind::IdNumber,
@@ -45,6 +46,7 @@ impl Kind {
         Kind::Address,
         Kind::Phone,
         Kind::Email,
+        Kind::Location,
         Kind::IpAddress,
         Kind::BirthDate,
         Kind::Postcode,
@@ -71,6 +73,7 @@ impl Kind {
             Kind::BackupCode => "backup_code",
             Kind::BirthDate => "birth_date",
             Kind::NumberPlate => "number_plate",
+            Kind::Location => "location",
         }
     }
 
@@ -96,6 +99,7 @@ impl Kind {
             Kind::BackupCode => "Backup codes & recovery phrases",
             Kind::BirthDate => "Dates of birth",
             Kind::NumberPlate => "Number plates",
+            Kind::Location => "Exact locations",
         }
     }
 
@@ -117,6 +121,7 @@ impl Kind {
             Kind::Passport => "With a passport or ID card number, someone can pose as you. Delete the message. If a photo of the document went out too, report it to your town hall or the police and consider replacing the document.",
             Kind::BackupCode => "Backup codes and recovery phrases get around your two-factor login or open a crypto wallet outright. Make new backup codes on that site now (that cancels the old ones), or move the coins to a new wallet, then delete the message.",
             Kind::BirthDate => "Your date of birth is a common security question and a key piece for identity fraud, together with your name. Delete the message if this is your own date of birth.",
+            Kind::Location => "This photo or map link shows an exact spot. If it's your home, school or work, delete the post. Before sharing a photo again, remove its location: in Windows, right-click the file, choose Properties, then Details, then Remove Properties and Personal Information.",
             Kind::NumberPlate => "A number plate can be tied to your car, and so to where you park and drive. Delete the message unless it's fine for this chat to know it.",
         }
     }
@@ -126,7 +131,7 @@ impl Kind {
         match self {
             Kind::Credential | Kind::Card | Kind::Iban | Kind::WatchTerm | Kind::Address => 3,
             Kind::IdNumber | Kind::Passport | Kind::BackupCode => 3,
-            Kind::Phone | Kind::Email | Kind::IpAddress | Kind::SensitiveFile | Kind::BirthDate => 2,
+            Kind::Phone | Kind::Email | Kind::IpAddress | Kind::SensitiveFile | Kind::BirthDate | Kind::Location => 2,
             Kind::Postcode | Kind::CryptoWallet | Kind::NumberPlate => 1,
         }
     }
@@ -184,6 +189,9 @@ impl Scanner {
             d(Kind::BackupCode, r"(?i:\b(?:backup|recovery|herstel|reserve|2fa|two[- ]factor)[ -]?(?:codes?|keys?)\b[^\n]{0,20}?)[A-Za-z0-9]{4,6}[- ]?[A-Za-z0-9]{4,6}\b")?,
             d(Kind::BackupCode, r"(?i)\b(?:seed|recovery|secret|mnemonic|herstel)\s*(?:phrase|words|zin)\b\W{0,10}(?:is\s*)?:?\s*(?:[a-z]{3,8}\s+){11,23}[a-z]{3,8}\b")?,
             d(Kind::BirthDate, r"(?i:\b(?:born(?:\s+on)?|date of birth|dob|d\.o\.b\.?|birthday(?:\s+is)?|geboren(?:\s+op|\s+am)?|geboortedatum|geb\.|n[ăa]scut[ăa]?(?:\s+(?:la|pe|[îi]n))?|data na[șs]terii|geburtsdatum)\s*:?\s*)(?:[0-3]?[0-9][-/. ][01]?[0-9][-/. ](?:19|20)[0-9]{2}|(?:19|20)[0-9]{2}-[01][0-9]-[0-3][0-9]|[0-3]?[0-9](?:st|nd|rd|th)?\s+(?i:jan|feb|maart|mar|mrt|apr|may|mei|mai|jun|iun|jul|iul|aug|sep|oct|okt|nov|dec|ian)[a-zăâîșț]*\.?,?\s+(?:19|20)[0-9]{2}|(?i:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+[0-3]?[0-9](?:st|nd|rd|th)?,?\s+(?:19|20)[0-9]{2})\b")?,
+            // The place a photo was taken (written by the PC scan), or a map link to an exact spot
+            d(Kind::Location, r"\[Photo location: -?[0-9]{1,2}\.[0-9]{3,6}, -?[0-9]{1,3}\.[0-9]{3,6}\]")?,
+            d(Kind::Location, r"(?i)\b(?:maps\.google\.[a-z.]+|google\.[a-z.]+/maps|maps\.apple\.com|openstreetmap\.org)/?\S*?[@=/#](?:map=[0-9]{1,2}/)?-?[0-9]{1,2}\.[0-9]{4,}[,/]-?[0-9]{1,3}\.[0-9]{4,}")?,
             // Dutch number plates in their official dash patterns (no vowels since 1978), or after the word
             d(Kind::NumberPlate, r"\b(?:[A-Z]{2}-[0-9]{2}-[A-Z]{2}|[A-Z]{2}-[A-Z]{2}-[0-9]{2}|[0-9]{2}-[A-Z]{2}-[A-Z]{2}|[0-9]{2}-[A-Z]{3}-[0-9]|[0-9]-[A-Z]{3}-[0-9]{2}|[A-Z]{2}-[0-9]{3}-[A-Z]|[A-Z]-[0-9]{3}-[A-Z]{2}|[A-Z]{3}-[0-9]{2}-[A-Z]|[A-Z]-[0-9]{2}-[A-Z]{3}|[0-9]-[A-Z]{2}-[0-9]{3}|[0-9]{3}-[A-Z]{2}-[0-9])\b")?,
             d(Kind::NumberPlate, r"(?i:\b(?:kenteken|licen[cs]e plate|number plate|plate number|nummernschild|num[aă]r de [îi]nmatriculare)(?:\s+(?:is|nr|number))?\s*:?\s*)[A-Z0-9]{1,3}[- ]?[A-Z0-9]{2,4}[- ]?[A-Z0-9]{1,3}\b")?,

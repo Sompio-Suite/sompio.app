@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import {
-  api, listen, onFileDrop, pickFolders, pickPackage, platformName,
-  type ImportProgress, type ScanSummary, type SourceView,
+  api, listen, onFileDrop, pickPackage, platformName,
+  type ImportProgress, type PcScanOptions, type ScanSummary, type SourceView,
 } from "../api";
 import { dateTime, n, plural } from "../format";
 import Icon from "../Icon";
 import EmailConnect from "./EmailConnect";
+import ExportRequests from "./ExportRequests";
+import FolderScan from "./FolderScan";
 import TelegramConnect from "./TelegramConnect";
 
 interface Props {
@@ -17,19 +19,6 @@ interface Props {
 
 interface Busy { label: string; done: number; total: number }
 
-const HOW_TO: [string, string][] = [
-  ["Discord", "User Settings, then Data & Privacy, then Request all of my data. Discord emails you a link."],
-  ["Reddit", "Settings, then Privacy, then Request your data. Reddit emails you when it's ready."],
-  ["Telegram", "In Telegram Desktop: Settings, Advanced, Export Telegram data. Tick Personal information and your chats, choose JSON. It saves straight to your PC."],
-  ["X", "Settings, then Your account, then Download an archive of your data. X emails you when it's ready."],
-  ["WhatsApp", "Open a chat, tap the contact or group name, then Export chat, Without media. Save the .txt (or .zip) and add it here. One chat at a time."],
-  ["Instagram", "Settings, Accounts Center, Your information and permissions, Download your information. Choose All available information and format JSON."],
-  ["Facebook", "Settings, Accounts Center, Your information and permissions, Download your information. Choose format JSON. Covers Messenger too."],
-  ["TikTok", "Settings and privacy, Account, Download your data. Choose JSON, then download it from the same page when it's ready."],
-  ["Snapchat", "Settings, My Data. Tick Export JSON files, submit, and download the zip from the email Snapchat sends."],
-  ["LinkedIn", "Settings, Data privacy, Get a copy of your data. Choose the larger archive so messages are included."],
-  ["Gmail", "Or connect your account above. Without connecting: takeout.google.com, deselect all, tick Mail. Add the .zip or .mbox here. Only mail you sent is read."],
-];
 
 /** The names you go by, for exports that don't say which messages are yours (WhatsApp, Facebook, Instagram). */
 function YourNames() {
@@ -102,7 +91,8 @@ export default function Sources({ demo, onScan, onChanged }: Props) {
     }
   };
   const addExport = (path: string | null) => path && add("Reading export", () => api.importPackage(path));
-  const addFolders = (folders: string[]) => folders.length > 0 && add("Reading files", () => api.scanFolders(folders));
+  const addFolders = (folders: string[], opts: PcScanOptions) =>
+    folders.length > 0 && add("Reading files", () => api.scanFolders(folders, opts));
 
   const remove = async (s: SourceView) => {
     await api.removeSource(s.platform);
@@ -239,9 +229,7 @@ export default function Sources({ demo, onScan, onChanged }: Props) {
               and Desktop are good places to start.
               {pcSource && " Scanning again replaces the last folder scan."}
             </p>
-            <div className="drop-actions">
-              <button disabled={!!busy} onClick={async () => addFolders(await pickFolders())}>Choose folders</button>
-            </div>
+            <FolderScan disabled={!!busy} onStart={addFolders} />
           </div>
         </div>
       </section>
@@ -253,14 +241,10 @@ export default function Sources({ demo, onScan, onChanged }: Props) {
 
       <section className="section">
         <h2 className="section-title">Getting your exports</h2>
-        <dl className="howto">
-          {HOW_TO.map(([name, how]) => (
-            <div key={name}>
-              <dt>{name}</dt>
-              <dd className="muted">{how}</dd>
-            </div>
-          ))}
-        </dl>
+        <p className="small muted">Ask each platform for your data, tick "I've asked", and Sompio reminds you when it should be ready.</p>
+        <div className="panel" style={{ padding: "0 1.25rem" }}>
+          <ExportRequests />
+        </div>
       </section>
     </div>
   );

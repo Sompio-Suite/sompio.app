@@ -15,6 +15,11 @@ export type Platform =
   | "tiktok" | "snapchat" | "linkedin" | "email" | "pc";
 export type StatusTab = "open" | "later" | "done";
 
+/** The extra checks for a folder scan, both off unless the person turns them on. */
+export interface PcScanOptions { image_text: boolean; photo_places: boolean }
+/** Data exports the person asked for: platform name -> the day they asked (YYYY-MM-DD). */
+export type ExportRequests = Record<string, string>;
+
 /** Trace's request centre, stored encrypted with everything else */
 export interface PrivacyRequest {
   id: string; company: string; company_name: string; kind: "erasure" | "access" | "objection"; account: string;
@@ -230,7 +235,10 @@ export const api = {
   isDemo: () => call<boolean>("is_demo"),
   loadDemo: () => call<void>("load_demo"),
   importPackage: (path: string) => call<ImportSummary>("import_package", { path }),
-  scanFolders: (folders: string[]) => call<ImportSummary>("scan_folders", { folders }),
+  scanFolders: (folders: string[], opts: PcScanOptions = { image_text: false, photo_places: false }) =>
+    call<ImportSummary>("scan_folders", { folders, opts }),
+  exportRequests: async () => JSON.parse(await call<string>("export_requests")) as ExportRequests,
+  setExportRequests: (r: ExportRequests) => call<void>("set_export_requests", { json: JSON.stringify(r) }),
   sources: () => call<SourceView[]>("sources"),
   removeSource: (platform: Platform) => call<void>("remove_source", { platform }),
   recycleFile: (id: number) => call<[string, ScanSummary]>("recycle_file", { id }),

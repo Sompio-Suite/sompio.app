@@ -186,3 +186,30 @@ fn platforms_live_side_by_side_and_replace_only_themselves() {
     assert_eq!(store.stats().unwrap().messages, 7);
     assert_eq!(store.search("Hunter2forreal", None, 0, 10).unwrap().total, 0, "search index updated");
 }
+
+#[test]
+fn photo_places_only_when_turned_on() {
+    let dir = tempfile::tempdir().unwrap();
+    let photos = dir.path().join("Photos");
+    std::fs::create_dir(&photos).unwrap();
+    std::fs::copy(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/photo-with-location.jpg"), photos.join("IMG_2041.jpg")).unwrap();
+
+    let (lat, lon) = sompio_clean::photo_location(&photos.join("IMG_2041.jpg")).expect("GPS in the test photo");
+    assert!((lat - 52.3731).abs() < 0.001 && (lon - 4.8925).abs() < 0.001, "{lat} {lon}");
+
+    let found = |opts: sompio_clean::PcScanOptions| {
+        let mut store = Store::open_in_memory().unwrap();
+        sompio_clean::scan_folders_with(&mut store, &[photos.clone()], opts, None, &mut |_| {}).unwrap();
+        let s = run_scan(&mut store, &ScanOptions::default(), &mut |_, _| {}).unwrap();
+        s.by_kind.iter().find(|k| k.kind == sompio_clean::Kind::Location).unwrap().count
+    };
+    assert_eq!(found(Default::default()), 0, "off by default");
+    assert_eq!(found(sompio_clean::PcScanOptions { photo_places: true, image_text: false }), 1);
+
+    // Text in pictures goes through the reader the app passes in
+    let mut store = Store::open_in_memory().unwrap();
+    let reader = |_: &std::path::Path| Some("Recovery codes: 8f3k-2m9x".to_string());
+    sompio_clean::scan_folders_with(&mut store, &[photos.clone()], sompio_clean::PcScanOptions { image_text: true, photo_places: false }, Some(&reader), &mut |_| {}).unwrap();
+    let s = run_scan(&mut store, &ScanOptions::default(), &mut |_, _| {}).unwrap();
+    assert_eq!(s.by_kind.iter().find(|k| k.kind == sompio_clean::Kind::BackupCode).unwrap().count, 1);
+}
