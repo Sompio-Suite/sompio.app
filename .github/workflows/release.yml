@@ -125,6 +125,9 @@ jobs:
             mac)
               cargo build --release --target aarch64-apple-darwin
               cargo build --release --target x86_64-apple-darwin
+              # The universal build compiles each Mac chip separately, then joins them: each needs its own copy
+              cp target/aarch64-apple-darwin/release/sompio-browser ../app/src-tauri/binaries/sompio-browser-aarch64-apple-darwin
+              cp target/x86_64-apple-darwin/release/sompio-browser ../app/src-tauri/binaries/sompio-browser-x86_64-apple-darwin
               lipo -create -output ../app/src-tauri/binaries/sompio-browser-universal-apple-darwin \
                 target/aarch64-apple-darwin/release/sompio-browser target/x86_64-apple-darwin/release/sompio-browser ;;
             linux)
