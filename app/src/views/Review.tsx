@@ -62,6 +62,11 @@ const NOUN: Record<KindKey, string> = {
   postcode: "postcode",
   crypto_wallet: "wallet",
   sensitive_file: "file",
+  id_number: "ID number",
+  passport: "document number",
+  backup_code: "backup code",
+  birth_date: "date of birth",
+  number_plate: "number plate",
 };
 
 export default function Review({ scan, demo, initialKind, onScan, onOpen }: Props) {

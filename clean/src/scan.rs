@@ -26,11 +26,19 @@ pub enum Kind {
     Postcode,
     CryptoWallet,
     SensitiveFile,
+    IdNumber,
+    Passport,
+    BackupCode,
+    BirthDate,
+    NumberPlate,
 }
 
 impl Kind {
-    pub const ALL: [Kind; 11] = [
+    pub const ALL: [Kind; 16] = [
         Kind::Credential,
+        Kind::BackupCode,
+        Kind::IdNumber,
+        Kind::Passport,
         Kind::Card,
         Kind::Iban,
         Kind::WatchTerm,
@@ -38,8 +46,10 @@ impl Kind {
         Kind::Phone,
         Kind::Email,
         Kind::IpAddress,
+        Kind::BirthDate,
         Kind::Postcode,
         Kind::SensitiveFile,
+        Kind::NumberPlate,
         Kind::CryptoWallet,
     ];
 
@@ -56,6 +66,11 @@ impl Kind {
             Kind::Postcode => "postcode",
             Kind::CryptoWallet => "crypto_wallet",
             Kind::SensitiveFile => "sensitive_file",
+            Kind::IdNumber => "id_number",
+            Kind::Passport => "passport",
+            Kind::BackupCode => "backup_code",
+            Kind::BirthDate => "birth_date",
+            Kind::NumberPlate => "number_plate",
         }
     }
 
@@ -76,6 +91,11 @@ impl Kind {
             Kind::Postcode => "Postcodes",
             Kind::CryptoWallet => "Crypto wallets",
             Kind::SensitiveFile => "Sensitive files on this PC",
+            Kind::IdNumber => "National ID numbers",
+            Kind::Passport => "Passport & ID card numbers",
+            Kind::BackupCode => "Backup codes & recovery phrases",
+            Kind::BirthDate => "Dates of birth",
+            Kind::NumberPlate => "Number plates",
         }
     }
 
@@ -93,6 +113,11 @@ impl Kind {
             Kind::Postcode => "A postcode narrows down where you live. Low risk on its own, more so next to a street name.",
             Kind::CryptoWallet => "Wallet addresses are public, but tying one to your account reveals its balance and history.",
             Kind::SensitiveFile => "This file's name suggests an identity document, money matters or secrets. Keep it only if you need it, ideally in an encrypted folder or password manager, and move it to the Recycle Bin if you don't.",
+            Kind::IdNumber => "A national ID number (like a BSN, CNP or social security number) is what fraudsters need to open accounts in your name. Delete the message, and only give this number to official bodies, your employer, bank or doctor.",
+            Kind::Passport => "With a passport or ID card number, someone can pose as you. Delete the message. If a photo of the document went out too, report it to your town hall or the police and consider replacing the document.",
+            Kind::BackupCode => "Backup codes and recovery phrases get around your two-factor login or open a crypto wallet outright. Make new backup codes on that site now (that cancels the old ones), or move the coins to a new wallet, then delete the message.",
+            Kind::BirthDate => "Your date of birth is a common security question and a key piece for identity fraud, together with your name. Delete the message if this is your own date of birth.",
+            Kind::NumberPlate => "A number plate can be tied to your car, and so to where you park and drive. Delete the message unless it's fine for this chat to know it.",
         }
     }
 
@@ -100,8 +125,9 @@ impl Kind {
     pub fn severity(self) -> i64 {
         match self {
             Kind::Credential | Kind::Card | Kind::Iban | Kind::WatchTerm | Kind::Address => 3,
-            Kind::Phone | Kind::Email | Kind::IpAddress | Kind::SensitiveFile => 2,
-            Kind::Postcode | Kind::CryptoWallet => 1,
+            Kind::IdNumber | Kind::Passport | Kind::BackupCode => 3,
+            Kind::Phone | Kind::Email | Kind::IpAddress | Kind::SensitiveFile | Kind::BirthDate => 2,
+            Kind::Postcode | Kind::CryptoWallet | Kind::NumberPlate => 1,
         }
     }
 }
@@ -148,6 +174,19 @@ impl Scanner {
             d(Kind::IpAddress, r"\b(?:(?:25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])\b")?,
             d(Kind::Postcode, r"\b[1-9][0-9]{3} ?[A-Z]{2}\b")?, // Dutch postcode
             d(Kind::CryptoWallet, r"\bbc1[a-z0-9]{25,59}\b|\b0x[a-fA-F0-9]{40}\b")?,
+            // Dutch BSN, only next to its name (nine-digit numbers are everywhere); checked with the eleven test
+            d(Kind::IdNumber, r"(?i)\b(?:bsn|burgerservicenummer|sofi-?nummer|citizen service number)\b\W{0,5}(?:(?:is|nr|nummer|number)\.?\s*:?\s*)?[0-9](?:[ .]?[0-9]){8}\b")?,
+            // US social security number, 123-45-6789
+            d(Kind::IdNumber, r"\b[0-8][0-9]{2}-[0-9]{2}-[0-9]{4}\b")?,
+            // Romanian CNP: 13 digits with a check digit and a real birth date inside
+            d(Kind::IdNumber, r"\b[1-8][0-9]{12}\b")?,
+            d(Kind::Passport, r"(?i:\b(?:passport|paspoort|pa[sș]aport|reisepass|id[ -]?card|identity card|identiteitskaart|id-kaart)(?:\s+(?:no|nr|number|nummer|num[aă]r))?\.?\s*(?:is\s+)?[:#]?\s*)[A-Z0-9]{6,9}\b")?,
+            d(Kind::BackupCode, r"(?i:\b(?:backup|recovery|herstel|reserve|2fa|two[- ]factor)[ -]?(?:codes?|keys?)\b[^\n]{0,20}?)[A-Za-z0-9]{4,6}[- ]?[A-Za-z0-9]{4,6}\b")?,
+            d(Kind::BackupCode, r"(?i)\b(?:seed|recovery|secret|mnemonic|herstel)\s*(?:phrase|words|zin)\b\W{0,10}(?:is\s*)?:?\s*(?:[a-z]{3,8}\s+){11,23}[a-z]{3,8}\b")?,
+            d(Kind::BirthDate, r"(?i:\b(?:born(?:\s+on)?|date of birth|dob|d\.o\.b\.?|birthday(?:\s+is)?|geboren(?:\s+op|\s+am)?|geboortedatum|geb\.|n[ăa]scut[ăa]?(?:\s+(?:la|pe|[îi]n))?|data na[șs]terii|geburtsdatum)\s*:?\s*)(?:[0-3]?[0-9][-/. ][01]?[0-9][-/. ](?:19|20)[0-9]{2}|(?:19|20)[0-9]{2}-[01][0-9]-[0-3][0-9]|[0-3]?[0-9](?:st|nd|rd|th)?\s+(?i:jan|feb|maart|mar|mrt|apr|may|mei|mai|jun|iun|jul|iul|aug|sep|oct|okt|nov|dec|ian)[a-zăâîșț]*\.?,?\s+(?:19|20)[0-9]{2}|(?i:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+[0-3]?[0-9](?:st|nd|rd|th)?,?\s+(?:19|20)[0-9]{2})\b")?,
+            // Dutch number plates in their official dash patterns (no vowels since 1978), or after the word
+            d(Kind::NumberPlate, r"\b(?:[A-Z]{2}-[0-9]{2}-[A-Z]{2}|[A-Z]{2}-[A-Z]{2}-[0-9]{2}|[0-9]{2}-[A-Z]{2}-[A-Z]{2}|[0-9]{2}-[A-Z]{3}-[0-9]|[0-9]-[A-Z]{3}-[0-9]{2}|[A-Z]{2}-[0-9]{3}-[A-Z]|[A-Z]-[0-9]{3}-[A-Z]{2}|[A-Z]{3}-[0-9]{2}-[A-Z]|[A-Z]-[0-9]{2}-[A-Z]{3}|[0-9]-[A-Z]{2}-[0-9]{3}|[0-9]{3}-[A-Z]{2}-[0-9])\b")?,
+            d(Kind::NumberPlate, r"(?i:\b(?:kenteken|licen[cs]e plate|number plate|plate number|nummernschild|num[aă]r de [îi]nmatriculare)(?:\s+(?:is|nr|number))?\s*:?\s*)[A-Z0-9]{1,3}[- ]?[A-Z0-9]{2,4}[- ]?[A-Z0-9]{1,3}\b")?,
         ];
 
         let terms: Vec<String> = opts
@@ -284,8 +323,74 @@ fn validate(kind: Kind, text: &str, start: usize, end: usize) -> bool {
             !matches!(letters, "SA" | "SD" | "SS" | "AM" | "PM" | "GB" | "MB" | "KB" | "TB" | "HZ")
                 && !after.starts_with(|c: char| c.is_alphanumeric())
         }
+        Kind::IdNumber => {
+            let ds = digits(m);
+            if m.contains('-') {
+                // US SSN: never 000, 666 or 9xx in the first part, 00 or 0000 in the others
+                let area = ds[0] * 100 + ds[1] * 10 + ds[2];
+                return area != 0 && area != 666 && !(ds[3] == 0 && ds[4] == 0) && ds[5..].iter().any(|d| *d != 0)
+                    && !before.ends_with(|c: char| c.is_ascii_digit() || c == '-') && !after.starts_with('-');
+            }
+            match ds.len() {
+                9 => elfproef(&ds),
+                13 => cnp_valid(&ds),
+                _ => false,
+            }
+        }
+        Kind::Passport => {
+            let tail = m.rsplit(|c: char| !c.is_ascii_alphanumeric()).next().unwrap_or("");
+            tail.chars().filter(|c| c.is_ascii_digit()).count() >= 2
+        }
+        Kind::BackupCode => {
+            if m.to_lowercase().contains("phrase") || m.to_lowercase().contains("words") || m.to_lowercase().contains("zin") {
+                // A real recovery phrase is only word-list words, never everyday ones like "the" or "you"
+                const NOT_SEED: [&str; 14] = ["the", "and", "you", "your", "should", "with", "this", "that", "for", "are", "was", "have", "what", "don"];
+                let words: Vec<&str> = m.split_whitespace().collect();
+                let tail = &words[words.len().saturating_sub(12)..];
+                return !tail.iter().any(|w| NOT_SEED.contains(&w.to_lowercase().as_str()));
+            }
+            let code = m.rsplit(|c: char| c.is_whitespace() || c == ':').next().unwrap_or("");
+            code.chars().any(|c| c.is_ascii_digit()) && code.chars().any(|c| c.is_ascii_alphabetic())
+                || code.chars().filter(|c| c.is_ascii_digit()).count() >= 8
+        }
+        Kind::NumberPlate => {
+            // The plate itself: everything after the last lowercase letter or colon of the keyword
+            let cut = m.char_indices().filter(|(_, c)| c.is_lowercase() || *c == ':').last().map(|(i, c)| i + c.len_utf8()).unwrap_or(0);
+            let tail = &m[cut..];
+            let letters = tail.chars().filter(|c| c.is_ascii_alphabetic()).count();
+            let nums = tail.chars().filter(|c| c.is_ascii_digit()).count();
+            let keyword = m.chars().any(|c| c.is_lowercase());
+            letters >= 1 && nums >= 1 && (5..=8).contains(&(letters + nums))
+                && (keyword || !tail.chars().any(|c| "AEIOU".contains(c)))
+                && !before.ends_with(|c: char| c.is_ascii_alphanumeric() || c == '-')
+                && !after.starts_with('-')
+        }
         _ => true,
     }
+}
+
+/// The Dutch eleven test for a BSN: 9·d1 + 8·d2 + … + 2·d8 − d9 is a multiple of 11.
+fn elfproef(ds: &[u32]) -> bool {
+    if ds.len() != 9 || ds.iter().all(|d| *d == ds[0]) {
+        return false;
+    }
+    let sum: i64 = ds[..8].iter().enumerate().map(|(i, d)| (9 - i as i64) * *d as i64).sum::<i64>() - ds[8] as i64;
+    sum % 11 == 0
+}
+
+/// Romanian personal numeric code: sex/century digit, a real date, and the check digit.
+fn cnp_valid(ds: &[u32]) -> bool {
+    if ds.len() != 13 {
+        return false;
+    }
+    let month = ds[3] * 10 + ds[4];
+    let day = ds[5] * 10 + ds[6];
+    if !(1..=12).contains(&month) || !(1..=31).contains(&day) {
+        return false;
+    }
+    const W: [u32; 12] = [2, 7, 9, 1, 4, 6, 3, 5, 8, 2, 7, 9];
+    let r = ds[..12].iter().zip(W).map(|(d, w)| d * w).sum::<u32>() % 11;
+    ds[12] == if r == 10 { 1 } else { r }
 }
 
 
@@ -322,7 +427,7 @@ pub(crate) fn merge_spans(content: &str, mut spans: Vec<(usize, usize)>) -> Vec<
 /// "06-12345678" and "06 1234 5678" count as the same number.
 fn normalize(kind: Kind, value: &str) -> String {
     match kind {
-        Kind::Phone | Kind::Card | Kind::Iban | Kind::Postcode => {
+        Kind::Phone | Kind::Card | Kind::Iban | Kind::Postcode | Kind::IdNumber | Kind::NumberPlate => {
             value.chars().filter(|c| c.is_alphanumeric()).collect::<String>().to_lowercase()
         }
         _ => value.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase(),

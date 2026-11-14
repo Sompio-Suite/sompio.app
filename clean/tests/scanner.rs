@@ -52,3 +52,38 @@ fn iban_digits_are_not_also_a_phone_number() {
     let k = kinds("NL91 ABNA 0417 1643 00");
     assert_eq!(k, vec![Kind::Iban]);
 }
+
+#[test]
+fn finds_identity_numbers_codes_dates_and_plates() {
+    // BSN 111222333 passes the eleven test; only flagged next to its name
+    assert!(has("mijn bsn is 111222333", Kind::IdNumber));
+    assert!(has("BSN: 1112.22.333", Kind::IdNumber));
+    assert!(!has("order 111222333 shipped", Kind::IdNumber));
+    assert!(!has("bsn 111222334", Kind::IdNumber), "fails the eleven test");
+    assert!(has("my ssn is 123-45-6789", Kind::IdNumber));
+    assert!(!has("ssn 000-12-3456", Kind::IdNumber));
+    // A valid Romanian CNP (check digit 6)
+    assert!(has("CNP 1800101221144 pentru formular", Kind::IdNumber));
+    assert!(!has("CNP 1800101221145", Kind::IdNumber), "bad check digit");
+    assert!(has("passport number: NXC4R9P12", Kind::Passport));
+    assert!(has("paspoort nr. BN12FG345", Kind::Passport));
+    assert!(!has("my passport is EXPIRED", Kind::Passport));
+    assert!(has("discord backup codes: 8f3k-2m9x", Kind::BackupCode));
+    assert!(!has("my recovery codes are stored safely", Kind::BackupCode));
+    assert!(has(
+        "seed phrase: abandon ability able about above absent absorb abstract absurd abuse access accident",
+        Kind::BackupCode
+    ));
+    assert!(!has(
+        "recovery phrase is something you should never share with the people you meet online okay",
+        Kind::BackupCode
+    ));
+    assert!(has("born on 14-03-1994 in Utrecht", Kind::BirthDate));
+    assert!(has("date of birth: March 14, 1994", Kind::BirthDate));
+    assert!(has("geboren op 14 maart 1994", Kind::BirthDate));
+    assert!(!has("born to raid, 1994 was a good year", Kind::BirthDate));
+    assert!(has("my car is GZ-123-K, parked outside", Kind::NumberPlate));
+    assert!(has("kenteken: 12-ABC-3", Kind::NumberPlate));
+    assert!(has("license plate is AB 123 CD", Kind::NumberPlate));
+    assert!(!has("GG-WP-ME lol", Kind::NumberPlate));
+}

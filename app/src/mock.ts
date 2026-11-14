@@ -20,6 +20,11 @@ const KINDS: Record<KindKey, [string, number, string]> = {
   ip_address: ["IP addresses", 2, "An IP address can show roughly where you are. Delete the message if this was your home connection."],
   sensitive_file: ["Sensitive files on this PC", 2, "This file's name suggests an identity document, money matters or secrets. Keep it only if you need it, ideally in an encrypted folder or password manager, and move it to the Recycle Bin if you don't."],
   postcode: ["Postcodes", 1, "A postcode narrows down where you live. Low risk on its own, more so next to a street name."],
+  id_number: ["National ID numbers", 3, "A national ID number (like a BSN, CNP or social security number) is what fraudsters need to open accounts in your name. Delete the message, and only give this number to official bodies, your employer, bank or doctor."],
+  passport: ["Passport & ID card numbers", 3, "With a passport or ID card number, someone can pose as you. Delete the message. If a photo of the document went out too, report it to your town hall or the police and consider replacing the document."],
+  backup_code: ["Backup codes & recovery phrases", 3, "Backup codes and recovery phrases get around your two-factor login or open a crypto wallet outright. Make new backup codes on that site now (that cancels the old ones), or move the coins to a new wallet, then delete the message."],
+  birth_date: ["Dates of birth", 2, "Your date of birth is a common security question and a key piece for identity fraud, together with your name. Delete the message if this is your own date of birth."],
+  number_plate: ["Number plates", 1, "A number plate can be tied to your car, and so to where you park and drive. Delete the message unless it's fine for this chat to know it."],
   crypto_wallet: ["Crypto wallets", 1, "Wallet addresses are public, but tying one to your account reveals its balance and history."],
 };
 const LEAKS: [string, KindKey, string][] = [
@@ -30,6 +35,11 @@ const LEAKS: [string, KindKey, string][] = [
   ["login is sammy and ", "credential", "password: Winter2024!"],
   ["my home server is at ", "ip_address", "81.204.37.12"],
   ["card is ", "card", "4111 1111 1111 1111"],
+  ["for the rental form, ", "id_number", "BSN 111222333"],
+  ["photo of my ", "passport", "passport NXC4R9P12"],
+  ["saving these here, ", "backup_code", "backup codes: 8f3k-2m9x"],
+  ["party is on my birthday, ", "birth_date", "born on 14-03-1994"],
+  ["I'm parked outside in ", "number_plate", "GZ-123-K"],
 ];
 
 const channelDefs: [string, ChannelView["kind"], string | null][] = [

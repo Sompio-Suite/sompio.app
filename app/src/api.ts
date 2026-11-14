@@ -7,7 +7,8 @@ import { listen as tauriListen, type UnlistenFn } from "@tauri-apps/api/event";
 
 export type KindKey =
   | "credential" | "card" | "iban" | "watch_term" | "address"
-  | "phone" | "email" | "ip_address" | "postcode" | "crypto_wallet" | "sensitive_file";
+  | "phone" | "email" | "ip_address" | "postcode" | "crypto_wallet" | "sensitive_file"
+  | "id_number" | "passport" | "backup_code" | "birth_date" | "number_plate";
 export type Status = "deleted" | "ok" | "later";
 export type Platform =
   | "discord" | "reddit" | "telegram" | "x" | "whatsapp" | "facebook" | "instagram"
