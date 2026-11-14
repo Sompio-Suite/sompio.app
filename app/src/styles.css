@@ -664,6 +664,8 @@ input[type="range"] { accent-color: var(--accent); width: 9rem; }
 .menu button:hover { background: var(--nav-active); }
 
 .cal-side { display: grid; gap: 1rem; }
+.browser-import { padding: 1rem 1.25rem; display: grid; gap: 0.6rem; margin-bottom: 1rem; }
+.browser-import ol { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; }
 .quick-add {
   display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.7rem; align-items: center;
   padding: 0.6rem 0.9rem; border: 1px solid var(--line-strong); border-radius: var(--r-l); background: var(--raised);

@@ -347,22 +347,40 @@ export function VaultSettingsPanel({ readOnly, onDone }: { readOnly: boolean; on
       </section>
       <section className="setting">
         <h3>Bring passwords in</h3>
-        <p className="muted">Each import lands in its own folder, so nothing you have is overwritten. To work on your passwords on another PC with KeePassXC, save a KeePass file below, use it there, then "Merge changes from a copy" to bring the changes back.</p>
+        <div className="browser-import panel">
+          <strong>From your browser</strong>
+          <ol className="small">
+            <li>
+              <strong>Chrome, Edge or Brave:</strong> open <span className="mono">chrome://password-manager/settings</span> (Edge:{" "}
+              <span className="mono">edge://wallet/passwords</span>), choose <em>Export passwords</em> and save the file.
+            </li>
+            <li><strong>Firefox:</strong> open <span className="mono">about:logins</span>, click <em>⋯</em>, then <em>Export passwords</em>.</li>
+            <li>Choose the file below. Sompio brings everything in, then reminds you to delete the file, because it holds your passwords unprotected.</li>
+          </ol>
+          <div className="toolbar">
+            <button className="primary" disabled={readOnly || busy} onClick={async () => {
+              const p = await pickOpen("Choose the file your browser saved", [{ name: "Passwords (CSV)", extensions: ["csv"] }], "C:\\Users\\you\\Downloads\\Chrome Passwords.csv");
+              if (p) run(async () => { const r = await api.vaultImportCsv(p); return `Brought in ${plural(r.entries, "password", "passwords")}.${r.warnings.length ? ` ${r.warnings.length} rows couldn't be read.` : ""} Now delete the file you exported: it holds your passwords unprotected.`; });
+            }}><Icon name="folder" size={16} />Choose the exported file</button>
+          </div>
+          <p className="small faint">Then turn off your browser's own password saving, so new passwords go to Sompio. The Sompio extension fills them in for you.</p>
+        </div>
+        <p className="muted">From another password manager: each import lands in its own folder, so nothing you have is overwritten.</p>
         <div className="toolbar">
           <button disabled={readOnly || busy} onClick={async () => {
             const p = await pickOpen("Choose a KeePass file", [{ name: "KeePass", extensions: ["kdbx", "kdb"] }], "C:\\Users\\you\\Documents\\Passwords.kdbx");
             if (p) setImporting({ path: p, password: "", keyfile: null, merge: false });
-          }}><Icon name="key" size={16} />KeePass or KeePassXC file</button>
+          }}><Icon name="key" size={16} />KeePass file (.kdbx)</button>
+          <button disabled={readOnly || busy} onClick={async () => {
+            const p = await pickOpen("Choose a password export", [{ name: "CSV", extensions: ["csv"] }], "C:\\Users\\you\\Downloads\\bitwarden_export.csv");
+            if (p) run(async () => { const r = await api.vaultImportCsv(p); return `Brought in ${plural(r.entries, "entry", "entries")}.${r.warnings.length ? ` ${r.warnings.length} rows couldn't be read.` : ""} Delete the CSV file now: it holds your passwords in plain text.`; });
+          }}><Icon name="folder" size={16} />Export from another app (CSV)</button>
           <button disabled={readOnly || busy} title="For a copy of this vault you exported and changed elsewhere" onClick={async () => {
             const p = await pickOpen("Choose the copy to merge", [{ name: "KeePass", extensions: ["kdbx"] }], "C:\\Users\\you\\Documents\\Sompio passwords.kdbx");
             if (p) setImporting({ path: p, password: "", keyfile: null, merge: true });
           }}>Merge changes from a copy</button>
-          <button disabled={readOnly || busy} onClick={async () => {
-            const p = await pickOpen("Choose a password export", [{ name: "CSV", extensions: ["csv"] }], "C:\\Users\\you\\Downloads\\bitwarden_export.csv");
-            if (p) run(async () => { const r = await api.vaultImportCsv(p); return `Brought in ${plural(r.entries, "entry", "entries")}.${r.warnings.length ? ` ${r.warnings.length} rows couldn't be read.` : ""} Delete the CSV file now: it holds your passwords in plain text.`; });
-          }}><Icon name="folder" size={16} />CSV export</button>
         </div>
-        <p className="small faint">CSV exports from Bitwarden, Chrome, Edge, Brave, Firefox, 1Password, LastPass, Proton Pass, Dashlane and KeePassXC work.</p>
+        <p className="small faint">Works with Bitwarden, 1Password, LastPass, Proton Pass, Dashlane, KeePass and KeePassXC. To use your passwords on another PC, save a KeePass file below, use it there, then "Merge changes from a copy" to bring the changes back.</p>
         {importing && (
           <form className="panel inset-form" onSubmit={(e) => {
             e.preventDefault();

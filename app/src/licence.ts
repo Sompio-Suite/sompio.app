@@ -52,10 +52,10 @@ export interface SuiteApp {
 
 export const SUITE: SuiteApp[] = [
   {
-    key: "calendar",
-    name: "Calendar",
-    icon: "calendar",
-    line: "Your schedule and reminders, with regular privacy check-ups. Opens your Desk Reminders schedule as it is.",
+    key: "vault",
+    name: "Vault",
+    icon: "key",
+    line: "Your passwords, filled in for you in your browser and apps. Warns you when one is weak, reused, in a data breach, or shared in your own chats.",
     ready: true,
     plans: [],
   },
@@ -68,12 +68,11 @@ export const SUITE: SuiteApp[] = [
     plans: [],
   },
   {
-    key: "vault",
-    name: "Vault",
-    icon: "key",
-    line: "Your passwords in the KeePass format, typed in for you with one shortcut. Opens and saves KeePassXC files.",
+    key: "calendar",
+    name: "Calendar",
+    icon: "calendar",
+    line: "Your reminders, typed in one line, popping up on time. Shares schedules with your team or guild in each person's own time zone.",
     ready: true,
     plans: [],
   },
-
 ];

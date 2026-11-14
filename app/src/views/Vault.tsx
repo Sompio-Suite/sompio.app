@@ -165,7 +165,7 @@ export default function Vault({ readOnly, onAddKey }: Props) {
       <div className="app-head">
         <div className="app-title">
           <h1>Vault</h1>
-          <span className="muted">Your passwords in the KeePass format, encrypted with your lock. Nothing leaves this PC.</span>
+          <span className="muted">Your passwords, encrypted with your lock. Nothing leaves this PC, and you can take them anywhere: Vault saves in the open KeePass format.</span>
         </div>
         <div className="segmented" role="tablist" aria-label="Vault">
           {tabs.map(([k, label]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{label}</button>)}
@@ -267,10 +267,10 @@ export default function Vault({ readOnly, onAddKey }: Props) {
                       {search ? <span>Nothing matches "{search}".</span> : inBin ? <span>The recycle bin is empty.</span> : (
                         <>
                           <strong>No passwords here yet.</strong>
-                          <span>Add one, or bring in your KeePass file or an export from your browser or another password manager.</span>
+                          <span>Most people start by bringing in the passwords their browser already saved. It takes a minute.</span>
                           <div className="toolbar">
-                            <button className="primary" disabled={readOnly} onClick={() => setEditing("new")}>New entry</button>
-                            <button onClick={() => setTab("settings")}>Import</button>
+                            <button className="primary" disabled={readOnly} onClick={() => setTab("settings")}>Bring in my browser's passwords</button>
+                            <button disabled={readOnly} onClick={() => setEditing("new")}>New entry</button>
                             <button className="quiet" onClick={() => run(() => api.vaultAddSamples(), "Sample entries added in the Samples folder.")}>Add sample entries</button>
                           </div>
                         </>
